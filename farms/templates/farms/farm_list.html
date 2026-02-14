@@ -1,0 +1,90 @@
+{% extends 'base/base.html' %}
+
+{% block title %}Fazendas - Sistema de Gestão de Rebanhos{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    
+    <!-- Header -->
+    <div class="flex justify-between items-center">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900">Fazendas</h1>
+            <p class="mt-2 text-gray-600">Gerencie suas fazendas cadastradas</p>
+        </div>
+        <a href="{% url 'farms:create' %}" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+            <svg class="mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            Nova Fazenda
+        </a>
+    </div>
+    
+    <!-- Lista de Fazendas -->
+    {% if farms_with_summary %}
+    <div class="bg-white shadow overflow-hidden sm:rounded-md">
+        <ul class="divide-y divide-gray-200">
+            {% for item in farms_with_summary %}
+            <li>
+                <div class="px-4 py-4 sm:px-6 hover:bg-gray-50">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <div class="flex items-center justify-between">
+                                <p class="text-lg font-semibold text-green-600">
+                                    🏡 {{ item.farm.name }}
+                                </p>
+                                <div class="ml-2 flex-shrink-0 flex">
+                                    <p class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                        Total: {{ item.total_animals }} animais
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <!-- Resumo de saldos -->
+                            <div class="mt-2 sm:flex sm:justify-between">
+                                <div class="sm:flex space-x-4">
+                                    {% for saldo in item.summary %}
+                                        <span class="text-sm text-gray-600">
+                                            {{ saldo.categoria_nome }}: <strong>{{ saldo.quantidade }}</strong>
+                                        </span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Ações -->
+                        <div class="ml-4 flex-shrink-0 flex space-x-2">
+                            <a href="{% url 'farms:detail' item.farm.id %}" class="text-gray-600 hover:text-gray-900">
+                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                </svg>
+                            </a>
+                            <a href="{% url 'farms:update' item.farm.id %}" class="text-blue-600 hover:text-blue-900">
+                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                </svg>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% else %}
+    <div class="text-center py-12 bg-white rounded-lg shadow">
+        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
+        </svg>
+        <h3 class="mt-2 text-sm font-medium text-gray-900">Nenhuma fazenda cadastrada</h3>
+        <p class="mt-1 text-sm text-gray-500">Comece cadastrando sua primeira fazenda.</p>
+        <div class="mt-6">
+            <a href="{% url 'farms:create' %}" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
+                Nova Fazenda
+            </a>
+        </div>
+    </div>
+    {% endif %}
+    
+</div>
+{% endblock %}

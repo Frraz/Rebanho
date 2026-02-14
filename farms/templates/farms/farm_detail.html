@@ -1,0 +1,15 @@
+{% extends 'base/base.html' %}
+{% block content %}
+<div class="bg-white p-6 rounded-lg shadow">
+    <h2 class="text-2xl font-bold">{{ farm.name }}</h2>
+    <div class="mt-4">
+        <h3 class="font-semibold">Saldo por Categoria:</h3>
+        <ul class="mt-2">
+            {% for item in summary %}
+            <li>{{ item.categoria_nome }}: {{ item.quantidade }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    <a href="{% url 'farms:list' %}" class="mt-4 inline-block px-4 py-2 bg-gray-600 text-white rounded">Voltar</a>
+</div>
+{% endblock %}

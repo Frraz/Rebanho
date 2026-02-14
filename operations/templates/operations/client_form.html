@@ -1,0 +1,65 @@
+{% extends 'base/base.html' %}
+
+{% block title %}{{ title }} - Sistema de Gestão{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <div class="bg-white shadow sm:rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+            <h3 class="text-lg leading-6 font-medium text-gray-900">{{ title }}</h3>
+            
+            <form method="post" class="mt-5 space-y-6">
+                {% csrf_token %}
+                
+                <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                    <div class="sm:col-span-2">
+                        <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ form.name.label }} <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.name }}
+                        {% if form.name.errors %}<p class="mt-1 text-sm text-red-600">{{ form.name.errors.0 }}</p>{% endif %}
+                    </div>
+                    
+                    <div>
+                        <label for="{{ form.cpf_cnpj.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ form.cpf_cnpj.label }}
+                        </label>
+                        {{ form.cpf_cnpj }}
+                        {% if form.cpf_cnpj.help_text %}<p class="mt-1 text-sm text-gray-500">{{ form.cpf_cnpj.help_text }}</p>{% endif %}
+                    </div>
+                    
+                    <div>
+                        <label for="{{ form.phone.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ form.phone.label }}
+                        </label>
+                        {{ form.phone }}
+                    </div>
+                    
+                    <div class="sm:col-span-2">
+                        <label for="{{ form.email.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ form.email.label }}
+                        </label>
+                        {{ form.email }}
+                    </div>
+                    
+                    <div class="sm:col-span-2">
+                        <label for="{{ form.address.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ form.address.label }}
+                        </label>
+                        {{ form.address }}
+                    </div>
+                </div>
+                
+                <div class="flex justify-end space-x-3">
+                    <a href="{% url 'operations_cadastros:client_list' %}" class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                        Cancelar
+                    </a>
+                    <button type="submit" class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700">
+                        {{ button_text }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
