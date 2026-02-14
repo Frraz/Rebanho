@@ -1,0 +1,211 @@
+{% extends 'base/base.html' %}
+
+{% block title %}Dashboard - Painel de Rebanho{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    
+    <!-- Header -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h1 class="text-3xl font-bold text-gray-900">Dashboard - Painel de Rebanho</h1>
+        <p class="mt-2 text-gray-600">Bem-vindo ao sistema de gestão de rebanhos</p>
+    </div>
+    
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        
+        <!-- Card: Total de Fazendas -->
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <span class="text-4xl">🏡</span>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">
+                                Fazendas Ativas
+                            </dt>
+                            <dd class="text-3xl font-bold text-gray-900">
+                                -
+                            </dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-gray-50 px-5 py-3">
+                <div class="text-sm">
+                    <a href="/cadastros/fazendas/" class="font-medium text-green-600 hover:text-green-500">
+                        Ver todas
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Card: Total de Categorias -->
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <span class="text-4xl">🐄</span>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">
+                                Tipos de Animal
+                            </dt>
+                            <dd class="text-3xl font-bold text-gray-900">
+                                -
+                            </dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-gray-50 px-5 py-3">
+                <div class="text-sm">
+                    <a href="/cadastros/tipos-animal/" class="font-medium text-green-600 hover:text-green-500">
+                        Ver todos
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Card: Total de Animais -->
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <span class="text-4xl">📊</span>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">
+                                Total de Animais
+                            </dt>
+                            <dd class="text-3xl font-bold text-gray-900">
+                                -
+                            </dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-gray-50 px-5 py-3">
+                <div class="text-sm">
+                    <a href="/relatorios/" class="font-medium text-green-600 hover:text-green-500">
+                        Ver relatórios
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Card: Movimentações Hoje -->
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <span class="text-4xl">🔄</span>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">
+                                Movimentações Hoje
+                            </dt>
+                            <dd class="text-3xl font-bold text-gray-900">
+                                -
+                            </dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-gray-50 px-5 py-3">
+                <div class="text-sm">
+                    <a href="/movimentacoes/" class="font-medium text-green-600 hover:text-green-500">
+                        Ver movimentações
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+    
+    <!-- Quick Actions -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-xl font-bold text-gray-900 mb-4">Ações Rápidas</h2>
+        
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            
+            <!-- Registrar Nascimento -->
+            <a href="/movimentacoes/nascimento/" class="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-green-500 transition">
+                <span class="text-3xl mr-3">🐣</span>
+                <div>
+                    <p class="font-semibold text-gray-900">Registrar Nascimento</p>
+                    <p class="text-sm text-gray-500">Nova entrada no rebanho</p>
+                </div>
+            </a>
+            
+            <!-- Registrar Venda -->
+            <a href="/ocorrencias/venda/" class="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-green-500 transition">
+                <span class="text-3xl mr-3">💰</span>
+                <div>
+                    <p class="font-semibold text-gray-900">Registrar Venda</p>
+                    <p class="text-sm text-gray-500">Venda de animal</p>
+                </div>
+            </a>
+            
+            <!-- Transferir (Manejo) -->
+            <a href="/movimentacoes/manejo/" class="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-green-500 transition">
+                <span class="text-3xl mr-3">🚚</span>
+                <div>
+                    <p class="font-semibold text-gray-900">Manejo</p>
+                    <p class="text-sm text-gray-500">Transferir entre fazendas</p>
+                </div>
+            </a>
+            
+            <!-- Relatório -->
+            <a href="/relatorios/" class="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-green-500 transition">
+                <span class="text-3xl mr-3">📈</span>
+                <div>
+                    <p class="font-semibold text-gray-900">Gerar Relatório</p>
+                    <p class="text-sm text-gray-500">Relatórios detalhados</p>
+                </div>
+            </a>
+            
+            <!-- Cadastrar Fazenda -->
+            <a href="/cadastros/fazendas/nova/" class="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-green-500 transition">
+                <span class="text-3xl mr-3">➕</span>
+                <div>
+                    <p class="font-semibold text-gray-900">Nova Fazenda</p>
+                    <p class="text-sm text-gray-500">Cadastrar fazenda</p>
+                </div>
+            </a>
+            
+            <!-- Cadastrar Categoria -->
+            <a href="/cadastros/tipos-animal/novo/" class="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-green-500 transition">
+                <span class="text-3xl mr-3">🏷️</span>
+                <div>
+                    <p class="font-semibold text-gray-900">Novo Tipo de Animal</p>
+                    <p class="text-sm text-gray-500">Cadastrar categoria</p>
+                </div>
+            </a>
+            
+        </div>
+    </div>
+    
+    <!-- Info Box -->
+    <div class="bg-blue-50 border-l-4 border-blue-400 p-4 rounded">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                </svg>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm text-blue-700">
+                    <strong>Sistema em Desenvolvimento:</strong> Os cards acima mostrarão dados reais assim que os Services forem implementados. Por enquanto, você pode usar o Admin Django para cadastrar dados de teste.
+                </p>
+            </div>
+        </div>
+    </div>
+    
+</div>
+{% endblock %}

@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Sistema de Gestão de Rebanhos{% endblock %}</title>
+    
+    <!-- TailwindCSS via CDN (desenvolvimento) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    
+    <style>
+        /* Alpine.js cloak */
+        [x-cloak] { 
+            display: none !important; 
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+    
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col">
+    
+    <!-- Navbar -->
+    <nav class="bg-white shadow-lg border-b border-gray-200" x-data="{ mobileMenuOpen: false }">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <!-- Logo -->
+                <div class="flex items-center">
+                    <a href="{% url 'core:dashboard' %}" class="flex items-center">
+                        <span class="text-2xl font-bold text-green-600">🐄</span>
+                        <span class="ml-3 text-xl font-bold text-gray-800 hidden sm:block">Gestão de Rebanhos</span>
+                        <span class="ml-3 text-xl font-bold text-gray-800 sm:hidden">GR</span>
+                    </a>
+                </div>
+                
+                <!-- Menu Desktop -->
+                <div class="hidden md:flex md:items-center md:space-x-4">
+                    <a href="{% url 'core:dashboard' %}" class="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-green-600 hover:bg-gray-50">
+                        Dashboard
+                    </a>
+                    
+                    <!-- Dropdown Cadastros -->
+                    <div x-data="{ open: false }" class="relative">
+                        <button @click="open = !open" class="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-green-600 hover:bg-gray-50 flex items-center">
+                            Cadastros
+                            <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+                        <div x-show="open" @click.away="open = false" x-cloak class="absolute left-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
+                            <div class="py-1">
+                                <a href="/cadastros/fazendas/" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                    <span class="mr-2">🏡</span> Fazendas
+                                </a>
+                                <a href="/cadastros/tipos-animal/" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                    <span class="mr-2">🐄</span> Tipos de Animal
+                                </a>
+                                <a href="/cadastros/tipos-morte/" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                    <span class="mr-2">💀</span> Tipos de Morte
+                                </a>
+                                <a href="/cadastros/clientes/" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                    <span class="mr-2">👤</span> Clientes
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Dropdown Ocorrências -->
+                    <div x-data="{ open: false }" class="relative">
+                        <button @click="open = !open" class="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-green-600 hover:bg-gray-50 flex items-center">
+                            Ocorrências
+                            <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+                        <div x-show="open" @click.away="open = false" x-cloak class="absolute left-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
+                            <div class="py-1">
+                                <a href="/ocorrencias/" class="block px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 font-semibold">
+                                    📋 Ver Todas
+                                </a>
+                                <div class="border-t border-gray-100"></div>
+                                <a href="/ocorrencias/morte/" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                    <span class="mr-2">☠️</span> Morte
+                                </a>
+                                <a href="/ocorrencias/abate/" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                    <span class="mr-2">🔪</span> Abate
+                                </a>
+                                <a href="/ocorrencias/venda/" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                    <span class="mr-2">💰</span> Venda
+                                </a>
+                                <a href="/ocorrencias/doacao/" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                    <span class="mr-2">🎁</span> Doação
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Dropdown Movimentações -->
+                    <div x-data="{ open: false }" class="relative">
+                        <button @click="open = !open" class="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-green-600 hover:bg-gray-50 flex items-center">
+                            Movimentações
+                            <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+                        <div x-show="open" @click.away="open = false" x-cloak class="absolute left-0 mt-2 w-64 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
+                            <div class="py-1">
+                                <a href="/movimentacoes/" class="block px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 font-semibold">
+                                    📋 Ver Todas
+                                </a>
+                                <div class="border-t border-gray-100"></div>
+                                <a href="/movimentacoes/nascimento/" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                    <span class="mr-2">🐣</span> Nascimento
+                                </a>
+                                <a href="/movimentacoes/desmame/" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                    <span class="mr-2">🍼</span> Desmame
+                                </a>
+                                <a href="/movimentacoes/saldo/" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                    <span class="mr-2">⚖️</span> Saldo
+                                </a>
+                                <a href="/movimentacoes/compra/" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                    <span class="mr-2">🛒</span> Compra
+                                </a>
+                                <a href="/movimentacoes/manejo/" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                    <span class="mr-2">🚚</span> Manejo
+                                </a>
+                                <a href="/movimentacoes/mudanca-categoria/" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                    <span class="mr-2">🔄</span> Mudança de Categoria
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Dropdown Relatórios -->
+                    <div x-data="{ open: false }" class="relative">
+                        <button @click="open = !open" class="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-green-600 hover:bg-gray-50 flex items-center">
+                            Relatórios
+                            <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+                        <div x-show="open" @click.away="open = false" x-cloak class="absolute left-0 mt-2 w-60 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
+                            <div class="py-1">
+                                <a href="/relatorios/por-fazenda/" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                    <span class="mr-2">📊</span> Relatório por Fazenda
+                                </a>
+                                <a href="/relatorios/fazendas-reunidas/" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                    <span class="mr-2">📈</span> Fazendas Reunidas
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- User Menu Desktop -->
+                <div class="hidden md:flex md:items-center">
+                    <div x-data="{ open: false }" class="relative">
+                        <button @click="open = !open" class="flex items-center text-sm font-medium text-gray-700 hover:text-green-600">
+                            <span class="mr-2">{{ request.user.username|default:"Usuário" }}</span>
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+                        <div x-show="open" @click.away="open = false" x-cloak class="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
+                            <div class="py-1">
+                                <a href="/admin/" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Admin</a>
+                                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Sair</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Mobile menu button -->
+                <div class="md:hidden flex items-center">
+                    <button @click="mobileMenuOpen = !mobileMenuOpen" type="button" class="inline-flex items-center justify-center p-2 rounded-md text-gray-700 hover:text-green-600 hover:bg-gray-100 focus:outline-none">
+                        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Mobile Menu -->
+        <div x-show="mobileMenuOpen" x-cloak class="md:hidden border-t border-gray-200">
+            <div class="px-2 pt-2 pb-3 space-y-1">
+                <a href="{% url 'core:dashboard' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-green-600 hover:bg-gray-50">
+                    Dashboard
+                </a>
+                
+                <!-- Mobile Cadastros -->
+                <div x-data="{ open: false }">
+                    <button @click="open = !open" class="w-full flex items-center justify-between px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-green-600 hover:bg-gray-50">
+                        <span>Cadastros</span>
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+                    <div x-show="open" x-cloak class="pl-6 space-y-1">
+                        <a href="/cadastros/fazendas/" class="block px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">🏡 Fazendas</a>
+                        <a href="/cadastros/tipos-animal/" class="block px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">🐄 Tipos de Animal</a>
+                        <a href="/cadastros/tipos-morte/" class="block px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">💀 Tipos de Morte</a>
+                        <a href="/cadastros/clientes/" class="block px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">👤 Clientes</a>
+                    </div>
+                </div>
+                
+                <!-- Mobile Ocorrências -->
+                <div x-data="{ open: false }">
+                    <button @click="open = !open" class="w-full flex items-center justify-between px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-green-600 hover:bg-gray-50">
+                        <span>Ocorrências</span>
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+                    <div x-show="open" x-cloak class="pl-6 space-y-1">
+                        <a href="/ocorrencias/" class="block px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 font-semibold">📋 Ver Todas</a>
+                        <a href="/ocorrencias/morte/" class="block px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">☠️ Morte</a>
+                        <a href="/ocorrencias/abate/" class="block px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">🔪 Abate</a>
+                        <a href="/ocorrencias/venda/" class="block px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">💰 Venda</a>
+                        <a href="/ocorrencias/doacao/" class="block px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">🎁 Doação</a>
+                    </div>
+                </div>
+                
+                <!-- Mobile Movimentações -->
+                <div x-data="{ open: false }">
+                    <button @click="open = !open" class="w-full flex items-center justify-between px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-green-600 hover:bg-gray-50">
+                        <span>Movimentações</span>
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+                    <div x-show="open" x-cloak class="pl-6 space-y-1">
+                        <a href="/movimentacoes/" class="block px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 font-semibold">📋 Ver Todas</a>
+                        <a href="/movimentacoes/nascimento/" class="block px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">🐣 Nascimento</a>
+                        <a href="/movimentacoes/desmame/" class="block px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">🍼 Desmame</a>
+                        <a href="/movimentacoes/saldo/" class="block px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">⚖️ Saldo</a>
+                        <a href="/movimentacoes/compra/" class="block px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">🛒 Compra</a>
+                        <a href="/movimentacoes/manejo/" class="block px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">🚚 Manejo</a>
+                        <a href="/movimentacoes/mudanca-categoria/" class="block px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">🔄 Mudança de Categoria</a>
+                    </div>
+                </div>
+                
+                <!-- Mobile Relatórios -->
+                <div x-data="{ open: false }">
+                    <button @click="open = !open" class="w-full flex items-center justify-between px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-green-600 hover:bg-gray-50">
+                        <span>Relatórios</span>
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+                    <div x-show="open" x-cloak class="pl-6 space-y-1">
+                        <a href="/relatorios/por-fazenda/" class="block px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">📊 Relatório por Fazenda</a>
+                        <a href="/relatorios/fazendas-reunidas/" class="block px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">📈 Fazendas Reunidas</a>
+                    </div>
+                </div>
+                
+                <!-- Mobile User Menu -->
+                <div class="border-t border-gray-200 pt-2">
+                    <div class="px-3 py-2">
+                        <p class="text-sm font-medium text-gray-900">{{ request.user.username|default:"Usuário" }}</p>
+                    </div>
+                    <a href="/admin/" class="block px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">Admin</a>
+                    <a href="#" class="block px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">Sair</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Messages -->
+    {% if messages %}
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
+        {% for message in messages %}
+        <div class="rounded-md p-4 mb-4 {% if message.tags == 'error' %}bg-red-50 text-red-800{% elif message.tags == 'success' %}bg-green-50 text-green-800{% elif message.tags == 'warning' %}bg-yellow-50 text-yellow-800{% else %}bg-blue-50 text-blue-800{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    
+    <!-- Main Content -->
+    <main class="flex-grow max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
+        {% block content %}
+        {% endblock %}
+    </main>
+    
+    <!-- Footer -->
+    <footer class="bg-white border-t border-gray-200 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <p class="text-center text-gray-500 text-sm">
+                © 2026 Sistema de Gestão de Rebanhos. Todos os direitos reservados.
+            </p>
+        </div>
+    </footer>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
