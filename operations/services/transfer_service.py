@@ -46,7 +46,6 @@ class TransferService:
         Esta é uma operação COMPOSTA que realiza:
         1. SAÍDA da fazenda origem (MANEJO_OUT)
         2. ENTRADA na fazenda destino (MANEJO_IN)
-        3. Vinculação dos dois movimentos (rastreabilidade)
         
         A operação é ATÔMICA: se qualquer parte falhar, tudo é revertido.
         
@@ -119,14 +118,8 @@ class TransferService:
             # incluindo a saída que já foi feita
             raise e
         
-        # 4. VINCULAR OS DOIS MOVIMENTOS (rastreabilidade bidirecional)
-        movimento_saida.related_movement = movimento_entrada
-        movimento_saida.save(update_fields=['related_movement'])
-        
-        movimento_entrada.related_movement = movimento_saida
-        movimento_entrada.save(update_fields=['related_movement'])
-        
-        # 5. RETORNAR AMBOS OS MOVIMENTOS
+        # 4. RETORNAR AMBOS OS MOVIMENTOS
+        # Nota: A vinculação está no metadata, não precisamos de related_movement
         return (movimento_saida, movimento_entrada)
     
     @staticmethod
@@ -147,7 +140,6 @@ class TransferService:
         Esta é uma operação COMPOSTA que realiza:
         1. SAÍDA da categoria origem (MUDANCA_CATEGORIA_OUT)
         2. ENTRADA na categoria destino (MUDANCA_CATEGORIA_IN)
-        3. Vinculação dos dois movimentos (rastreabilidade)
         
         A operação é ATÔMICA: se qualquer parte falhar, tudo é revertido.
         
@@ -213,7 +205,7 @@ class TransferService:
             movimento_entrada = MovementService.execute_entrada(
                 farm_id=farm_id,
                 animal_category_id=target_category_id,
-                operation_type=OperationType.MANEJO_IN,  # FIXME: deveria ser MUDANCA_CATEGORIA_IN
+                operation_type=OperationType.MUDANCA_CATEGORIA_IN,
                 quantity=quantity,
                 user=user,
                 timestamp=operation_timestamp,
@@ -224,14 +216,7 @@ class TransferService:
             # Se entrada falhar, a transação será revertida automaticamente
             raise e
         
-        # 4. VINCULAR OS DOIS MOVIMENTOS (rastreabilidade bidirecional)
-        movimento_saida.related_movement = movimento_entrada
-        movimento_saida.save(update_fields=['related_movement'])
-        
-        movimento_entrada.related_movement = movimento_saida
-        movimento_entrada.save(update_fields=['related_movement'])
-        
-        # 5. RETORNAR AMBOS OS MOVIMENTOS
+        # 4. RETORNAR AMBOS OS MOVIMENTOS
         return (movimento_saida, movimento_entrada)
     
     @staticmethod

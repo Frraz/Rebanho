@@ -107,6 +107,7 @@ class CompraForm(MovementBaseForm):
     fornecedor = forms.CharField(
         label='Fornecedor',
         required=False,
+        max_length=200,  # CORRIGIDO: max_length ao invés de max_fields
         widget=forms.TextInput(attrs={
             'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm',
             'placeholder': 'Nome do fornecedor (opcional)',

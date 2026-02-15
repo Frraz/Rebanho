@@ -1,0 +1,141 @@
+{% extends 'base/base.html' %}
+
+{% block title %}Relatórios - Sistema de Gestão{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    
+    <!-- Header -->
+    <div>
+        <h1 class="text-3xl font-bold text-gray-900">📊 Relatórios</h1>
+        <p class="mt-2 text-gray-600">Gere relatórios detalhados de movimentações</p>
+    </div>
+    
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        
+        <!-- Relatório por Fazenda -->
+        <div class="bg-white shadow sm:rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">
+                    🏡 Relatório por Fazenda
+                </h3>
+                <p class="text-sm text-gray-500 mb-4">
+                    Relatório detalhado de uma fazenda específica com estoque inicial, movimentações e estoque final.
+                </p>
+                
+                <form method="post" action="{% url 'reporting:farm' %}" class="space-y-4">
+                    {% csrf_token %}
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">
+                            Fazenda <span class="text-red-500">*</span>
+                        </label>
+                        <select name="farm" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm">
+                            <option value="">Selecione uma fazenda</option>
+                            {% for farm in farms %}
+                            <option value="{{ farm.id }}">{{ farm.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">
+                                Data Inicial <span class="text-red-500">*</span>
+                            </label>
+                            <input type="date" name="start_date" required value="{{ default_start }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">
+                                Data Final <span class="text-red-500">*</span>
+                            </label>
+                            <input type="date" name="end_date" required value="{{ default_end }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm">
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">
+                            Categoria (opcional)
+                        </label>
+                        <select name="category" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm">
+                            <option value="">Todas as categorias</option>
+                            {% for category in categories %}
+                            <option value="{{ category.id }}">{{ category.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <button type="submit" class="w-full px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700">
+                        Gerar Relatório
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Relatório Consolidado -->
+        <div class="bg-white shadow sm:rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">
+                    📈 Fazendas Reunidas
+                </h3>
+                <p class="text-sm text-gray-500 mb-4">
+                    Relatório consolidado de múltiplas fazendas, somando todos os valores.
+                </p>
+                
+                <form method="post" action="{% url 'reporting:consolidated' %}" class="space-y-4">
+                    {% csrf_token %}
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Fazendas (deixe vazio para todas)
+                        </label>
+                        <div class="space-y-2 max-h-40 overflow-y-auto border rounded p-2">
+                            {% for farm in farms %}
+                            <label class="flex items-center">
+                                <input type="checkbox" name="farms" value="{{ farm.id }}" class="rounded border-gray-300 text-green-600 focus:ring-green-500">
+                                <span class="ml-2 text-sm text-gray-700">{{ farm.name }}</span>
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">
+                                Data Inicial <span class="text-red-500">*</span>
+                            </label>
+                            <input type="date" name="start_date" required value="{{ default_start }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">
+                                Data Final <span class="text-red-500">*</span>
+                            </label>
+                            <input type="date" name="end_date" required value="{{ default_end }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm">
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">
+                            Categoria (opcional)
+                        </label>
+                        <select name="category" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm">
+                            <option value="">Todas as categorias</option>
+                            {% for category in categories %}
+                            <option value="{{ category.id }}">{{ category.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <button type="submit" class="w-full px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
+                        Gerar Relatório Consolidado
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+    </div>
+    
+</div>
+{% endblock %}

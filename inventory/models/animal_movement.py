@@ -248,11 +248,19 @@ class AnimalMovement(models.Model):
         """
         
         # ⚠️ PROTEÇÃO CRÍTICA: Impedir alterações em registros existentes
+        # Verificar se o registro JÁ EXISTE no banco (não apenas se pk existe)
         if self.pk is not None:
-            raise ValidationError(
-                "Movimentações são IMUTÁVEIS e não podem ser alteradas após criação. "
-                "Esta é uma proteção de integridade do ledger."
-            )
+            try:
+                # Tentar buscar o registro no banco
+                existing = self.__class__.objects.get(pk=self.pk)
+                # Se chegou aqui, o registro já existe = tentativa de UPDATE
+                raise ValidationError(
+                    "Movimentações são IMUTÁVEIS e não podem ser alteradas após criação. "
+                    "Esta é uma proteção de integridade do ledger."
+                )
+            except self.__class__.DoesNotExist:
+                # Registro não existe no banco ainda = primeira save (CREATE)
+                pass
         
         self.full_clean()
         super().save(*args, **kwargs)

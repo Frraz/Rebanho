@@ -36,6 +36,7 @@ class OperationType(str, Enum):
     MANEJO_IN = "MANEJO_IN"  # Recebimento de outra fazenda
     MUDANCA_CATEGORIA_IN = "MUDANCA_CATEGORIA_IN"  # Entrada na nova categoria
     DESMAME = "DESMAME"
+    SALDO = "SALDO"  
     
     # === SAÍDAS ===
     MORTE = "MORTE"
@@ -58,6 +59,7 @@ class OperationType(str, Enum):
             cls.MANEJO_IN,
             cls.MUDANCA_CATEGORIA_IN,
             cls.DESMAME,
+            cls.SALDO,   
         ]
     
     @classmethod

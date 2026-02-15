@@ -1,0 +1,59 @@
+{# Paginação reutilizável #}
+{# Uso: {% include 'shared/pagination.html' %} #}
+
+{% if page_obj.has_other_pages %}
+<div class="flex items-center justify-between px-4 py-3 bg-white border-t border-gray-200 sm:px-6">
+    
+    <div class="text-sm text-gray-500">
+        Mostrando
+        <span class="font-medium">{{ page_obj.start_index }}</span>
+        a
+        <span class="font-medium">{{ page_obj.end_index }}</span>
+        de
+        <span class="font-medium">{{ total_count }}</span>
+        resultados
+    </div>
+
+    <nav class="flex gap-1" aria-label="Paginação">
+        
+        {# Primeira página #}
+        {% if page_obj.has_previous %}
+        <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page=1"
+           class="px-2 py-1.5 text-xs border border-gray-300 rounded text-gray-600 hover:bg-gray-50">
+            «
+        </a>
+        <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}"
+           class="px-3 py-1.5 text-xs border border-gray-300 rounded text-gray-600 hover:bg-gray-50">
+            ‹ Anterior
+        </a>
+        {% endif %}
+
+        {# Páginas próximas #}
+        {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+            <span class="px-3 py-1.5 text-xs bg-green-600 text-white rounded font-medium">
+                {{ num }}
+            </span>
+            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+            <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ num }}"
+               class="px-3 py-1.5 text-xs border border-gray-300 rounded text-gray-600 hover:bg-gray-50">
+                {{ num }}
+            </a>
+            {% endif %}
+        {% endfor %}
+
+        {# Próxima / Última #}
+        {% if page_obj.has_next %}
+        <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}"
+           class="px-3 py-1.5 text-xs border border-gray-300 rounded text-gray-600 hover:bg-gray-50">
+            Próxima ›
+        </a>
+        <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.paginator.num_pages }}"
+           class="px-2 py-1.5 text-xs border border-gray-300 rounded text-gray-600 hover:bg-gray-50">
+            »
+        </a>
+        {% endif %}
+
+    </nav>
+</div>
+{% endif %}

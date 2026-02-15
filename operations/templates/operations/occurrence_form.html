@@ -1,16 +1,122 @@
 {% extends 'base/base.html' %}
+
+{% block title %}{{ title }} - Sistema de Gestão{% endblock %}
+
 {% block content %}
-<div class="max-w-2xl mx-auto bg-white p-6 rounded-lg shadow">
-    <h2 class="text-2xl font-bold mb-4">{{ title }}</h2>
-    <form method="post">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit" class="mt-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
-            {{ button_text|default:"Salvar" }}
-        </button>
-        <a href="{% url 'farms:list' %}" class="ml-2 px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400">
-            Cancelar
-        </a>
-    </form>
+<div class="max-w-3xl mx-auto">
+    <div class="bg-white shadow sm:rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+            <h3 class="text-lg leading-6 font-medium text-gray-900">{{ title }}</h3>
+            
+            <form method="post" class="mt-5 space-y-6">
+                {% csrf_token %}
+                
+                {% if form.non_field_errors %}
+                <div class="rounded-md bg-red-50 p-4">
+                    <div class="text-sm text-red-700">{{ form.non_field_errors }}</div>
+                </div>
+                {% endif %}
+                
+                <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                    <!-- Fazenda -->
+                    <div>
+                        <label for="{{ form.farm.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ form.farm.label }} <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.farm }}
+                        {% if form.farm.errors %}<p class="mt-1 text-sm text-red-600">{{ form.farm.errors.0 }}</p>{% endif %}
+                    </div>
+                    
+                    <!-- Tipo de Animal -->
+                    <div>
+                        <label for="{{ form.animal_category.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ form.animal_category.label }} <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.animal_category }}
+                        {% if form.animal_category.errors %}<p class="mt-1 text-sm text-red-600">{{ form.animal_category.errors.0 }}</p>{% endif %}
+                    </div>
+                    
+                    <!-- Quantidade -->
+                    <div>
+                        <label for="{{ form.quantity.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ form.quantity.label }} <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.quantity }}
+                        {% if form.quantity.errors %}<p class="mt-1 text-sm text-red-600">{{ form.quantity.errors.0 }}</p>{% endif %}
+                    </div>
+                    
+                    <!-- Data/Hora -->
+                    <div>
+                        <label for="{{ form.timestamp.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ form.timestamp.label }}
+                        </label>
+                        {{ form.timestamp }}
+                        {% if form.timestamp.help_text %}<p class="mt-1 text-sm text-gray-500">{{ form.timestamp.help_text }}</p>{% endif %}
+                    </div>
+                    
+                    <!-- Cliente (para Venda e Doação) -->
+                    {% if form.client %}
+                    <div class="sm:col-span-2">
+                        <label for="{{ form.client.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ form.client.label }} <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.client }}
+                        {% if form.client.help_text %}<p class="mt-1 text-sm text-gray-500">{{ form.client.help_text }}</p>{% endif %}
+                        {% if form.client.errors %}<p class="mt-1 text-sm text-red-600">{{ form.client.errors.0 }}</p>{% endif %}
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Tipo de Morte (para Morte) -->
+                    {% if form.death_reason %}
+                    <div class="sm:col-span-2">
+                        <label for="{{ form.death_reason.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ form.death_reason.label }} <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.death_reason }}
+                        {% if form.death_reason.errors %}<p class="mt-1 text-sm text-red-600">{{ form.death_reason.errors.0 }}</p>{% endif %}
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Peso -->
+                    {% if form.peso %}
+                    <div>
+                        <label for="{{ form.peso.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ form.peso.label }}{% if 'venda' in title|lower %} <span class="text-red-500">*</span>{% endif %}
+                        </label>
+                        {{ form.peso }}
+                        {% if form.peso.errors %}<p class="mt-1 text-sm text-red-600">{{ form.peso.errors.0 }}</p>{% endif %}
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Preço Total (para Venda) -->
+                    {% if form.preco_total %}
+                    <div>
+                        <label for="{{ form.preco_total.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ form.preco_total.label }}
+                        </label>
+                        {{ form.preco_total }}
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Observação -->
+                <div>
+                    <label for="{{ form.observacao.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        {{ form.observacao.label }}
+                    </label>
+                    {{ form.observacao }}
+                </div>
+                
+                <div class="flex justify-end space-x-3">
+                    <a href="{% url 'ocorrencias:list' %}" class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                        Cancelar
+                    </a>
+                    <button type="submit" class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700">
+                        Registrar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 {% endblock %}

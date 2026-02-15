@@ -39,11 +39,12 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    
+    'django_extensions',
+
     # Third-party apps
-    'django_htmx',  # HTMX support
-    
-    # Local apps (ordenados por dependência)
+    'django_htmx',
+
+    # Local apps
     'core.apps.CoreConfig',
     'farms.apps.FarmsConfig',
     'inventory.apps.InventoryConfig',
@@ -316,3 +317,10 @@ if DEBUG:
     
     # Email backend para desenvolvimento
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+# ==============================================================================
+# Autenticação
+# ==============================================================================
+LOGIN_URL = '/login/'          # ← era '/admin/login/'
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/login/'

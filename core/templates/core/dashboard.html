@@ -1,211 +1,431 @@
 {% extends 'base/base.html' %}
 
-{% block title %}Dashboard - Painel de Rebanho{% endblock %}
+{% block title %}Dashboard — Gestão de Rebanhos{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
 
 {% block content %}
-<div class="space-y-6">
-    
-    <!-- Header -->
-    <div class="bg-white rounded-lg shadow p-6">
-        <h1 class="text-3xl font-bold text-gray-900">Dashboard - Painel de Rebanho</h1>
-        <p class="mt-2 text-gray-600">Bem-vindo ao sistema de gestão de rebanhos</p>
-    </div>
-    
-    <!-- Stats Cards -->
-    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        
-        <!-- Card: Total de Fazendas -->
-        <div class="bg-white overflow-hidden shadow rounded-lg">
-            <div class="p-5">
-                <div class="flex items-center">
-                    <div class="flex-shrink-0">
-                        <span class="text-4xl">🏡</span>
-                    </div>
-                    <div class="ml-5 w-0 flex-1">
-                        <dl>
-                            <dt class="text-sm font-medium text-gray-500 truncate">
-                                Fazendas Ativas
-                            </dt>
-                            <dd class="text-3xl font-bold text-gray-900">
-                                -
-                            </dd>
-                        </dl>
-                    </div>
-                </div>
+<div x-data="dashboard()" x-init="init()">
+
+    <!-- ═══════════════════════════════════════════════════════════
+         MODO SIMPLES
+    ═══════════════════════════════════════════════════════════ -->
+    <div x-show="!metricasAtivas" x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
+
+        <!-- Boas-vindas -->
+        <div class="text-center py-10">
+            <div class="text-6xl mb-4">🐄</div>
+            <h1 class="text-3xl font-bold text-gray-800">
+                Bom dia, {{ request.user.first_name|default:request.user.username }}!
+            </h1>
+            <p class="text-gray-500 mt-2 text-lg">{{ mes_atual|capfirst }}</p>
+        </div>
+
+        <!-- Cards simples -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 text-center">
+                <p class="text-4xl font-bold text-green-600">{{ total_animais }}</p>
+                <p class="text-sm text-gray-500 mt-1">Total de Animais</p>
             </div>
-            <div class="bg-gray-50 px-5 py-3">
-                <div class="text-sm">
-                    <a href="/cadastros/fazendas/" class="font-medium text-green-600 hover:text-green-500">
-                        Ver todas
-                    </a>
-                </div>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 text-center">
+                <p class="text-4xl font-bold text-blue-600">{{ total_fazendas }}</p>
+                <p class="text-sm text-gray-500 mt-1">Fazendas Ativas</p>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 text-center">
+                <p class="text-4xl font-bold text-purple-600">{{ total_categorias }}</p>
+                <p class="text-sm text-gray-500 mt-1">Categorias</p>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 text-center">
+                <p class="text-4xl font-bold text-orange-500">{{ movimentacoes_mes }}</p>
+                <p class="text-sm text-gray-500 mt-1">Movimentos no Mês</p>
             </div>
         </div>
-        
-        <!-- Card: Total de Categorias -->
-        <div class="bg-white overflow-hidden shadow rounded-lg">
-            <div class="p-5">
-                <div class="flex items-center">
-                    <div class="flex-shrink-0">
-                        <span class="text-4xl">🐄</span>
-                    </div>
-                    <div class="ml-5 w-0 flex-1">
-                        <dl>
-                            <dt class="text-sm font-medium text-gray-500 truncate">
-                                Tipos de Animal
-                            </dt>
-                            <dd class="text-3xl font-bold text-gray-900">
-                                -
-                            </dd>
-                        </dl>
-                    </div>
-                </div>
-            </div>
-            <div class="bg-gray-50 px-5 py-3">
-                <div class="text-sm">
-                    <a href="/cadastros/tipos-animal/" class="font-medium text-green-600 hover:text-green-500">
-                        Ver todos
-                    </a>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Card: Total de Animais -->
-        <div class="bg-white overflow-hidden shadow rounded-lg">
-            <div class="p-5">
-                <div class="flex items-center">
-                    <div class="flex-shrink-0">
-                        <span class="text-4xl">📊</span>
-                    </div>
-                    <div class="ml-5 w-0 flex-1">
-                        <dl>
-                            <dt class="text-sm font-medium text-gray-500 truncate">
-                                Total de Animais
-                            </dt>
-                            <dd class="text-3xl font-bold text-gray-900">
-                                -
-                            </dd>
-                        </dl>
-                    </div>
-                </div>
-            </div>
-            <div class="bg-gray-50 px-5 py-3">
-                <div class="text-sm">
-                    <a href="/relatorios/" class="font-medium text-green-600 hover:text-green-500">
-                        Ver relatórios
-                    </a>
-                </div>
+
+        <!-- Ações rápidas -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
+            <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Ações Rápidas</h2>
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+                <a href="/movimentacoes/nascimento/" class="flex flex-col items-center p-3 rounded-lg border border-gray-200 hover:border-green-400 hover:bg-green-50 transition-all group">
+                    <span class="text-2xl mb-1">🐣</span>
+                    <span class="text-xs text-gray-600 group-hover:text-green-700 text-center font-medium">Nascimento</span>
+                </a>
+                <a href="/movimentacoes/compra/" class="flex flex-col items-center p-3 rounded-lg border border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-all group">
+                    <span class="text-2xl mb-1">🛒</span>
+                    <span class="text-xs text-gray-600 group-hover:text-blue-700 text-center font-medium">Compra</span>
+                </a>
+                <a href="/ocorrencias/venda/" class="flex flex-col items-center p-3 rounded-lg border border-gray-200 hover:border-yellow-400 hover:bg-yellow-50 transition-all group">
+                    <span class="text-2xl mb-1">💰</span>
+                    <span class="text-xs text-gray-600 group-hover:text-yellow-700 text-center font-medium">Venda</span>
+                </a>
+                <a href="/movimentacoes/manejo/" class="flex flex-col items-center p-3 rounded-lg border border-gray-200 hover:border-purple-400 hover:bg-purple-50 transition-all group">
+                    <span class="text-2xl mb-1">🚚</span>
+                    <span class="text-xs text-gray-600 group-hover:text-purple-700 text-center font-medium">Manejo</span>
+                </a>
+                <a href="/relatorios/fazenda/" class="flex flex-col items-center p-3 rounded-lg border border-gray-200 hover:border-indigo-400 hover:bg-indigo-50 transition-all group">
+                    <span class="text-2xl mb-1">📊</span>
+                    <span class="text-xs text-gray-600 group-hover:text-indigo-700 text-center font-medium">Relatório</span>
+                </a>
+                <a href="/cadastros/fazendas/" class="flex flex-col items-center p-3 rounded-lg border border-gray-200 hover:border-gray-400 hover:bg-gray-50 transition-all group">
+                    <span class="text-2xl mb-1">🏡</span>
+                    <span class="text-xs text-gray-600 group-hover:text-gray-700 text-center font-medium">Fazendas</span>
+                </a>
             </div>
         </div>
-        
-        <!-- Card: Movimentações Hoje -->
-        <div class="bg-white overflow-hidden shadow rounded-lg">
-            <div class="p-5">
-                <div class="flex items-center">
-                    <div class="flex-shrink-0">
-                        <span class="text-4xl">🔄</span>
-                    </div>
-                    <div class="ml-5 w-0 flex-1">
-                        <dl>
-                            <dt class="text-sm font-medium text-gray-500 truncate">
-                                Movimentações Hoje
-                            </dt>
-                            <dd class="text-3xl font-bold text-gray-900">
-                                -
-                            </dd>
-                        </dl>
-                    </div>
-                </div>
-            </div>
-            <div class="bg-gray-50 px-5 py-3">
-                <div class="text-sm">
-                    <a href="/movimentacoes/" class="font-medium text-green-600 hover:text-green-500">
-                        Ver movimentações
-                    </a>
-                </div>
-            </div>
-        </div>
-        
-    </div>
-    
-    <!-- Quick Actions -->
-    <div class="bg-white rounded-lg shadow p-6">
-        <h2 class="text-xl font-bold text-gray-900 mb-4">Ações Rápidas</h2>
-        
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            
-            <!-- Registrar Nascimento -->
-            <a href="/movimentacoes/nascimento/" class="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-green-500 transition">
-                <span class="text-3xl mr-3">🐣</span>
-                <div>
-                    <p class="font-semibold text-gray-900">Registrar Nascimento</p>
-                    <p class="text-sm text-gray-500">Nova entrada no rebanho</p>
-                </div>
-            </a>
-            
-            <!-- Registrar Venda -->
-            <a href="/ocorrencias/venda/" class="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-green-500 transition">
-                <span class="text-3xl mr-3">💰</span>
-                <div>
-                    <p class="font-semibold text-gray-900">Registrar Venda</p>
-                    <p class="text-sm text-gray-500">Venda de animal</p>
-                </div>
-            </a>
-            
-            <!-- Transferir (Manejo) -->
-            <a href="/movimentacoes/manejo/" class="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-green-500 transition">
-                <span class="text-3xl mr-3">🚚</span>
-                <div>
-                    <p class="font-semibold text-gray-900">Manejo</p>
-                    <p class="text-sm text-gray-500">Transferir entre fazendas</p>
-                </div>
-            </a>
-            
-            <!-- Relatório -->
-            <a href="/relatorios/" class="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-green-500 transition">
-                <span class="text-3xl mr-3">📈</span>
-                <div>
-                    <p class="font-semibold text-gray-900">Gerar Relatório</p>
-                    <p class="text-sm text-gray-500">Relatórios detalhados</p>
-                </div>
-            </a>
-            
-            <!-- Cadastrar Fazenda -->
-            <a href="/cadastros/fazendas/nova/" class="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-green-500 transition">
-                <span class="text-3xl mr-3">➕</span>
-                <div>
-                    <p class="font-semibold text-gray-900">Nova Fazenda</p>
-                    <p class="text-sm text-gray-500">Cadastrar fazenda</p>
-                </div>
-            </a>
-            
-            <!-- Cadastrar Categoria -->
-            <a href="/cadastros/tipos-animal/novo/" class="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-green-500 transition">
-                <span class="text-3xl mr-3">🏷️</span>
-                <div>
-                    <p class="font-semibold text-gray-900">Novo Tipo de Animal</p>
-                    <p class="text-sm text-gray-500">Cadastrar categoria</p>
-                </div>
-            </a>
-            
-        </div>
-    </div>
-    
-    <!-- Info Box -->
-    <div class="bg-blue-50 border-l-4 border-blue-400 p-4 rounded">
-        <div class="flex">
-            <div class="flex-shrink-0">
-                <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+
+        <!-- Botão toggle -->
+        <div class="text-center py-4">
+            <button @click="ativarMetricas()"
+                class="inline-flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-full shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-105">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
                 </svg>
+                Exibir Métricas
+            </button>
+        </div>
+
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         MODO MÉTRICAS
+    ═══════════════════════════════════════════════════════════ -->
+    <div x-show="metricasAtivas" x-transition:enter="transition ease-out duration-400"
+         x-transition:enter-start="opacity-0 translate-y-4"
+         x-transition:enter-end="opacity-100 translate-y-0"
+         class="space-y-6">
+
+        <!-- Header métricas -->
+        <div class="flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">📊 Painel de Métricas</h1>
+                <p class="text-gray-500 text-sm">{{ mes_atual|capfirst }}</p>
             </div>
-            <div class="ml-3">
-                <p class="text-sm text-blue-700">
-                    <strong>Sistema em Desenvolvimento:</strong> Os cards acima mostrarão dados reais assim que os Services forem implementados. Por enquanto, você pode usar o Admin Django para cadastrar dados de teste.
-                </p>
+            <button @click="desativarMetricas()"
+                class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-all">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+                Modo Simples
+            </button>
+        </div>
+
+        <!-- KPI Cards -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-5 text-white shadow">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-green-100 text-xs font-medium uppercase tracking-wider">Total de Animais</p>
+                        <p class="text-4xl font-bold mt-1">{{ total_animais }}</p>
+                    </div>
+                    <span class="text-3xl opacity-80">🐄</span>
+                </div>
+                <p class="text-green-100 text-xs mt-3">{{ total_fazendas }} fazenda{{ total_fazendas|pluralize }} ativas</p>
+            </div>
+
+            <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-5 text-white shadow">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-blue-100 text-xs font-medium uppercase tracking-wider">Fazendas</p>
+                        <p class="text-4xl font-bold mt-1">{{ total_fazendas }}</p>
+                    </div>
+                    <span class="text-3xl opacity-80">🏡</span>
+                </div>
+                <p class="text-blue-100 text-xs mt-3">{{ total_categorias }} categorias cadastradas</p>
+            </div>
+
+            <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-5 text-white shadow">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-purple-100 text-xs font-medium uppercase tracking-wider">Movimentos no Mês</p>
+                        <p class="text-4xl font-bold mt-1">{{ movimentacoes_mes }}</p>
+                    </div>
+                    <span class="text-3xl opacity-80">📋</span>
+                </div>
+                <p class="text-purple-100 text-xs mt-3">Registros em {{ mes_atual }}</p>
+            </div>
+
+            <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-5 text-white shadow">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-orange-100 text-xs font-medium uppercase tracking-wider">Categorias</p>
+                        <p class="text-4xl font-bold mt-1">{{ total_categorias }}</p>
+                    </div>
+                    <span class="text-3xl opacity-80">🏷️</span>
+                </div>
+                <p class="text-orange-100 text-xs mt-3">Tipos de animais ativos</p>
             </div>
         </div>
+
+        <!-- Gráficos linha 1 -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+            <!-- Animais por Fazenda -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+                <h3 class="text-sm font-semibold text-gray-700 mb-4">🏡 Animais por Fazenda</h3>
+                <canvas id="chartFazendas" height="200"></canvas>
+            </div>
+
+            <!-- Animais por Categoria -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+                <h3 class="text-sm font-semibold text-gray-700 mb-4">🐄 Distribuição por Categoria</h3>
+                <canvas id="chartCategorias" height="200"></canvas>
+            </div>
+        </div>
+
+        <!-- Gráficos linha 2 -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+            <!-- Entradas vs Saídas 7 dias -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+                <h3 class="text-sm font-semibold text-gray-700 mb-4">📈 Entradas vs Saídas — Últimos 7 dias</h3>
+                <canvas id="chartLinhas" height="200"></canvas>
+            </div>
+
+            <!-- Movimentações por tipo no mês -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+                <h3 class="text-sm font-semibold text-gray-700 mb-4">📊 Tipos de Movimentação no Mês</h3>
+                <canvas id="chartTipos" height="200"></canvas>
+            </div>
+        </div>
+
+        <!-- Últimas Movimentações -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100">
+            <div class="px-5 py-4 border-b border-gray-100">
+                <h3 class="text-sm font-semibold text-gray-700">🕐 Últimas Movimentações</h3>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full text-sm">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fazenda</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Categoria</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Operação</th>
+                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Qtd</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Usuário</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        {% for mov in ultimas_movimentacoes %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-3 text-gray-600 whitespace-nowrap">
+                                {{ mov.timestamp|date:"d/m/Y H:i" }}
+                            </td>
+                            <td class="px-4 py-3 font-medium text-gray-900">
+                                {{ mov.farm_stock_balance.farm.name }}
+                            </td>
+                            <td class="px-4 py-3 text-gray-600">
+                                {{ mov.farm_stock_balance.animal_category.name }}
+                            </td>
+                            <td class="px-4 py-3">
+                                {% if mov.movement_type == 'ENTRADA' %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                    ↑ {{ mov.operation_type }}
+                                </span>
+                                {% else %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                                    ↓ {{ mov.operation_type }}
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3 text-center font-bold {% if mov.movement_type == 'ENTRADA' %}text-green-600{% else %}text-red-600{% endif %}">
+                                {% if mov.movement_type == 'ENTRADA' %}+{% else %}-{% endif %}{{ mov.quantity }}
+                            </td>
+                            <td class="px-4 py-3 text-gray-500 text-xs">
+                                {{ mov.created_by.username|default:"—" }}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="px-4 py-8 text-center text-gray-400 italic">
+                                Nenhuma movimentação registrada.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Botão voltar ao simples (rodapé) -->
+        <div class="text-center py-4">
+            <button @click="desativarMetricas()"
+                class="inline-flex items-center gap-2 px-5 py-2 border border-gray-300 text-gray-600 rounded-full hover:bg-gray-100 transition-all text-sm">
+                ← Voltar ao modo simples
+            </button>
+        </div>
+
     </div>
-    
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Dados do backend (JSON seguro)
+const DADOS = {
+    fazendas:    {{ fazendas_saldo_json|safe }},
+    categorias:  {{ categorias_saldo_json|safe }},
+    movTipos:    {{ mov_por_tipo_json|safe }},
+    labels7dias: {{ labels_7dias_json|safe }},
+    entradas7:   {{ entradas_7dias_json|safe }},
+    saidas7:     {{ saidas_7dias_json|safe }},
+};
+
+// Paleta de cores
+const CORES = [
+    '#10b981','#3b82f6','#f59e0b','#ef4444',
+    '#8b5cf6','#06b6d4','#84cc16','#f97316',
+    '#ec4899','#6366f1'
+];
+
+function dashboard() {
+    return {
+        metricasAtivas: localStorage.getItem('dashboard_modo') === 'metricas',
+        chartsInicializados: false,
+
+        init() {
+            // Restaura estado salvo
+            if (this.metricasAtivas) {
+                this.$nextTick(() => this.inicializarGraficos());
+            }
+        },
+
+        ativarMetricas() {
+            this.metricasAtivas = true;
+            localStorage.setItem('dashboard_modo', 'metricas');
+            this.$nextTick(() => this.inicializarGraficos());
+        },
+
+        desativarMetricas() {
+            this.metricasAtivas = false;
+            localStorage.setItem('dashboard_modo', 'simples');
+        },
+
+        inicializarGraficos() {
+            if (this.chartsInicializados) return;
+            this.chartsInicializados = true;
+
+            // ── Gráfico 1: Animais por Fazenda (barras horizontais) ──
+            const ctxFazendas = document.getElementById('chartFazendas');
+            if (ctxFazendas) {
+                new Chart(ctxFazendas, {
+                    type: 'bar',
+                    data: {
+                        labels: DADOS.fazendas.map(f => f.nome),
+                        datasets: [{
+                            label: 'Animais',
+                            data: DADOS.fazendas.map(f => f.saldo),
+                            backgroundColor: CORES.slice(0, DADOS.fazendas.length),
+                            borderRadius: 6,
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            x: { grid: { display: false }, beginAtZero: true },
+                            y: { grid: { display: false } }
+                        }
+                    }
+                });
+            }
+
+            // ── Gráfico 2: Distribuição por Categoria (rosca) ──
+            const ctxCat = document.getElementById('chartCategorias');
+            if (ctxCat && DADOS.categorias.length > 0) {
+                new Chart(ctxCat, {
+                    type: 'doughnut',
+                    data: {
+                        labels: DADOS.categorias.map(c => c.nome),
+                        datasets: [{
+                            data: DADOS.categorias.map(c => c.saldo),
+                            backgroundColor: CORES.slice(0, DADOS.categorias.length),
+                            borderWidth: 2,
+                            borderColor: '#fff',
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        cutout: '65%',
+                        plugins: {
+                            legend: { position: 'right', labels: { font: { size: 11 } } }
+                        }
+                    }
+                });
+            }
+
+            // ── Gráfico 3: Entradas vs Saídas 7 dias (linha) ──
+            const ctxLinha = document.getElementById('chartLinhas');
+            if (ctxLinha) {
+                new Chart(ctxLinha, {
+                    type: 'line',
+                    data: {
+                        labels: DADOS.labels7dias,
+                        datasets: [
+                            {
+                                label: 'Entradas',
+                                data: DADOS.entradas7,
+                                borderColor: '#10b981',
+                                backgroundColor: 'rgba(16,185,129,0.1)',
+                                fill: true,
+                                tension: 0.4,
+                                pointRadius: 4,
+                            },
+                            {
+                                label: 'Saídas',
+                                data: DADOS.saidas7,
+                                borderColor: '#ef4444',
+                                backgroundColor: 'rgba(239,68,68,0.1)',
+                                fill: true,
+                                tension: 0.4,
+                                pointRadius: 4,
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        interaction: { intersect: false, mode: 'index' },
+                        plugins: { legend: { position: 'top' } },
+                        scales: {
+                            y: { beginAtZero: true, grid: { color: '#f3f4f6' } },
+                            x: { grid: { display: false } }
+                        }
+                    }
+                });
+            }
+
+            // ── Gráfico 4: Tipos de movimentação (barras) ──
+            const ctxTipos = document.getElementById('chartTipos');
+            if (ctxTipos) {
+                const labels = Object.keys(DADOS.movTipos);
+                const valores = Object.values(DADOS.movTipos);
+                new Chart(ctxTipos, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Quantidade',
+                            data: valores,
+                            backgroundColor: CORES.slice(0, labels.length),
+                            borderRadius: 6,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: { beginAtZero: true, grid: { color: '#f3f4f6' } },
+                            x: { grid: { display: false } }
+                        }
+                    }
+                });
+            }
+        }
+    }
+}
+</script>
 {% endblock %}

@@ -1,24 +1,18 @@
 """
 Inventory Movimentações Views.
-
 """
-"""
-VIEWS DE MOVIMENTAÇÕES - inventory/views/movimentacoes.py
-
-Cole este código no arquivo inventory/views/movimentacoes.py
-"""
-
 from django.shortcuts import render, redirect
 from django.contrib import messages
-from django.utils import timezone
+from django.contrib.auth.decorators import login_required  # ADICIONAR
 
 from inventory.forms import (
     NascimentoForm, DesmameForm, SaldoForm, CompraForm,
     ManejoForm, MudancaCategoriaForm
 )
-from inventory.services import MovementService
+from inventory.services import MovementService, StockQueryService
 from operations.services import TransferService
 from inventory.domain import OperationType
+
 
 
 def movement_list_view(request):
@@ -41,6 +35,7 @@ def movement_list_view(request):
     return render(request, 'inventory/movement_list.html', context)
 
 
+@login_required
 def nascimento_create_view(request):
     """Registra nascimento"""
     if request.method == 'POST':
@@ -79,6 +74,7 @@ def nascimento_create_view(request):
     return render(request, 'inventory/movement_form.html', context)
 
 
+@login_required 
 def desmame_create_view(request):
     """Registra desmame"""
     if request.method == 'POST':
@@ -108,6 +104,7 @@ def desmame_create_view(request):
     })
 
 
+@login_required
 def saldo_create_view(request):
     """Ajuste de saldo"""
     if request.method == 'POST':
@@ -137,6 +134,7 @@ def saldo_create_view(request):
     })
 
 
+@login_required
 def compra_create_view(request):
     """Registra compra"""
     if request.method == 'POST':
@@ -173,6 +171,7 @@ def compra_create_view(request):
     })
 
 
+@login_required
 def manejo_create_view(request):
     """Registra manejo (transferência entre fazendas)"""
     if request.method == 'POST':
@@ -207,6 +206,7 @@ def manejo_create_view(request):
     })
 
 
+@login_required
 def mudanca_categoria_create_view(request):
     """Registra mudança de categoria"""
     if request.method == 'POST':
