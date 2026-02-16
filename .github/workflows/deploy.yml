@@ -3,7 +3,7 @@ name: 🚀 Deploy — Gestão de Rebanhos
 on:
   push:
     branches:
-      - main   # Dispara apenas no push para a branch main
+      - main
 
 jobs:
   deploy:
@@ -12,11 +12,9 @@ jobs:
 
     steps:
 
-      # ── 1. Checkout do código ──────────────────────────────────
       - name: 📥 Checkout do repositório
         uses: actions/checkout@v4
 
-      # ── 2. Conectar na VPS e fazer deploy ──────────────────────
       - name: 🚀 Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -24,7 +22,8 @@ jobs:
           username:    ${{ secrets.VPS_USER }}
           key:         ${{ secrets.VPS_SSH_PRIVATE_KEY }}
           timeout:     120s
-          script_stop: true   # Para imediatamente se qualquer comando falhar
+          command_timeout: 15m
+          script_stop: true
 
           script: |
             set -e
@@ -34,44 +33,50 @@ jobs:
             echo "  $(date '+%d/%m/%Y %H:%M:%S')"
             echo "========================================"
 
-            # ── Entrar no diretório do projeto ──────────────
             cd /var/www/docker-instances/Rebanho
 
-            # ── Descartar alterações locais e atualizar ─────
-            echo "📦 Atualizando código do repositório..."
+            # ── Atualizar código ─────────────────────────────
+            echo "📦 Atualizando código..."
             git fetch origin main
             git reset --hard origin/main
 
-            # ── Garantir que gunicorn está no requirements ──
+            # ── Garantir gunicorn no requirements ───────────
             sed -i 's/^# gunicorn/gunicorn/' requirements.txt
 
-            # ── Reconstruir imagem com novo código ──────────
-            echo "🔨 Reconstruindo imagem Docker..."
+            # ── Build da nova imagem ─────────────────────────
+            echo "🔨 Construindo imagem..."
             docker compose build web
 
-            # ── Reiniciar apenas a aplicação ─────────────────
-            # Redis e Celery continuam rodando normalmente
+            # ── Subir container ──────────────────────────────
             echo "♻️  Reiniciando container web..."
             docker compose up -d --no-deps web
 
-            # ── Aguardar Gunicorn inicializar ────────────────
+            # ── Health check com retry (até 60s) ────────────
             echo "⏳ Aguardando Gunicorn inicializar..."
-            sleep 20
+            TENTATIVAS=0
+            MAX=12
 
-            # ── Verificar se está respondendo ───────────────
-            echo "🔍 Verificando saúde da aplicação..."
-            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8080/login/ || echo "000")
+            until [ $TENTATIVAS -ge $MAX ]; do
+              HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 http://127.0.0.1:8080/login/ 2>/dev/null || true)
 
-            if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "301" ] || [ "$HTTP_CODE" = "302" ]; then
-              echo "✅ Deploy concluído com sucesso! (HTTP $HTTP_CODE)"
-            else
-              echo "❌ ERRO: Gunicorn retornou HTTP $HTTP_CODE"
-              echo "--- Últimas linhas do log ---"
-              docker compose logs web --tail=30
+              if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "301" ] || [ "$HTTP_CODE" = "302" ]; then
+                echo "✅ Gunicorn respondendo! (HTTP $HTTP_CODE)"
+                break
+              fi
+
+              TENTATIVAS=$((TENTATIVAS + 1))
+              echo "   Tentativa $TENTATIVAS/$MAX — HTTP $HTTP_CODE — aguardando 5s..."
+              sleep 5
+            done
+
+            if [ $TENTATIVAS -ge $MAX ]; then
+              echo "❌ ERRO: Gunicorn não respondeu após $((MAX * 5))s"
+              echo "--- Log do container ---"
+              docker compose logs web --tail=40
               exit 1
             fi
 
-            # ── Reiniciar Celery para pegar novo código ──────
+            # ── Reiniciar Celery ─────────────────────────────
             echo "🔄 Reiniciando Celery..."
             docker compose restart celery
 
@@ -83,4 +88,5 @@ jobs:
             echo ""
             echo "========================================"
             echo "  ✅ Deploy finalizado com sucesso!"
+            echo "  🌐 https://rebanho.ferzion.com.br"
             echo "========================================"
