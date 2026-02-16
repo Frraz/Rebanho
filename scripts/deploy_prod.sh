@@ -46,7 +46,9 @@ MAX=12
 OK=0
 
 while [ $TENTATIVAS -lt $MAX ]; do
-    HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 http://127.0.0.1:8080/login/ 2>/dev/null) || HTTP_CODE="000"
+    HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 \
+        -H "Host: rebanho.ferzion.com.br" \
+        http://127.0.0.1:8080/login/ 2>/dev/null) || HTTP_CODE="000"
     TENTATIVAS=$((TENTATIVAS + 1))
 
     if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "301" ] || [ "$HTTP_CODE" = "302" ]; then
