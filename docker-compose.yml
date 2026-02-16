@@ -1,20 +1,5 @@
-version: '3.9'
-
-# ==============================================================================
-# GESTÃO DE REBANHOS — Docker Compose Produção
-#
-# Serviços:
-#   web     → Django + Gunicorn (app principal)
-#   nginx   → Proxy reverso + static files + SSL
-#   redis   → Cache + broker Celery
-#   celery  → Workers assíncronos
-#
-# PostgreSQL: externo (já existe no servidor host)
-# ==============================================================================
-
 services:
 
-  # ── Django + Gunicorn ────────────────────────────────────────────
   web:
     build:
       context: .
@@ -22,38 +7,20 @@ services:
     container_name: rebanho_web
     restart: unless-stopped
     env_file: .env.prod
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
-      - static_volume:/app/staticfiles
-      - media_volume:/app/media
+      - ./staticfiles:/app/staticfiles
+      - ./media:/app/media
       - logs_volume:/app/logs
-    expose:
-      - "8000"
+    ports:
+      - "127.0.0.1:8080:8000"
     depends_on:
       - redis
     networks:
       - rebanho_net
-    command: >
-      sh -c "python manage.py migrate --noinput &&
-             python manage.py collectstatic --noinput &&
-             gunicorn config.wsgi:application
-               --bind 0.0.0.0:8000
-               --workers 3
-               --worker-class gthread
-               --threads 2
-               --timeout 120
-               --max-requests 1000
-               --max-requests-jitter 100
-               --access-logfile /app/logs/gunicorn_access.log
-               --error-logfile /app/logs/gunicorn_error.log
-               --log-level info"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/login/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
+    command: sh -c "python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120 --access-logfile /app/logs/gunicorn_access.log --error-logfile /app/logs/gunicorn_error.log"
 
-  # ── Celery Worker ────────────────────────────────────────────────
   celery:
     build:
       context: .
@@ -61,20 +28,16 @@ services:
     container_name: rebanho_celery
     restart: unless-stopped
     env_file: .env.prod
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - logs_volume:/app/logs
     depends_on:
       - redis
-      - web
     networks:
       - rebanho_net
-    command: >
-      celery -A config worker
-        --loglevel=info
-        --concurrency=2
-        --logfile=/app/logs/celery.log
+    command: celery -A config worker --loglevel=info --concurrency=2 --logfile=/app/logs/celery.log
 
-  # ── Redis ────────────────────────────────────────────────────────
   redis:
     image: redis:7-alpine
     container_name: rebanho_redis
@@ -84,52 +47,11 @@ services:
     networks:
       - rebanho_net
     command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
 
-  # ── Nginx ────────────────────────────────────────────────────────
-  nginx:
-    image: nginx:1.25-alpine
-    container_name: rebanho_nginx
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/conf.d/rebanho.conf:/etc/nginx/conf.d/default.conf:ro
-      - static_volume:/app/staticfiles:ro
-      - media_volume:/app/media:ro
-      - certbot_www:/var/www/certbot:ro
-      - certbot_conf:/etc/letsencrypt:ro
-    depends_on:
-      - web
-    networks:
-      - rebanho_net
-
-  # ── Certbot (SSL Let's Encrypt) ──────────────────────────────────
-  certbot:
-    image: certbot/certbot:latest
-    container_name: rebanho_certbot
-    volumes:
-      - certbot_www:/var/www/certbot
-      - certbot_conf:/etc/letsencrypt
-    # Roda manualmente — ver script deploy.sh
-    profiles: ["ssl"]
-
-# ── Volumes ──────────────────────────────────────────────────────────
 volumes:
-  static_volume:
-  media_volume:
   redis_data:
   logs_volume:
-  certbot_www:
-  certbot_conf:
 
-# ── Redes ────────────────────────────────────────────────────────────
 networks:
   rebanho_net:
     driver: bridge

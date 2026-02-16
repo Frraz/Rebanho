@@ -6,6 +6,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 {% endblock %}
 
+{% load static %}
 {% block content %}
 <div x-data="dashboard()" x-init="init()">
 
@@ -17,7 +18,33 @@
 
         <!-- Boas-vindas -->
         <div class="text-center py-10">
-            <div class="text-6xl mb-4">🐄</div>
+
+            {# Logo com moldura e sombra verde — igual às páginas de auth #}
+            <div class="mb-5 flex justify-center">
+                <div style="
+                    background: white;
+                    border-radius: 24px;
+                    padding: 6px;
+                    box-shadow:
+                        0 0 0 1px rgba(16,185,129,0.15),
+                        0 4px 24px rgba(16,185,129,0.12),
+                        0 1px 3px rgba(0,0,0,0.08);
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                ">
+                    <img src="{% static 'img/logo-rebanho.png' %}"
+                        alt="Logo Gestão de Rebanhos"
+                        style="
+                            width: 72px;
+                            height: 72px;
+                            border-radius: 16px;
+                            object-fit: contain;
+                            display: block;
+                        " />
+                </div>
+            </div>
+
             <h1 class="text-3xl font-bold text-gray-800">
                 Bom dia, {{ request.user.first_name|default:request.user.username }}!
             </h1>

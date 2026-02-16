@@ -5,137 +5,237 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cadastro — Gestão de Rebanhos</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+
+        .bg-pattern {
+            background-color: #f0f7f4;
+            background-image:
+                linear-gradient(rgba(16,185,129,0.06) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(16,185,129,0.06) 1px, transparent 1px);
+            background-size: 32px 32px;
+        }
+
+        .logo-container {
+            background: white;
+            border-radius: 24px;
+            padding: 6px;
+            box-shadow:
+                0 0 0 1px rgba(16,185,129,0.15),
+                0 4px 24px rgba(16,185,129,0.12),
+                0 1px 3px rgba(0,0,0,0.08);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo-img {
+            width: 72px;
+            height: 72px;
+            border-radius: 16px;
+            object-fit: contain;
+            display: block;
+        }
+
+        .auth-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow:
+                0 1px 0 rgba(255,255,255,0.8) inset,
+                0 8px 32px rgba(0,0,0,0.08),
+                0 1px 3px rgba(0,0,0,0.05);
+            border: 1px solid rgba(16,185,129,0.1);
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: all 0.2s;
+            outline: none;
+            background: #fafafa;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        .input-field:focus {
+            border-color: #10b981;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(16,185,129,0.1);
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 11px 16px;
+            background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+            color: white;
+            font-weight: 700;
+            font-size: 14px;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 8px rgba(16,185,129,0.35);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(16,185,129,0.4);
+        }
+
+        .brand-name {
+            background: linear-gradient(135deg, #065f46, #10b981);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* Aplica estilo nos inputs gerados pelo Django form */
+        input[type="text"], input[type="email"], input[type="password"] {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: all 0.2s;
+            outline: none;
+            background: #fafafa;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            box-sizing: border-box;
+        }
+        input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focus {
+            border-color: #10b981;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(16,185,129,0.1);
+        }
+    </style>
 </head>
 {% load static %}
-<body class="bg-gradient-to-br from-green-50 to-gray-100 min-h-screen flex items-center justify-center px-4 py-10">
+<body class="bg-pattern min-h-screen flex items-center justify-center px-4 py-10">
 
-    <div class="w-full max-w-md">
+<div class="w-full max-w-md">
 
-        {# Logo #}
-        <div class="text-center mb-8">
-            <div class="mb-3 flex justify-center">
-                <img src="{% static 'img/logo-rebanho.jpg' %}" alt="Logo Gestão de Rebanhos" class="h-16 w-auto mx-auto" />
-            </div>
-            <h1 class="text-2xl font-bold text-gray-800">Gestão de Rebanhos</h1>
-            <p class="text-gray-500 text-sm mt-1">Sistema Profissional de Controle</p>
+    <!-- Logo + Marca -->
+    <div class="text-center mb-6">
+        <div class="logo-container mx-auto mb-4">
+            <img src="{% static 'img/logo-rebanho.png' %}"
+                 alt="Logo Gestão de Rebanhos"
+                 class="logo-img" />
+        </div>
+        <h1 class="text-2xl font-extrabold brand-name tracking-tight">Gestão de Rebanhos</h1>
+        <p class="text-gray-400 text-sm mt-1 font-medium">Sistema Profissional de Controle</p>
+    </div>
+
+    <!-- Card -->
+    <div class="auth-card p-7">
+        <div class="text-center mb-6">
+            <h2 class="text-base font-bold text-gray-800">Criar sua conta</h2>
+            <p class="text-xs text-gray-400 mt-1">
+                Após o cadastro, aguarde a ativação pelo administrador
+            </p>
         </div>
 
-        {# Card #}
-        <div class="bg-white rounded-2xl shadow-lg p-8">
+        {% if form.non_field_errors %}
+        <div class="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 mb-5 text-sm">
+            {% for error in form.non_field_errors %}
+            <p>{{ error }}</p>
+            {% endfor %}
+        </div>
+        {% endif %}
 
-            <div class="text-center mb-6">
-                <h2 class="text-lg font-semibold text-gray-700">Criar sua conta</h2>
-                <p class="text-xs text-gray-400 mt-1">
-                    Após o cadastro, aguarde a ativação pelo administrador
+        <form method="post" class="space-y-4">
+            {% csrf_token %}
+
+            <!-- Nome + Sobrenome -->
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
+                        Nome <span class="text-red-400">*</span>
+                    </label>
+                    {{ form.first_name }}
+                    {% if form.first_name.errors %}
+                    <p class="mt-1 text-xs text-red-600">{{ form.first_name.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Sobrenome</label>
+                    {{ form.last_name }}
+                    {% if form.last_name.errors %}
+                    <p class="mt-1 text-xs text-red-600">{{ form.last_name.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- E-mail -->
+            <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
+                    E-mail <span class="text-red-400">*</span>
+                </label>
+                {{ form.email }}
+                {% if form.email.errors %}
+                <p class="mt-1 text-xs text-red-600">{{ form.email.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Usuário -->
+            <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
+                    Usuário <span class="text-red-400">*</span>
+                </label>
+                {{ form.username }}
+                {% if form.username.errors %}
+                <p class="mt-1 text-xs text-red-600">{{ form.username.errors.0 }}</p>
+                {% else %}
+                <p class="mt-1 text-xs text-gray-400">{{ form.username.help_text }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Senha -->
+            <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
+                    Senha <span class="text-red-400">*</span>
+                </label>
+                {{ form.password1 }}
+                {% if form.password1.errors %}
+                <p class="mt-1 text-xs text-red-600">{{ form.password1.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Confirmar senha -->
+            <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
+                    Confirmar senha <span class="text-red-400">*</span>
+                </label>
+                {{ form.password2 }}
+                {% if form.password2.errors %}
+                <p class="mt-1 text-xs text-red-600">{{ form.password2.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Aviso aprovação -->
+            <div class="flex items-start gap-2.5 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
+                <span class="text-amber-500 flex-shrink-0 mt-0.5">⏳</span>
+                <p class="text-xs text-amber-700 leading-relaxed">
+                    Sua conta ficará <strong>inativa</strong> após o cadastro.
+                    Um administrador precisará ativá-la antes do primeiro acesso.
                 </p>
             </div>
 
-            {# Erros não vinculados a campos #}
-            {% if form.non_field_errors %}
-            <div class="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 mb-5 text-sm">
-                {% for error in form.non_field_errors %}
-                <p>{{ error }}</p>
-                {% endfor %}
-            </div>
-            {% endif %}
-
-            <form method="post" class="space-y-4">
-                {% csrf_token %}
-
-                {# Nome + Sobrenome #}
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">
-                            Nome <span class="text-red-500">*</span>
-                        </label>
-                        {{ form.first_name }}
-                        {% if form.first_name.errors %}
-                        <p class="mt-1 text-xs text-red-600">{{ form.first_name.errors.0 }}</p>
-                        {% endif %}
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Sobrenome</label>
-                        {{ form.last_name }}
-                        {% if form.last_name.errors %}
-                        <p class="mt-1 text-xs text-red-600">{{ form.last_name.errors.0 }}</p>
-                        {% endif %}
-                    </div>
-                </div>
-
-                {# E-mail #}
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">
-                        E-mail <span class="text-red-500">*</span>
-                    </label>
-                    {{ form.email }}
-                    {% if form.email.errors %}
-                    <p class="mt-1 text-xs text-red-600">{{ form.email.errors.0 }}</p>
-                    {% endif %}
-                </div>
-
-                {# Usuário #}
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">
-                        Nome de usuário <span class="text-red-500">*</span>
-                    </label>
-                    {{ form.username }}
-                    {% if form.username.errors %}
-                    <p class="mt-1 text-xs text-red-600">{{ form.username.errors.0 }}</p>
-                    {% else %}
-                    <p class="mt-1 text-xs text-gray-400">{{ form.username.help_text }}</p>
-                    {% endif %}
-                </div>
-
-                {# Senha #}
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">
-                        Senha <span class="text-red-500">*</span>
-                    </label>
-                    {{ form.password1 }}
-                    {% if form.password1.errors %}
-                    <p class="mt-1 text-xs text-red-600">{{ form.password1.errors.0 }}</p>
-                    {% endif %}
-                </div>
-
-                {# Confirmar senha #}
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">
-                        Confirmar senha <span class="text-red-500">*</span>
-                    </label>
-                    {{ form.password2 }}
-                    {% if form.password2.errors %}
-                    <p class="mt-1 text-xs text-red-600">{{ form.password2.errors.0 }}</p>
-                    {% endif %}
-                </div>
-
-                {# Aviso de aprovação #}
-                <div class="flex items-start gap-2.5 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5">
-                    <span class="text-amber-500 text-base flex-shrink-0 mt-0.5">⏳</span>
-                    <p class="text-xs text-amber-700 leading-relaxed">
-                        Sua conta ficará <strong>inativa</strong> após o cadastro.
-                        Um administrador precisará ativá-la antes do primeiro acesso.
-                    </p>
-                </div>
-
-                <button type="submit"
-                    class="w-full py-2.5 px-4 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors duration-200 text-sm">
-                    Criar conta
-                </button>
-            </form>
-        </div>
-
-        {# Link de volta ao login #}
-        <p class="text-center text-sm text-gray-500 mt-5">
-            Já tem conta?
-            <a href="{% url 'login' %}" class="text-green-600 hover:text-green-700 font-medium hover:underline">
-                Faça login
-            </a>
-        </p>
-
-        <p class="text-center text-gray-400 text-xs mt-4">
-            © {% now "Y" %} Gestão de Rebanhos
-        </p>
-
+            <button type="submit" class="btn-primary">
+                Criar conta
+            </button>
+        </form>
     </div>
+
+    <p class="text-center text-sm text-gray-500 mt-5">
+        Já tem conta?
+        <a href="{% url 'login' %}" class="text-emerald-600 hover:text-emerald-700 font-bold hover:underline">
+            Faça login
+        </a>
+    </p>
+
+    <p class="text-center text-gray-300 text-xs mt-4 font-medium">© {% now "Y" %} Gestão de Rebanhos</p>
+</div>
 </body>
 </html>
