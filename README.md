@@ -1,13 +1,17 @@
-# 🐄 Sistema de Gestão de Rebanhos
+# 🐄 Gestão de Rebanhos
 
 > Sistema profissional de controle de rebanhos bovinos com rastreabilidade completa, integridade de estoque garantida e relatórios gerenciais avançados.
 
-![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=flat&logo=python&logoColor=white)
+[![Deploy](https://github.com/Frraz/Rebanho/actions/workflows/deploy.yml/badge.svg)](https://github.com/Frraz/Rebanho/actions/workflows/deploy.yml)
+![Python](https://img.shields.io/badge/Python-3.12-3776AB?style=flat&logo=python&logoColor=white)
 ![Django](https://img.shields.io/badge/Django-4.2-092E20?style=flat&logo=django&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-14+-336791?style=flat&logo=postgresql&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=flat&logo=docker&logoColor=white)
 ![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.x-06B6D4?style=flat&logo=tailwindcss&logoColor=white)
 ![Alpine.js](https://img.shields.io/badge/Alpine.js-3.x-8BC0D0?style=flat&logo=alpinedotjs&logoColor=white)
 ![HTMX](https://img.shields.io/badge/HTMX-1.9-3D72D7?style=flat)
+
+**🌐 Produção:** [rebanho.ferzion.com.br](https://rebanho.ferzion.com.br)
 
 ---
 
@@ -17,37 +21,39 @@
 - [Funcionalidades](#-funcionalidades)
 - [Arquitetura](#-arquitetura)
 - [Stack Tecnológica](#-stack-tecnológica)
-- [Instalação](#-instalação)
+- [Instalação Local](#-instalação-local)
+- [Deploy em Produção](#-deploy-em-produção)
 - [Estrutura do Projeto](#-estrutura-do-projeto)
 - [Regras de Negócio](#-regras-de-negócio)
-- [Módulos do Sistema](#-módulos-do-sistema)
-- [Segurança](#-segurança)
 - [Testes](#-testes)
-- [Roadmap](#-roadmap)
+- [CI/CD](#-cicd)
+- [Segurança](#-segurança)
 
 ---
 
 ## 🎯 Visão Geral
 
-O sistema foi projetado para fazendas que necessitam de **controle rigoroso de rebanho** com rastreabilidade completa de cada animal, desde o nascimento até a saída (venda, abate, morte ou doação).
+Sistema web para fazendas que necessitam de **controle rigoroso de rebanho** com rastreabilidade completa de cada animal, desde o nascimento até a saída (venda, abate, morte ou doação).
 
 A arquitetura garante que o **saldo de animais nunca fique negativo**, todas as operações são **atômicas e auditáveis**, e os relatórios podem ser gerados tanto a partir do estado atual quanto **recalculados pelo histórico completo de movimentações**.
 
 ### Diferenciais Técnicos
 
-- **Ledger Pattern**: Cada movimentação é um registro imutável — nunca deletado ou alterado
-- **Snapshot + Ledger**: Saldo atual em cache para performance, recalculável do zero a qualquer momento
-- **Operações Compostas Atômicas**: Manejo e mudança de categoria executam múltiplas escritas em uma única transação
-- **Dashboard Dual**: Interface minimalista com toggle para painel completo de métricas e gráficos
+- **Ledger Pattern** — cada movimentação é um registro imutável, nunca deletado ou alterado
+- **Snapshot + Ledger** — saldo atual em cache para performance, recalculável do zero a qualquer momento
+- **Operações Compostas Atômicas** — manejo e mudança de categoria executam múltiplas escritas em uma única transação
+- **Dashboard Dual** — interface minimalista com toggle para painel completo de métricas e gráficos
+- **CI/CD com GitHub Actions** — deploy automático a cada push na branch `main`
+- **Fluxo de aprovação** — novos cadastros aguardam aprovação de um administrador antes de acessar o sistema
 
 ---
 
 ## ✨ Funcionalidades
 
 ### Dashboard
-- **Modo Simples**: Boas-vindas, 4 cards de KPIs e atalhos de ação rápida
-- **Modo Métricas** (toggle): Painel completo com gráficos interativos, tabela de movimentações recentes e indicadores avançados
-- Estado persistido via `localStorage` — sistema lembra o último modo escolhido
+- **Modo Simples** — boas-vindas, 4 cards de KPIs e atalhos de ação rápida
+- **Modo Métricas** (toggle) — painel completo com gráficos interativos, tabela de movimentações recentes e indicadores avançados
+- Estado persistido via `localStorage` — sistema lembra o último modo escolhido pelo usuário
 
 ### Cadastros
 
@@ -63,9 +69,9 @@ A arquitetura garante que o **saldo de animais nunca fique negativo**, todas as 
 | Tipo | Campos Específicos |
 |------|--------------------|
 | **Morte** | Tipo de morte obrigatório |
-| **Abate** | Peso, observações |
-| **Venda** | Cliente, peso, preço |
-| **Doação** | Cliente/donatário, peso |
+| **Abate** | Peso e observações |
+| **Venda** | Cliente, peso e preço |
+| **Doação** | Cliente/donatário e peso |
 
 ### Movimentações (Entradas e Transferências)
 
@@ -79,12 +85,18 @@ A arquitetura garante que o **saldo de animais nunca fique negativo**, todas as 
 | **Mudança de Categoria** | Reclassificação do animal (operação atômica composta) |
 
 ### Relatórios
-- **Por Fazenda**: Estoque inicial → Ocorrências → Movimentações → Consolidado → Estoque final → Detalhamentos (mortes, vendas, abates, doações)
-- **Fazendas Reunidas**: Consolidação de todas as fazendas com breakdown individual
+- **Por Fazenda** — estoque inicial → ocorrências → movimentações → consolidado → estoque final → detalhamentos (mortes, vendas, abates, doações)
+- **Fazendas Reunidas** — consolidação de todas as fazendas com breakdown individual
 - Filtros por mês, ano e categoria de animal
 - Layout fiel ao modelo Excel do processo atual do cliente
 - URLs com parâmetros GET — bookmarkáveis e compartilháveis
 - Impressão otimizada (landscape, 9pt)
+
+### Autenticação e Acesso
+- Login próprio em `/login/` — independente do `/admin/`
+- Cadastro de novos usuários com **fluxo de aprovação** por administrador
+- Recuperação de senha por e-mail
+- Auditoria de ações por usuário (visível apenas para staff)
 
 ---
 
@@ -129,7 +141,7 @@ A arquitetura garante que o **saldo de animais nunca fique negativo**, todas as 
 │  ✓ Auditável com timestamp + usuário      │
 │  ✓ Metadados JSON por tipo de operação    │
 └────────────────────┬─────────────────────┘
-                     │ atualiza (via service/signal)
+                     │ atualiza via service
                      ▼
 ┌──────────────────────────────────────────┐
 │       FarmStockBalance (Snapshot)         │
@@ -151,110 +163,146 @@ A arquitetura garante que o **saldo de animais nunca fique negativo**, todas as 
 | `reporting` | Geração de relatórios gerenciais |
 | `core` | Dashboard, autenticação e páginas centrais |
 
+### Infraestrutura de Produção
+
+```
+Internet (HTTPS 443)
+       │
+┌──────▼──────────────────────────────────┐
+│  Nginx — proxy reverso + SSL             │
+│  Let's Encrypt (renovação automática)    │
+│  Serve /static/ e /media/ direto         │
+└──────┬──────────────────────────────────┘
+       │ proxy_pass 127.0.0.1:8080
+┌──────▼──────────────────────────────────┐
+│  Docker: rebanho_web                     │
+│  Django 4.2 + Gunicorn (3 workers)       │
+└──────┬──────────────┬────────────────────┘
+       │              │
+┌──────▼──────┐ ┌─────▼───────────────────┐
+│  Redis      │ │  PostgreSQL (host)       │
+│  (Docker)   │ │  banco: livestock_db     │
+└─────────────┘ └─────────────────────────┘
+┌─────────────────────────────────────────┐
+│  Docker: rebanho_celery                  │
+│  Workers assíncronos (Celery)            │
+└─────────────────────────────────────────┘
+```
+
 ---
 
 ## 🛠️ Stack Tecnológica
 
-### Backend
-- **Django 4.2** — Framework principal
-- **PostgreSQL 14+** — Banco de dados com constraints críticos de integridade
-- **Redis** — Cache e broker de filas
-- **Celery** — Tarefas assíncronas
-- **django-extensions** — Ferramentas de desenvolvimento
-
-### Frontend
-- **TailwindCSS 3** (CDN) — Estilização utilitária
-- **Alpine.js 3** — Reatividade local (dropdowns, modais, dashboard toggle, auto-dismiss)
-- **HTMX 1.9** — Interações server-side sem SPA pesada
-- **Chart.js 4** — Gráficos interativos no painel de métricas
-
-### Qualidade e Performance
-- UUID como primary key em todas as entidades
-- Índices otimizados no banco de dados
-- `select_related` / `prefetch_related` estratégicos
-- `timezone.make_aware` em todos os datetimes (suporte a fuso horário)
+| Camada | Tecnologia | Versão |
+|--------|-----------|--------|
+| Backend | Django | 4.2 |
+| Linguagem | Python | 3.12 |
+| Banco de Dados | PostgreSQL | 14+ |
+| Cache / Broker | Redis | 7 |
+| Tarefas Assíncronas | Celery | 5.x |
+| Containerização | Docker + Compose | latest |
+| Web Server | Nginx + Gunicorn | 1.24 / 21+ |
+| SSL | Let's Encrypt (certbot) | — |
+| Frontend | TailwindCSS (CDN) | 3.x |
+| Reatividade | Alpine.js | 3.x |
+| Interação Server | HTMX | 1.9 |
+| Gráficos | Chart.js | 4.4 |
+| CI/CD | GitHub Actions | — |
 
 ---
 
-## 🚀 Instalação
+## 🚀 Instalação Local
 
 ### Pré-requisitos
 
-- Python 3.10+
+- Python 3.12+
 - PostgreSQL 14+
 - Redis 7+
 
 ### Passo a Passo
 
-**1. Clone o repositório**
 ```bash
-git clone <repository-url>
-cd rebanho
-```
+# 1. Clonar o repositório
+git clone https://github.com/Frraz/Rebanho
+cd Rebanho
 
-**2. Crie e ative o ambiente virtual**
-```bash
+# 2. Criar e ativar o ambiente virtual
 python -m venv venv
-source venv/bin/activate       # Linux/Mac
-venv\Scripts\activate          # Windows
-```
+source venv/bin/activate        # Linux/Mac
+venv\Scripts\activate           # Windows
 
-**3. Instale as dependências**
-```bash
+# 3. Instalar dependências
 pip install -r requirements.txt
-```
 
-**4. Configure as variáveis de ambiente**
-```bash
+# 4. Configurar variáveis de ambiente
 cp .env.example .env
-# Edite o .env com suas configurações
+# Edite o .env com suas configurações locais
 ```
 
-Exemplo de `.env`:
+Conteúdo do `.env` para desenvolvimento:
+
 ```env
-SECRET_KEY=sua-chave-secreta-aqui
+SECRET_KEY=sua-chave-secreta-local
 DEBUG=True
-DATABASE_URL=postgres://usuario:senha@localhost:5432/rebanho_db
-REDIS_URL=redis://localhost:6379/0
 ALLOWED_HOSTS=localhost,127.0.0.1
+DB_NAME=livestock_db
+DB_USER=postgres
+DB_PASSWORD=sua_senha
+DB_HOST=localhost
+DB_PORT=5432
+REDIS_URL=redis://localhost:6379/1
+CELERY_BROKER_URL=redis://localhost:6379/0
 TIME_ZONE=America/Sao_Paulo
 ```
 
-**5. Crie o banco e execute as migrations**
 ```bash
-createdb rebanho_db
-python manage.py makemigrations
+# 5. Criar banco e aplicar migrations
+createdb livestock_db
 python manage.py migrate
-```
 
-**6. Crie um superusuário**
-```bash
+# 6. Criar superusuário
 python manage.py createsuperuser
-```
 
-**7. Colete os arquivos estáticos**
-```bash
-python manage.py collectstatic --no-input
-```
+# 7. Coletar arquivos estáticos
+python manage.py collectstatic --noinput
 
-**8. Inicie o servidor**
-```bash
+# 8. Iniciar servidor
 python manage.py runserver
 ```
 
 Acesse: [http://127.0.0.1:8000/login/](http://127.0.0.1:8000/login/)
 
-**9. (Opcional) Celery e Redis**
 ```bash
-# Terminal 2
-redis-server
-
-# Terminal 3
+# Celery (terminal separado — opcional para desenvolvimento)
 celery -A config worker -l info
-
-# Terminal 4
-celery -A config beat -l info
 ```
+
+---
+
+## 🖥️ Deploy em Produção
+
+O projeto possui um manual completo de deploy disponível em [`DEPLOY.md`](./DEPLOY.md), cobrindo do zero ao sistema online em uma VPS Ubuntu zerada.
+
+### Resumo da infraestrutura
+
+- **VPS** — Ubuntu 22.04 LTS
+- **Containerização** — Docker Compose (app + celery + redis)
+- **Banco** — PostgreSQL instalado no host (fora do Docker)
+- **Web Server** — Nginx como proxy reverso
+- **SSL** — Let's Encrypt com renovação automática
+- **CI/CD** — GitHub Actions com deploy automático a cada push na `main`
+
+```bash
+# Deploy manual (primeira vez na VPS)
+git clone https://github.com/Frraz/Rebanho /var/www/docker-instances/Rebanho
+cd /var/www/docker-instances/Rebanho
+cp .env.example .env.prod      # preencher com valores de produção
+docker compose build
+docker compose up -d
+docker compose exec web python manage.py createsuperuser
+```
+
+Consulte [`DEPLOY.md`](./DEPLOY.md) para o passo a passo completo incluindo PostgreSQL, Nginx e SSL.
 
 ---
 
@@ -263,69 +311,85 @@ celery -A config beat -l info
 ```
 rebanho/
 │
+├── .github/
+│   └── workflows/
+│       └── deploy.yml              # CI/CD — deploy automático
+│
 ├── config/                         # Configurações Django
 │   ├── settings.py
 │   ├── urls.py
+│   ├── celery.py
 │   └── wsgi.py
 │
 ├── core/                           # App central
 │   ├── views.py                    # Dashboard (simples + métricas)
-│   ├── urls.py
+│   ├── views_audit.py              # Auditoria de ações
+│   ├── emails.py                   # Envio de e-mails (aprovação, rejeição)
 │   └── templates/
 │       ├── core/dashboard.html
 │       └── registration/login.html
 │
 ├── farms/                          # Bounded Context: Fazendas
-│   ├── models.py
-│   ├── views.py
-│   └── templates/farms/
+│   ├── models/farm.py
+│   ├── signals.py                  # Auto-cria saldos em nova fazenda
+│   └── views.py
 │
 ├── inventory/                      # Bounded Context: Inventário (CORE DOMAIN)
 │   ├── domain/
-│   │   └── value_objects.py        # OperationType, MovementType (Enums)
+│   │   ├── value_objects.py        # OperationType, MovementType (Enums)
+│   │   ├── validators.py
+│   │   └── exceptions.py
 │   ├── models/
 │   │   ├── animal_category.py      # Tipos de animal
 │   │   ├── stock_balance.py        # FarmStockBalance (snapshot)
-│   │   ├── animal_movement.py      # AnimalMovement (ledger)
-│   │   └── __init__.py
+│   │   └── animal_movement.py      # AnimalMovement (ledger)
 │   ├── services/
-│   │   ├── movement_service.py     # Entradas/saídas simples
-│   │   ├── transfer_service.py     # Manejo e mudança de categoria
-│   │   └── stock_query_service.py  # Queries de saldo
-│   └── signals.py                  # Auto-criação de saldos
+│   │   ├── movement_service.py
+│   │   ├── reconciliation_service.py
+│   │   └── stock_query_service.py
+│   ├── repositories/
+│   │   └── stock_repository.py
+│   └── signals.py                  # Auto-criação de saldos por categoria
 │
 ├── operations/                     # Bounded Context: Operações
-│   ├── views/
-│   │   ├── ocorrencias.py
-│   │   └── movimentacoes.py
-│   └── templates/operations/
+│   ├── services/
+│   │   ├── occurrence_service.py   # Mortes, abates, vendas, doações
+│   │   └── transfer_service.py     # Manejo e mudança de categoria
+│   └── views/
+│       ├── ocorrencias.py
+│       └── cadastros.py
 │
 ├── reporting/                      # Bounded Context: Relatórios
+│   ├── queries/report_queries.py   # Queries otimizadas
 │   ├── services/
 │   │   ├── farm_report_service.py
 │   │   └── consolidated_report_service.py
-│   ├── views.py
-│   ├── urls.py
-│   ├── templatetags/
-│   │   └── report_tags.py          # Filtros: get_item, sum_values
-│   └── templates/reporting/
-│       ├── farm_report.html
-│       └── consolidated_report.html
+│   └── templatetags/report_tags.py
 │
 ├── templates/                      # Templates globais
-│   ├── base/
-│   │   └── base.html               # Layout principal
-│   └── shared/
-│       ├── pagination.html
-│       ├── search_bar.html
-│       └── confirm_modal.html
+│   ├── base/base.html              # Layout principal (navbar, footer)
+│   └── shared/                     # Componentes reutilizáveis
 │
 ├── static/
-│   └── js/
-│       └── masks.js                # Máscaras: CPF/CNPJ, telefone, peso
+│   └── js/masks.js                 # Máscaras: CPF/CNPJ, telefone, peso
 │
-├── manage.py
+├── scripts/
+│   └── deploy_prod.sh              # Script de deploy executado pelo CI/CD
+│
+├── tests/
+│   ├── conftest.py
+│   ├── test_movement_service.py
+│   ├── test_atomic_operations.py
+│   ├── test_stock_integrity.py
+│   ├── test_ledger_immutability.py
+│   ├── test_approval_flow.py
+│   └── test_report_stock.py
+│
+├── docker-compose.yml
+├── Dockerfile
 ├── requirements.txt
+├── manage.py
+├── DEPLOY.md                       # Manual completo de deploy
 └── .env.example
 ```
 
@@ -358,9 +422,6 @@ Service Layer             ← Regras de negócio (saldo suficiente?)
 Domain Value Objects      ← Tipos válidos, operações permitidas
      │
      ▼
-Model Constraints         ← Django model validation
-     │
-     ▼
 Database Constraints      ← Última linha de defesa (CHECK constraint)
 ```
 
@@ -390,8 +451,6 @@ COMMIT — ou ROLLBACK completo se qualquer passo falhar
 
 ### Cálculo de Estoque nos Relatórios
 
-Os relatórios **nunca confiam apenas no snapshot** — calculam dinamicamente pelo ledger:
-
 ```
 Estoque Inicial = Σ(ENTRADAS até o dia anterior ao período)
                − Σ(SAÍDAS até o dia anterior ao período)
@@ -401,64 +460,7 @@ Estoque Final   = Estoque Inicial
                − Σ(SAÍDAS no período selecionado)
 ```
 
----
-
-## 📦 Módulos do Sistema
-
-### Dashboard Dual
-
-**Modo Simples** (padrão):
-- Saudação com nome do usuário e mês atual
-- 4 cards: Total de Animais, Fazendas Ativas, Categorias, Movimentos do Mês
-- 6 atalhos de ação rápida (Nascimento, Compra, Venda, Manejo, Relatório, Fazendas)
-- Botão **"Exibir Métricas"** com animação
-
-**Modo Métricas** (toggle):
-- 4 KPI cards com gradiente colorido
-- Gráfico de barras horizontais: animais por fazenda
-- Gráfico de rosca: distribuição por categoria
-- Gráfico de linhas: entradas vs saídas (últimos 7 dias)
-- Gráfico de barras: tipos de movimentação no mês
-- Tabela das últimas 15 movimentações com status visual
-- Botão **"Modo Simples"**
-
-> Estado (simples/métricas) salvo em `localStorage` e restaurado automaticamente.
-
-### Relatório por Fazenda
-
-Estrutura do relatório (fiel ao modelo Excel do cliente):
-
-```
-1. Filtros (mês, ano, fazenda, categoria) — ocultos na impressão
-2. Estoque Inicial — tabela horizontal por categoria
-3. Tabela Principal Unificada:
-   ├── Grupo Ocorrências:   Morte | Venda | Abate
-   ├── Grupo Movimentações: Nasc. | Desm. | Man.(+) | Man.(-) | M.Cat.(+) | M.Cat.(-) | Compra | Doação
-   └── Grupo Consolidado:   Entrada | Saída
-4. Estoque Final — tabela horizontal por categoria
-5. OBS: Causa das Mortes    (tabela detalhada)
-6. OBS: Doações             (tabela detalhada)
-7. OBS: Controle de Vendas  (tabela detalhada)
-8. OBS: Abates              (tabela detalhada)
-```
-
-### Relatório Fazendas Reunidas
-
-Mesmo modelo do relatório por fazenda, consolidando **todas as fazendas**, com seção adicional de **breakdown por fazenda** (acordeão expansível, aberto na impressão).
-
----
-
-## 🔐 Segurança
-
-| Aspecto | Implementação |
-|---------|--------------|
-| **CSRF** | Proteção em todos os formulários (inclusive logout via POST) |
-| **SQL Injection** | Prevenido pelo Django ORM (queries parametrizadas) |
-| **XSS** | Auto-escape em todos os templates Django |
-| **Autenticação** | Login próprio em `/login/` — não depende do `/admin/` |
-| **Autorização** | `@login_required` em todas as views |
-| **Integridade** | `CHECK CONSTRAINT` no banco como última linha de defesa |
-| **Concorrência** | Versioning otimista nas operações críticas de estoque |
+> Os relatórios **nunca confiam apenas no snapshot** — calculam dinamicamente pelo ledger, garantindo consistência mesmo que o snapshot esteja desatualizado.
 
 ---
 
@@ -471,57 +473,74 @@ pytest
 # Com relatório de cobertura
 pytest --cov=. --cov-report=html
 
-# App específico
-pytest inventory/tests/
-pytest reporting/tests/
+# Suite específica
+pytest tests/test_movement_service.py -v
+pytest tests/test_stock_integrity.py -v
 ```
 
-### Estrutura de Testes Recomendada
-
-```
-tests/
-├── unit/
-│   ├── test_movement_service.py       # Regras de saldo e operações
-│   ├── test_transfer_service.py       # Manejo e mudança de categoria
-│   └── test_report_service.py         # Cálculos de estoque e relatório
-├── integration/
-│   ├── test_ocorrencias_flow.py       # Fluxo completo de ocorrências
-│   └── test_movimentacoes_flow.py     # Fluxo completo de movimentações
-└── conftest.py                        # Fixtures compartilhadas
-```
+| Suite | O que testa |
+|-------|-------------|
+| `test_movement_service` | Regras de saldo, entradas e saídas |
+| `test_atomic_operations` | Transações compostas (manejo, mudança de categoria) |
+| `test_stock_integrity` | Invariante de saldo não-negativo |
+| `test_ledger_immutability` | Imutabilidade dos registros do ledger |
+| `test_approval_flow` | Fluxo de aprovação de novos usuários |
+| `test_report_stock` | Cálculos de estoque inicial e final nos relatórios |
 
 ---
 
-## 🗺️ Roadmap
+## ⚙️ CI/CD
 
-### ✅ Concluído
-- [x] Arquitetura Clean Architecture + DDD leve
-- [x] Models com UUID, constraints e índices otimizados
-- [x] CRUD completo: Fazendas, Categorias, Clientes, Tipos de Morte
-- [x] Ocorrências: Morte, Abate, Venda, Doação
-- [x] Movimentações: Nascimento, Desmame, Compra, Saldo, Manejo, Mudança de Categoria
-- [x] Services com transações atômicas e validação de saldo
-- [x] Signals para auto-criação de saldos por categoria
-- [x] Relatório por Fazenda (layout Excel fiel ao cliente)
-- [x] Relatório Consolidado (Fazendas Reunidas)
-- [x] Dashboard dual (simples + métricas com gráficos Chart.js)
-- [x] Login/logout próprio (`/login/`)
-- [x] Navbar com item ativo destacado por seção
-- [x] Mensagens com auto-dismiss e progress bar (Alpine.js)
-- [x] Máscaras de input (CPF/CNPJ, telefone, peso)
+Deploy **totalmente automatizado** via GitHub Actions. A cada push na branch `main`:
 
-### 🔄 Em Desenvolvimento
-- [ ] Filtros e busca nas listagens (Ocorrências, Movimentações)
-- [ ] Paginação nas listagens
-- [ ] Modais de confirmação inline (Alpine.js)
+```
+push → main
+   │
+   ▼
+GitHub Actions (ubuntu-latest)
+   │
+   ├─ SSH na VPS
+   ├─ git reset --hard origin/main
+   ├─ docker compose build web
+   ├─ docker compose up -d --no-deps web
+   ├─ Health check com retry (HTTP 200 em /login/)
+   ├─ docker compose restart celery
+   └─ ✅ Deploy concluído
+```
 
-### 📋 Planejado
-- [ ] Exportação PDF dos relatórios
-- [ ] Testes automatizados (pytest)
-- [ ] Cache de relatórios via Redis
-- [ ] API REST (Django REST Framework)
-- [ ] Deploy em produção (Nginx + Gunicorn + Docker)
-- [ ] Notificações por e-mail (Celery)
+### Secrets necessários (GitHub → Settings → Secrets → Actions)
+
+| Secret | Descrição |
+|--------|-----------|
+| `VPS_HOST` | IP público da VPS |
+| `VPS_USER` | Usuário SSH (ex: `deploy`) |
+| `VPS_SSH_PRIVATE_KEY` | Chave privada SSH gerada no servidor |
+
+---
+
+## 🔐 Segurança
+
+| Aspecto | Implementação |
+|---------|--------------|
+| CSRF | Proteção em todos os formulários, inclusive logout via POST |
+| SQL Injection | Prevenido pelo Django ORM (queries parametrizadas) |
+| XSS | Auto-escape em todos os templates Django |
+| Autenticação | Login próprio em `/login/` — independente do `/admin/` |
+| Autorização | `@login_required` em todas as views |
+| Aprovação | Novos usuários aguardam aprovação manual de administrador |
+| Integridade | `CHECK CONSTRAINT` no banco como última linha de defesa |
+| SSL | HTTPS obrigatório em produção (Let's Encrypt) |
+| Proxy | `SECURE_PROXY_SSL_HEADER` configurado para Nginx |
+
+---
+
+## 👨‍💻 Autor
+
+**Warley Ferraz** — Desenvolvedor Full Stack
+
+[![Portfolio](https://img.shields.io/badge/Portfolio-warley.dev.ferzion.com.br-16a34a?style=flat)](https://warley.dev.ferzion.com.br)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-warley--ferraz-0A66C2?style=flat&logo=linkedin)](https://www.linkedin.com/in/warley-ferraz-almeida-280a55185/)
+[![GitHub](https://img.shields.io/badge/GitHub-Frraz-181717?style=flat&logo=github)](https://github.com/Frraz)
 
 ---
 
