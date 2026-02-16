@@ -40,11 +40,11 @@ User = get_user_model()
 # ═══════════════════════════════════════════════════════════════
 
 FAZENDAS = [
-    {"name": "Fazenda São José", "location": "Goiás"},
-    {"name": "Fazenda Santa Clara", "location": "Mato Grosso"},
-    {"name": "Fazenda Boa Vista", "location": "Minas Gerais"},
-    {"name": "Fazenda Esperança", "location": "Mato Grosso do Sul"},
-    {"name": "Fazenda Primavera", "location": "Tocantins"},
+    {"name": "Fazenda São José"},
+    {"name": "Fazenda Santa Clara"},
+    {"name": "Fazenda Boa Vista"},
+    {"name": "Fazenda Esperança"},
+    {"name": "Fazenda Primavera"},
 ]
 
 CATEGORIAS = [
@@ -162,13 +162,10 @@ def seed_fazendas():
     print("\n🏡 Criando fazendas...")
     fazendas = []
     for data in FAZENDAS:
-        fazenda, created = Farm.objects.get_or_create(
-            name=data["name"],
-            defaults={"location": data["location"]}
-        )
+        fazenda, created = Farm.objects.get_or_create(name=data["name"])
         fazendas.append(fazenda)
         status = "✅ Criada" if created else "ℹ️  Já existia"
-        print(f"   {status}: {fazenda.name} ({fazenda.location})")
+        print(f"   {status}: {fazenda.name}")
     
     return fazendas
 
