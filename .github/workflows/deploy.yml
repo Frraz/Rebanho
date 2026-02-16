@@ -1,0 +1,86 @@
+name: 🚀 Deploy — Gestão de Rebanhos
+
+on:
+  push:
+    branches:
+      - main   # Dispara apenas no push para a branch main
+
+jobs:
+  deploy:
+    name: Deploy para VPS
+    runs-on: ubuntu-latest
+
+    steps:
+
+      # ── 1. Checkout do código ──────────────────────────────────
+      - name: 📥 Checkout do repositório
+        uses: actions/checkout@v4
+
+      # ── 2. Conectar na VPS e fazer deploy ──────────────────────
+      - name: 🚀 Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host:        ${{ secrets.VPS_HOST }}
+          username:    ${{ secrets.VPS_USER }}
+          key:         ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+          timeout:     120s
+          script_stop: true   # Para imediatamente se qualquer comando falhar
+
+          script: |
+            set -e
+
+            echo "========================================"
+            echo "  DEPLOY — Gestão de Rebanhos"
+            echo "  $(date '+%d/%m/%Y %H:%M:%S')"
+            echo "========================================"
+
+            # ── Entrar no diretório do projeto ──────────────
+            cd /var/www/docker-instances/Rebanho
+
+            # ── Descartar alterações locais e atualizar ─────
+            echo "📦 Atualizando código do repositório..."
+            git fetch origin main
+            git reset --hard origin/main
+
+            # ── Garantir que gunicorn está no requirements ──
+            sed -i 's/^# gunicorn/gunicorn/' requirements.txt
+
+            # ── Reconstruir imagem com novo código ──────────
+            echo "🔨 Reconstruindo imagem Docker..."
+            docker compose build web
+
+            # ── Reiniciar apenas a aplicação ─────────────────
+            # Redis e Celery continuam rodando normalmente
+            echo "♻️  Reiniciando container web..."
+            docker compose up -d --no-deps web
+
+            # ── Aguardar Gunicorn inicializar ────────────────
+            echo "⏳ Aguardando Gunicorn inicializar..."
+            sleep 20
+
+            # ── Verificar se está respondendo ───────────────
+            echo "🔍 Verificando saúde da aplicação..."
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8080/login/ || echo "000")
+
+            if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "301" ] || [ "$HTTP_CODE" = "302" ]; then
+              echo "✅ Deploy concluído com sucesso! (HTTP $HTTP_CODE)"
+            else
+              echo "❌ ERRO: Gunicorn retornou HTTP $HTTP_CODE"
+              echo "--- Últimas linhas do log ---"
+              docker compose logs web --tail=30
+              exit 1
+            fi
+
+            # ── Reiniciar Celery para pegar novo código ──────
+            echo "🔄 Reiniciando Celery..."
+            docker compose restart celery
+
+            # ── Status final ─────────────────────────────────
+            echo ""
+            echo "📊 Status dos containers:"
+            docker compose ps
+
+            echo ""
+            echo "========================================"
+            echo "  ✅ Deploy finalizado com sucesso!"
+            echo "========================================"
