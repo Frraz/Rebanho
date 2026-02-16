@@ -305,18 +305,21 @@ ENABLE_MOVEMENT_AUDIT_LOG = True
 # DEVELOPMENT SETTINGS
 # ==============================================================================
 
+# Backend de e-mail — console para dev, SMTP para produção
 if DEBUG:
-    # Django Debug Toolbar (instalar se necessário)
-    try:
-        import debug_toolbar
-        INSTALLED_APPS += ['debug_toolbar']
-        MIDDLEWARE.insert(0, 'debug_toolbar.middleware.DebugToolbarMiddleware')
-        INTERNAL_IPS = ['127.0.0.1']
-    except ImportError:
-        pass
-    
-    # Email backend para desenvolvimento
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST          = config('EMAIL_HOST', default='smtp.gmail.com')
+    EMAIL_PORT          = config('EMAIL_PORT', default=587, cast=int)
+    EMAIL_USE_TLS       = config('EMAIL_USE_TLS', default=True, cast=bool)
+    EMAIL_HOST_USER     = config('EMAIL_HOST_USER', default='')
+    EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+
+DEFAULT_FROM_EMAIL = config(
+    'DEFAULT_FROM_EMAIL',
+    default='Gestão de Rebanhos <noreply@gestao-rebanhos.com>'
+)
 
 # ==============================================================================
 # Autenticação

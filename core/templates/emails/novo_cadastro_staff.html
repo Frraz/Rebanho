@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Novo Cadastro Aguardando Aprovação</title>
+<style>
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f3f4f6;margin:0;padding:24px;}
+  .card{max-width:520px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.08);}
+  .header{background:linear-gradient(135deg,#16a34a,#15803d);padding:32px 32px 24px;text-align:center;}
+  .header h1{color:#fff;margin:0;font-size:22px;font-weight:700;}
+  .header p{color:#bbf7d0;margin:6px 0 0;font-size:14px;}
+  .emoji{font-size:42px;display:block;margin-bottom:12px;}
+  .body{padding:28px 32px;}
+  .body p{color:#374151;font-size:15px;line-height:1.6;margin:0 0 16px;}
+  .info-box{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:16px 20px;margin:20px 0;}
+  .info-row{display:flex;gap:8px;margin-bottom:8px;font-size:14px;color:#374151;}
+  .info-row:last-child{margin-bottom:0;}
+  .info-label{font-weight:600;color:#166534;min-width:100px;}
+  .btn-group{display:flex;gap:12px;margin:24px 0 8px;}
+  .btn{display:inline-block;padding:12px 24px;border-radius:8px;font-size:15px;font-weight:600;text-decoration:none;text-align:center;flex:1;}
+  .btn-approve{background:#16a34a;color:#fff;}
+  .btn-reject{background:#fff;color:#dc2626;border:2px solid #fca5a5;}
+  .warning{background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:12px 16px;font-size:13px;color:#92400e;margin-top:16px;}
+  .footer{background:#f9fafb;padding:16px 32px;text-align:center;font-size:12px;color:#9ca3af;border-top:1px solid #f3f4f6;}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="header">
+    <span class="emoji">🐄</span>
+    <h1>Novo Cadastro Aguardando Aprovação</h1>
+    <p>Sistema de Gestão de Rebanhos</p>
+  </div>
+  <div class="body">
+    <p>Um novo usuário se cadastrou no sistema e aguarda sua aprovação para ter acesso.</p>
+
+    <div class="info-box">
+      <div class="info-row"><span class="info-label">Nome:</span> {{ nome_completo }}</div>
+      <div class="info-row"><span class="info-label">Usuário:</span> {{ novo_usuario.username }}</div>
+      <div class="info-row"><span class="info-label">E-mail:</span> {{ novo_usuario.email }}</div>
+    </div>
+
+    <p>Clique em um dos botões abaixo para tomar uma decisão:</p>
+
+    <div class="btn-group">
+      <a href="{{ url_aprovar }}" class="btn btn-approve">✅ Aprovar Acesso</a>
+      <a href="{{ url_rejeitar }}" class="btn btn-reject">❌ Rejeitar</a>
+    </div>
+
+    <div class="warning">
+      ⏳ <strong>Atenção:</strong> Este link expira em <strong>7 dias</strong>.
+      Após esse prazo, o usuário precisará se cadastrar novamente.
+    </div>
+  </div>
+  <div class="footer">
+    © {% now "Y" %} Gestão de Rebanhos · Este e-mail foi enviado automaticamente
+  </div>
+</div>
+</body>
+</html>

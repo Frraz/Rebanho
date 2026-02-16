@@ -3,78 +3,162 @@
 {% block title %}Tipos de Animal - Sistema de Gestão{% endblock %}
 
 {% block content %}
-<div class="space-y-6">
-    
-    <!-- Header -->
-    <div class="flex justify-between items-center">
+<div class="space-y-5"
+     x-data="{
+        modal: { open: false, title: '', message: '', url: '', btnLabel: '' },
+        openConfirm(title, message, url, btnLabel) {
+            this.modal = { open: true, title, message, url, btnLabel };
+        }
+     }">
+
+    {# ── Cabeçalho ─────────────────────────────────────────────────── #}
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-            <h1 class="text-3xl font-bold text-gray-900">Tipos de Animal</h1>
-            <p class="mt-2 text-gray-600">Categorias de animais cadastradas no sistema</p>
+            <h1 class="text-2xl font-bold text-gray-900">Tipos de Animal</h1>
+            <p class="mt-1 text-sm text-gray-500">Categorias refletem automaticamente em todas as fazendas</p>
         </div>
-        <a href="{% url 'inventory_cadastros:category_create' %}" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700">
-            <svg class="mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <a href="{% url 'inventory_cadastros:category_create' %}"
+           class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white bg-green-600 hover:bg-green-700 transition-colors shadow-sm">
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
             </svg>
             Novo Tipo
         </a>
     </div>
-    
-    <!-- Lista -->
+
+    {# ── Busca ─────────────────────────────────────────────────────── #}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+        <form method="get" class="flex gap-3">
+            <div class="relative flex-1">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                </div>
+                <input type="search" name="q" value="{{ search_term }}"
+                    class="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500"
+                    placeholder="Buscar por nome ou descrição...">
+            </div>
+            <button type="submit"
+                class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors">
+                Buscar
+            </button>
+            {% if search_term %}
+            <a href="{% url 'inventory_cadastros:category_list' %}"
+               class="px-3 py-2 border border-gray-300 text-gray-600 text-sm rounded-lg hover:bg-gray-50 transition-colors">
+                ✕
+            </a>
+            {% endif %}
+        </form>
+        {% if search_term %}
+        <p class="mt-2 text-xs text-gray-500">
+            {{ total_count }} tipo{{ total_count|pluralize }} encontrado{{ total_count|pluralize }}
+        </p>
+        {% endif %}
+    </div>
+
+    {# ── Tabela ────────────────────────────────────────────────────── #}
     {% if categories %}
-    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
                 <tr>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Nome
-                    </th>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Descrição
-                    </th>
-                    <th scope="col" class="relative px-6 py-3">
-                        <span class="sr-only">Ações</span>
-                    </th>
+                    <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Tipo</th>
+                    <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Descrição</th>
+                    <th class="px-5 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Ações</th>
                 </tr>
             </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
+            <tbody class="bg-white divide-y divide-gray-100">
                 {% for category in categories %}
-                <tr>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="flex items-center">
-                            <span class="text-2xl mr-2">🐄</span>
-                            <span class="text-sm font-medium text-gray-900">{{ category.name }}</span>
+                <tr class="hover:bg-gray-50 transition-colors">
+                    <td class="px-5 py-3.5">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xl">🐄</span>
+                            <span class="text-sm font-semibold text-gray-900">{{ category.name }}</span>
                         </div>
                     </td>
-                    <td class="px-6 py-4">
-                        <span class="text-sm text-gray-500">{{ category.description|default:"-" }}</span>
+                    <td class="px-5 py-3.5 text-sm text-gray-500">
+                        {{ category.description|default:"—" }}
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <a href="{% url 'inventory_cadastros:category_update' category.id %}" class="text-blue-600 hover:text-blue-900 mr-3">
-                            Editar
+                    <td class="px-5 py-3.5 text-right whitespace-nowrap">
+                        <a href="{% url 'inventory_cadastros:category_update' category.id %}"
+                           class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors mr-2">
+                            ✏️ Editar
                         </a>
-                        <a href="{% url 'inventory_cadastros:category_deactivate' category.id %}" class="text-red-600 hover:text-red-900">
-                            Desativar
-                        </a>
+                        <button
+                            @click="openConfirm(
+                                'Desativar Tipo de Animal',
+                                'Desativar &quot;{{ category.name|escapejs }}&quot;? O histórico será preservado.',
+                                '{% url "inventory_cadastros:category_deactivate" category.id %}',
+                                'Desativar'
+                            )"
+                            class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors">
+                            🚫 Desativar
+                        </button>
                     </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
+
     {% else %}
-    <div class="text-center py-12 bg-white rounded-lg shadow">
-        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
-        </svg>
-        <h3 class="mt-2 text-sm font-medium text-gray-900">Nenhum tipo de animal cadastrado</h3>
-        <p class="mt-1 text-sm text-gray-500">Comece cadastrando os tipos de animais da sua fazenda.</p>
-        <div class="mt-6">
-            <a href="{% url 'inventory_cadastros:category_create' %}" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
-                Novo Tipo de Animal
-            </a>
-        </div>
+    <div class="text-center py-16 bg-white rounded-xl border border-gray-200">
+        <div class="text-5xl mb-3">🐄</div>
+        {% if search_term %}
+        <h3 class="text-base font-semibold text-gray-900 mb-1">Nenhum tipo encontrado</h3>
+        <p class="text-sm text-gray-500 mb-4">Tente uma busca diferente.</p>
+        <a href="{% url 'inventory_cadastros:category_list' %}" class="text-sm text-green-600 hover:underline">← Ver todos</a>
+        {% else %}
+        <h3 class="text-base font-semibold text-gray-900 mb-1">Nenhum tipo de animal cadastrado</h3>
+        <p class="text-sm text-gray-500 mb-4">Cadastre os tipos de animais da sua fazenda.</p>
+        <a href="{% url 'inventory_cadastros:category_create' %}"
+           class="inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium text-white bg-green-600 hover:bg-green-700">
+            Novo Tipo de Animal
+        </a>
+        {% endif %}
     </div>
     {% endif %}
-    
+
+    {# ── Modal de Confirmação ──────────────────────────────────────── #}
+    <div x-show="modal.open" x-cloak class="fixed inset-0 z-50 overflow-y-auto"
+         @keydown.escape.window="modal.open = false">
+        <div class="fixed inset-0 bg-gray-500/75"
+             x-show="modal.open"
+             x-transition:enter="ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+             x-transition:leave="ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+             @click="modal.open = false"></div>
+        <div class="flex min-h-full items-center justify-center p-4">
+            <div class="relative bg-white rounded-xl shadow-xl w-full max-w-md p-6"
+                 x-show="modal.open"
+                 x-transition:enter="ease-out duration-200" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
+                 x-transition:leave="ease-in duration-150" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95"
+                 @click.stop>
+                <div class="flex items-center justify-center w-12 h-12 rounded-full bg-red-100 mx-auto mb-4">
+                    <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 text-center mb-2" x-text="modal.title"></h3>
+                <p class="text-sm text-gray-500 text-center mb-6" x-html="modal.message"></p>
+                <div class="flex gap-3">
+                    <button @click="modal.open = false"
+                        class="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                        Cancelar
+                    </button>
+                    <form method="post" :action="modal.url" class="flex-1">
+                        {% csrf_token %}
+                        <button type="submit"
+                            class="w-full px-4 py-2.5 rounded-lg text-sm font-medium text-white bg-red-600 hover:bg-red-700 transition-colors">
+                            <span x-text="modal.btnLabel">Confirmar</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>
 {% endblock %}

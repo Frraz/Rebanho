@@ -11,7 +11,7 @@ urlpatterns = [
     # Django Admin
     path('admin/', admin.site.urls),
 
-    # ← ADICIONAR: Auth própria
+    # Auth própria
     path('login/', auth_views.LoginView.as_view(
         template_name='registration/login.html'
     ), name='login'),
@@ -19,30 +19,30 @@ urlpatterns = [
         next_page='/'
     ), name='logout'),
 
-    path('cadastros/fazendas/', include('farms.urls')),
-    
     # Core (Dashboard)
     path('', include('core.urls')),
-    
+
     # Cadastros
-    path('cadastros/fazendas/', include('farms.urls')),
+    path('cadastros/fazendas/', include('farms.urls')),        # ← apenas uma vez
     path('cadastros/', include('inventory.urls.cadastros')),
     path('cadastros/', include('operations.urls.cadastros')),
-    
+
     # Ocorrências
     path('ocorrencias/', include('operations.urls.ocorrencias')),
-    
+
     # Movimentações
     path('movimentacoes/', include('inventory.urls.movimentacoes')),
-    
-    # Relatórios ← SÓ UMA VEZ, com namespace
+
+    # Relatórios
     path('relatorios/', include('reporting.urls', namespace='reporting')),
+
+    path('htmx/', include('inventory.urls.htmx')),
 ]
 
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-    
+
     try:
         import debug_toolbar
         urlpatterns = [

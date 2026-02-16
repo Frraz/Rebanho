@@ -12,9 +12,17 @@
             <div class="flex justify-between items-center mb-4">
                 <h1 class="text-2xl font-bold text-gray-900">📊 Relatório por Fazenda</h1>
                 {% if report %}
-                <button onclick="window.print()" class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-                    🖨️ Imprimir
-                </button>
+                <div class="flex items-center gap-2">
+                    <button onclick="window.print()"
+                        class="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+                        🖨️ Imprimir
+                    </button>
+                    <a href="{% url 'reporting:farm_pdf' %}?farm={{ selected_farm_id }}&month={{ selected_month }}&year={{ selected_year }}{% if selected_category_id %}&category={{ selected_category_id }}{% endif %}"
+                       target="_blank"
+                       class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-white bg-red-600 hover:bg-red-700 transition-colors shadow-sm">
+                        📄 Exportar PDF
+                    </a>
+                </div>
                 {% endif %}
             </div>
 
@@ -116,7 +124,7 @@
         </div>
     </div>
 
-    <!-- 2. TABELA PRINCIPAL: Ocorrências + Movimentações + Entradas/Saídas -->
+    <!-- 2. TABELA PRINCIPAL -->
     <div class="bg-white shadow sm:rounded-lg print:shadow-none">
         <div class="px-4 py-3 sm:px-6">
             <h2 class="text-sm font-bold text-blue-600 text-center mb-2 uppercase tracking-wider">
@@ -125,22 +133,16 @@
             <div class="overflow-x-auto">
                 <table class="min-w-full border border-gray-300 text-xs">
                     <thead>
-                        <!-- Linha de grupos -->
                         <tr class="bg-gray-50">
                             <th class="border border-gray-300 px-2 py-1" rowspan="2">Animais</th>
-                            <!-- Ocorrências -->
                             <th class="border border-gray-300 px-2 py-1 text-center text-red-700 font-bold bg-red-50" colspan="3">Ocorrências</th>
-                            <!-- Movimentações -->
                             <th class="border border-gray-300 px-2 py-1 text-center text-green-700 font-bold bg-green-50" colspan="8">Movimentações</th>
-                            <!-- Consolidado -->
                             <th class="border border-gray-300 px-2 py-1 text-center text-blue-700 font-bold bg-blue-50" colspan="2">Consolidado</th>
                         </tr>
                         <tr class="bg-gray-50 text-xs">
-                            <!-- Ocorrências -->
                             <th class="border border-gray-300 px-2 py-1 text-center bg-red-50">Morte</th>
                             <th class="border border-gray-300 px-2 py-1 text-center bg-red-50">Venda</th>
                             <th class="border border-gray-300 px-2 py-1 text-center bg-red-50">Abate</th>
-                            <!-- Movimentações -->
                             <th class="border border-gray-300 px-2 py-1 text-center bg-green-50">Nasc.</th>
                             <th class="border border-gray-300 px-2 py-1 text-center bg-green-50">Desm.</th>
                             <th class="border border-gray-300 px-2 py-1 text-center bg-green-50">Man.(+)</th>
@@ -149,7 +151,6 @@
                             <th class="border border-gray-300 px-2 py-1 text-center bg-green-50">M.Cat.(-)</th>
                             <th class="border border-gray-300 px-2 py-1 text-center bg-green-50">Compra</th>
                             <th class="border border-gray-300 px-2 py-1 text-center bg-green-50">Doação</th>
-                            <!-- Consolidado -->
                             <th class="border border-gray-300 px-2 py-1 text-center bg-blue-50">Entrada</th>
                             <th class="border border-gray-300 px-2 py-1 text-center bg-blue-50">Saída</th>
                         </tr>
@@ -158,52 +159,21 @@
                         {% for category in report.categories %}
                         <tr class="hover:bg-gray-50">
                             <td class="border border-gray-300 px-2 py-1 font-medium text-gray-900 whitespace-nowrap">{{ category }}</td>
-                            <!-- Ocorrências -->
-                            <td class="border border-gray-300 px-2 py-1 text-center text-red-600">
-                                {% with v=report.ocorrencias.morte|get_item:category %}{% if v %}{{ v }}{% else %}-{% endif %}{% endwith %}
-                            </td>
-                            <td class="border border-gray-300 px-2 py-1 text-center text-orange-600">
-                                {% with v=report.ocorrencias.venda|get_item:category %}{% if v %}{{ v }}{% else %}-{% endif %}{% endwith %}
-                            </td>
-                            <td class="border border-gray-300 px-2 py-1 text-center text-gray-600">
-                                {% with v=report.ocorrencias.abate|get_item:category %}{% if v %}{{ v }}{% else %}-{% endif %}{% endwith %}
-                            </td>
-                            <!-- Movimentações -->
-                            <td class="border border-gray-300 px-2 py-1 text-center text-green-600">
-                                {% with v=report.entradas.nascimento|get_item:category %}{% if v %}{{ v }}{% else %}-{% endif %}{% endwith %}
-                            </td>
-                            <td class="border border-gray-300 px-2 py-1 text-center text-green-600">
-                                {% with v=report.entradas.desmame|get_item:category %}{% if v %}{{ v }}{% else %}-{% endif %}{% endwith %}
-                            </td>
-                            <td class="border border-gray-300 px-2 py-1 text-center text-green-700 font-semibold">
-                                {% with v=report.entradas.manejo_in|get_item:category %}{% if v %}{{ v }}{% else %}-{% endif %}{% endwith %}
-                            </td>
-                            <td class="border border-gray-300 px-2 py-1 text-center text-red-700 font-semibold">
-                                {% with v=report.entradas.manejo_out|get_item:category %}{% if v %}{{ v }}{% else %}-{% endif %}{% endwith %}
-                            </td>
-                            <td class="border border-gray-300 px-2 py-1 text-center text-blue-600">
-                                {% with v=report.entradas.mudanca_in|get_item:category %}{% if v %}{{ v }}{% else %}-{% endif %}{% endwith %}
-                            </td>
-                            <td class="border border-gray-300 px-2 py-1 text-center text-orange-600">
-                                {% with v=report.entradas.mudanca_out|get_item:category %}{% if v %}{{ v }}{% else %}-{% endif %}{% endwith %}
-                            </td>
-                            <td class="border border-gray-300 px-2 py-1 text-center text-blue-600">
-                                {% with v=report.entradas.compra|get_item:category %}{% if v %}{{ v }}{% else %}-{% endif %}{% endwith %}
-                            </td>
-                            <td class="border border-gray-300 px-2 py-1 text-center text-purple-600">
-                                {% with v=report.ocorrencias.doacao|get_item:category %}{% if v %}{{ v }}{% else %}-{% endif %}{% endwith %}
-                            </td>
-                            <!-- Consolidado -->
-                            <td class="border border-gray-300 px-2 py-1 text-center font-bold text-green-700 bg-green-50">
-                                {% with v=report.consolidado.entradas|get_item:category %}{% if v %}{{ v }}{% else %}-{% endif %}{% endwith %}
-                            </td>
-                            <td class="border border-gray-300 px-2 py-1 text-center font-bold text-red-700 bg-red-50">
-                                {% with v=report.consolidado.saidas|get_item:category %}{% if v %}{{ v }}{% else %}-{% endif %}{% endwith %}
-                            </td>
+                            <td class="border border-gray-300 px-2 py-1 text-center text-red-600">{% with v=report.ocorrencias.morte|get_item:category %}{% if v %}{{ v }}{% else %}-{% endif %}{% endwith %}</td>
+                            <td class="border border-gray-300 px-2 py-1 text-center text-orange-600">{% with v=report.ocorrencias.venda|get_item:category %}{% if v %}{{ v }}{% else %}-{% endif %}{% endwith %}</td>
+                            <td class="border border-gray-300 px-2 py-1 text-center text-gray-600">{% with v=report.ocorrencias.abate|get_item:category %}{% if v %}{{ v }}{% else %}-{% endif %}{% endwith %}</td>
+                            <td class="border border-gray-300 px-2 py-1 text-center text-green-600">{% with v=report.entradas.nascimento|get_item:category %}{% if v %}{{ v }}{% else %}-{% endif %}{% endwith %}</td>
+                            <td class="border border-gray-300 px-2 py-1 text-center text-green-600">{% with v=report.entradas.desmame|get_item:category %}{% if v %}{{ v }}{% else %}-{% endif %}{% endwith %}</td>
+                            <td class="border border-gray-300 px-2 py-1 text-center text-green-700 font-semibold">{% with v=report.entradas.manejo_in|get_item:category %}{% if v %}{{ v }}{% else %}-{% endif %}{% endwith %}</td>
+                            <td class="border border-gray-300 px-2 py-1 text-center text-red-700 font-semibold">{% with v=report.entradas.manejo_out|get_item:category %}{% if v %}{{ v }}{% else %}-{% endif %}{% endwith %}</td>
+                            <td class="border border-gray-300 px-2 py-1 text-center text-blue-600">{% with v=report.entradas.mudanca_in|get_item:category %}{% if v %}{{ v }}{% else %}-{% endif %}{% endwith %}</td>
+                            <td class="border border-gray-300 px-2 py-1 text-center text-orange-600">{% with v=report.entradas.mudanca_out|get_item:category %}{% if v %}{{ v }}{% else %}-{% endif %}{% endwith %}</td>
+                            <td class="border border-gray-300 px-2 py-1 text-center text-blue-600">{% with v=report.entradas.compra|get_item:category %}{% if v %}{{ v }}{% else %}-{% endif %}{% endwith %}</td>
+                            <td class="border border-gray-300 px-2 py-1 text-center text-purple-600">{% with v=report.ocorrencias.doacao|get_item:category %}{% if v %}{{ v }}{% else %}-{% endif %}{% endwith %}</td>
+                            <td class="border border-gray-300 px-2 py-1 text-center font-bold text-green-700 bg-green-50">{% with v=report.consolidado.entradas|get_item:category %}{% if v %}{{ v }}{% else %}-{% endif %}{% endwith %}</td>
+                            <td class="border border-gray-300 px-2 py-1 text-center font-bold text-red-700 bg-red-50">{% with v=report.consolidado.saidas|get_item:category %}{% if v %}{{ v }}{% else %}-{% endif %}{% endwith %}</td>
                         </tr>
                         {% endfor %}
-
-                        <!-- Linha de totais -->
                         <tr class="bg-gray-100 font-bold text-xs">
                             <td class="border border-gray-300 px-2 py-1 font-bold">TOTAL</td>
                             <td class="border border-gray-300 px-2 py-1 text-center text-red-700">{{ report.ocorrencias.morte|sum_values }}</td>
@@ -235,9 +205,7 @@
                     <thead>
                         <tr class="bg-green-50">
                             {% for category in report.categories %}
-                            <th class="border border-gray-300 px-3 py-2 text-center text-xs font-medium text-green-800 uppercase">
-                                {{ category }}
-                            </th>
+                            <th class="border border-gray-300 px-3 py-2 text-center text-xs font-medium text-green-800 uppercase">{{ category }}</th>
                             {% endfor %}
                             <th class="border border-gray-300 px-3 py-2 text-center text-xs font-bold text-green-900 bg-green-100 uppercase">Total</th>
                         </tr>
@@ -245,13 +213,9 @@
                     <tbody>
                         <tr class="bg-white">
                             {% for category in report.categories %}
-                            <td class="border border-gray-300 px-3 py-2 text-center font-bold text-green-700">
-                                {{ report.estoque_final|get_item:category }}
-                            </td>
+                            <td class="border border-gray-300 px-3 py-2 text-center font-bold text-green-700">{{ report.estoque_final|get_item:category }}</td>
                             {% endfor %}
-                            <td class="border border-gray-300 px-3 py-2 text-center text-lg font-bold text-green-800 bg-green-50">
-                                {{ report.estoque_final|sum_values }}
-                            </td>
+                            <td class="border border-gray-300 px-3 py-2 text-center text-lg font-bold text-green-800 bg-green-50">{{ report.estoque_final|sum_values }}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -259,15 +223,12 @@
         </div>
     </div>
 
-    <!-- 4. OCORRÊNCIAS DETALHADAS -->
+    <!-- 4. DETALHAMENTOS -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-
         <!-- Causa das Mortes -->
         <div class="bg-white shadow sm:rounded-lg print:shadow-none">
             <div class="px-4 py-3 sm:px-6">
-                <h3 class="text-xs font-bold text-gray-700 uppercase mb-2 text-center border-b pb-1">
-                    OBS: Causa das Mortes dos Animais
-                </h3>
+                <h3 class="text-xs font-bold text-gray-700 uppercase mb-2 text-center border-b pb-1">OBS: Causa das Mortes dos Animais</h3>
                 <table class="min-w-full border border-gray-200 text-xs">
                     <thead class="bg-gray-50">
                         <tr>
@@ -294,9 +255,7 @@
         <!-- Doações -->
         <div class="bg-white shadow sm:rounded-lg print:shadow-none">
             <div class="px-4 py-3 sm:px-6">
-                <h3 class="text-xs font-bold text-gray-700 uppercase mb-2 text-center border-b pb-1">
-                    OBS: Doações
-                </h3>
+                <h3 class="text-xs font-bold text-gray-700 uppercase mb-2 text-center border-b pb-1">OBS: Doações</h3>
                 <table class="min-w-full border border-gray-200 text-xs">
                     <thead class="bg-gray-50">
                         <tr>
@@ -325,9 +284,7 @@
         <!-- Controle de Vendas -->
         <div class="bg-white shadow sm:rounded-lg print:shadow-none">
             <div class="px-4 py-3 sm:px-6">
-                <h3 class="text-xs font-bold text-gray-700 uppercase mb-2 text-center border-b pb-1">
-                    OBS: Controle de Vendas
-                </h3>
+                <h3 class="text-xs font-bold text-gray-700 uppercase mb-2 text-center border-b pb-1">OBS: Controle de Vendas</h3>
                 <table class="min-w-full border border-gray-200 text-xs">
                     <thead class="bg-gray-50">
                         <tr>
@@ -356,13 +313,10 @@
         </div>
     </div>
 
-    <!-- Abates -->
     {% if report.detalhamento.abates %}
     <div class="bg-white shadow sm:rounded-lg print:shadow-none">
         <div class="px-4 py-3 sm:px-6">
-            <h3 class="text-xs font-bold text-gray-700 uppercase mb-2 text-center border-b pb-1">
-                OBS: Abates
-            </h3>
+            <h3 class="text-xs font-bold text-gray-700 uppercase mb-2 text-center border-b pb-1">OBS: Abates</h3>
             <table class="min-w-full border border-gray-200 text-xs">
                 <thead class="bg-gray-50">
                     <tr>
@@ -388,7 +342,6 @@
     {% endif %}
 
     {% else %}
-    <!-- Estado vazio -->
     <div class="text-center py-12 bg-white rounded-lg shadow">
         <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
@@ -406,6 +359,7 @@
     body { font-size: 9pt; }
     .print\:hidden { display: none !important; }
     .print\:shadow-none { box-shadow: none !important; }
+    .print\:block { display: block !important; }
 }
 </style>
 {% endblock %}

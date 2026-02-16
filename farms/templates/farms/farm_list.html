@@ -1,90 +1,212 @@
 {% extends 'base/base.html' %}
 
-{% block title %}Fazendas - Sistema de Gestão de Rebanhos{% endblock %}
+{% block title %}Fazendas - Sistema de Gestão{% endblock %}
 
 {% block content %}
-<div class="space-y-6">
-    
-    <!-- Header -->
-    <div class="flex justify-between items-center">
+<div class="space-y-5"
+     x-data="{
+        modal: { open: false, title: '', message: '', url: '', btnLabel: '', btnColor: 'red' },
+        openConfirm(title, message, url, btnLabel, btnColor) {
+            this.modal = { open: true, title, message, url, btnLabel, btnColor: btnColor || 'red' };
+        }
+     }">
+
+    {# ── Cabeçalho ────────────────────────────────────────────────── #}
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-            <h1 class="text-3xl font-bold text-gray-900">Fazendas</h1>
-            <p class="mt-2 text-gray-600">Gerencie suas fazendas cadastradas</p>
+            <h1 class="text-2xl font-bold text-gray-900">Fazendas</h1>
+            <p class="mt-1 text-sm text-gray-500">Gerencie suas fazendas cadastradas</p>
         </div>
-        <a href="{% url 'farms:create' %}" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-            <svg class="mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <a href="{% url 'farms:create' %}"
+           class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white bg-green-600 hover:bg-green-700 transition-colors shadow-sm">
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
             </svg>
             Nova Fazenda
         </a>
     </div>
-    
-    <!-- Lista de Fazendas -->
+
+    {# ── Busca ────────────────────────────────────────────────────── #}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+        <form method="get" class="flex gap-3">
+            <div class="relative flex-1">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                </div>
+                <input type="search" name="q" value="{{ search_term }}"
+                    class="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500"
+                    placeholder="Buscar por nome da fazenda...">
+            </div>
+            <button type="submit"
+                class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors">
+                Buscar
+            </button>
+            {% if search_term %}
+            <a href="{% url 'farms:list' %}"
+               class="px-3 py-2 border border-gray-300 text-gray-600 text-sm rounded-lg hover:bg-gray-50 transition-colors">
+                ✕
+            </a>
+            {% endif %}
+        </form>
+        {% if search_term %}
+        <p class="mt-2 text-xs text-gray-500">{{ total_count }} fazenda{{ total_count|pluralize }} encontrada{{ total_count|pluralize }}</p>
+        {% endif %}
+    </div>
+
+    {# ── Lista de Fazendas ─────────────────────────────────────────── #}
     {% if farms_with_summary %}
-    <div class="bg-white shadow overflow-hidden sm:rounded-md">
-        <ul class="divide-y divide-gray-200">
-            {% for item in farms_with_summary %}
-            <li>
-                <div class="px-4 py-4 sm:px-6 hover:bg-gray-50">
-                    <div class="flex items-center justify-between">
-                        <div class="flex-1">
-                            <div class="flex items-center justify-between">
-                                <p class="text-lg font-semibold text-green-600">
-                                    🏡 {{ item.farm.name }}
-                                </p>
-                                <div class="ml-2 flex-shrink-0 flex">
-                                    <p class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                        Total: {{ item.total_animals }} animais
-                                    </p>
-                                </div>
-                            </div>
-                            
-                            <!-- Resumo de saldos -->
-                            <div class="mt-2 sm:flex sm:justify-between">
-                                <div class="sm:flex space-x-4">
-                                    {% for saldo in item.summary %}
-                                        <span class="text-sm text-gray-600">
-                                            {{ saldo.categoria_nome }}: <strong>{{ saldo.quantidade }}</strong>
-                                        </span>
-                                    {% endfor %}
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Ações -->
-                        <div class="ml-4 flex-shrink-0 flex space-x-2">
-                            <a href="{% url 'farms:detail' item.farm.id %}" class="text-gray-600 hover:text-gray-900">
-                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                                </svg>
+    <div class="space-y-3">
+        {% for item in farms_with_summary %}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 hover:border-green-300 transition-colors">
+            <div class="p-5">
+                <div class="flex items-start justify-between gap-4">
+
+                    {# Info da fazenda #}
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xl">🏡</span>
+                            <a href="{% url 'farms:detail' item.farm.id %}"
+                               class="text-base font-semibold text-green-700 hover:text-green-800 hover:underline truncate">
+                                {{ item.farm.name }}
                             </a>
-                            <a href="{% url 'farms:update' item.farm.id %}" class="text-blue-600 hover:text-blue-900">
-                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                                </svg>
-                            </a>
+                            <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 flex-shrink-0">
+                                {{ item.total_animals }} animais
+                            </span>
                         </div>
+
+                        {# Saldos por categoria #}
+                        {% if item.summary %}
+                        <div class="mt-2.5 flex flex-wrap gap-x-4 gap-y-1">
+                            {% for saldo in item.summary %}
+                            <span class="text-sm text-gray-600">
+                                {{ saldo.categoria_nome }}:
+                                <strong class="{% if saldo.quantidade == 0 %}text-gray-400{% else %}text-gray-800{% endif %}">
+                                    {{ saldo.quantidade }}
+                                </strong>
+                            </span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    {# Ações #}
+                    <div class="flex items-center gap-2 flex-shrink-0">
+                        <a href="{% url 'farms:detail' item.farm.id %}"
+                           title="Visualizar"
+                           class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                            </svg>
+                        </a>
+                        <a href="{% url 'farms:update' item.farm.id %}"
+                           title="Editar"
+                           class="p-2 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                            </svg>
+                        </a>
+                        <button
+                            @click="openConfirm(
+                                'Desativar Fazenda',
+                                'Tem certeza que deseja desativar {{ item.farm.name|escapejs }}? A fazenda e seus saldos serão ocultados do sistema.',
+                                '{% url "farms:deactivate" item.farm.id %}',
+                                'Desativar',
+                                'red'
+                            )"
+                            title="Desativar"
+                            class="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
+                            </svg>
+                        </button>
                     </div>
                 </div>
-            </li>
-            {% endfor %}
-        </ul>
-    </div>
-    {% else %}
-    <div class="text-center py-12 bg-white rounded-lg shadow">
-        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
-        </svg>
-        <h3 class="mt-2 text-sm font-medium text-gray-900">Nenhuma fazenda cadastrada</h3>
-        <p class="mt-1 text-sm text-gray-500">Comece cadastrando sua primeira fazenda.</p>
-        <div class="mt-6">
-            <a href="{% url 'farms:create' %}" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
-                Nova Fazenda
-            </a>
+            </div>
         </div>
+        {% endfor %}
+    </div>
+
+    {% else %}
+    <div class="text-center py-16 bg-white rounded-xl border border-gray-200">
+        <div class="text-5xl mb-3">🏡</div>
+        {% if search_term %}
+        <h3 class="text-base font-semibold text-gray-900 mb-1">Nenhuma fazenda encontrada</h3>
+        <p class="text-sm text-gray-500 mb-4">Tente uma busca diferente.</p>
+        <a href="{% url 'farms:list' %}" class="text-sm text-green-600 hover:underline">← Ver todas as fazendas</a>
+        {% else %}
+        <h3 class="text-base font-semibold text-gray-900 mb-1">Nenhuma fazenda cadastrada</h3>
+        <p class="text-sm text-gray-500 mb-4">Comece cadastrando a primeira fazenda.</p>
+        <a href="{% url 'farms:create' %}"
+           class="inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium text-white bg-green-600 hover:bg-green-700">
+            Nova Fazenda
+        </a>
+        {% endif %}
     </div>
     {% endif %}
-    
+
+    {# ── Modal de Confirmação (único, dinâmico) ────────────────────── #}
+    <div x-show="modal.open"
+         x-cloak
+         class="fixed inset-0 z-50 overflow-y-auto"
+         @keydown.escape.window="modal.open = false">
+
+        {# Overlay #}
+        <div class="fixed inset-0 bg-gray-500/75 transition-opacity"
+             x-show="modal.open"
+             x-transition:enter="ease-out duration-200"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="ease-in duration-150"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             @click="modal.open = false">
+        </div>
+
+        <div class="flex min-h-full items-center justify-center p-4">
+            <div class="relative bg-white rounded-xl shadow-xl w-full max-w-md p-6"
+                 x-show="modal.open"
+                 x-transition:enter="ease-out duration-200"
+                 x-transition:enter-start="opacity-0 scale-95"
+                 x-transition:enter-end="opacity-100 scale-100"
+                 x-transition:leave="ease-in duration-150"
+                 x-transition:leave-start="opacity-100 scale-100"
+                 x-transition:leave-end="opacity-0 scale-95"
+                 @click.stop>
+
+                <div class="flex items-center justify-center w-12 h-12 rounded-full bg-red-100 mx-auto mb-4">
+                    <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                </div>
+
+                <h3 class="text-lg font-semibold text-gray-900 text-center mb-2" x-text="modal.title"></h3>
+                <p class="text-sm text-gray-500 text-center mb-6" x-text="modal.message"></p>
+
+                <div class="flex gap-3">
+                    <button @click="modal.open = false"
+                        class="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                        Cancelar
+                    </button>
+                    <form method="post" :action="modal.url" class="flex-1">
+                        {% csrf_token %}
+                        <button type="submit"
+                            class="w-full px-4 py-2.5 rounded-lg text-sm font-medium text-white bg-red-600 hover:bg-red-700 transition-colors">
+                            <span x-text="modal.btnLabel">Confirmar</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>
 {% endblock %}

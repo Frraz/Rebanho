@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}Relatório{% endblock %}</title>
+<style>
+  /* ── Reset e base ────────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 8.5pt;
+    color: #1a1a1a;
+    background: white;
+    line-height: 1.3;
+  }
+
+  /* ── Página ──────────────────────────────────────────────────── */
+  @page {
+    size: A4 landscape;
+    margin: 1cm 1.2cm;
+  }
+
+  /* ── Cabeçalho do relatório ──────────────────────────────────── */
+  .report-header {
+    text-align: center;
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+    border-bottom: 2px solid #166534;
+  }
+  .report-title {
+    font-size: 13pt;
+    font-weight: bold;
+    color: #166534;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .report-subtitle {
+    font-size: 9.5pt;
+    color: #374151;
+    margin-top: 2px;
+  }
+  .report-meta {
+    font-size: 7.5pt;
+    color: #6b7280;
+    margin-top: 2px;
+  }
+
+  /* ── Seção ───────────────────────────────────────────────────── */
+  .section {
+    margin-bottom: 10px;
+  }
+  .section-title {
+    font-size: 7.5pt;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 3px 6px;
+    margin-bottom: 4px;
+    border-radius: 2px;
+  }
+  .section-title.red    { color: #dc2626; background: #fef2f2; border-left: 3px solid #dc2626; }
+  .section-title.blue   { color: #1d4ed8; background: #eff6ff; border-left: 3px solid #1d4ed8; }
+  .section-title.green  { color: #16a34a; background: #f0fdf4; border-left: 3px solid #16a34a; }
+  .section-title.gray   { color: #374151; background: #f9fafb; border-left: 3px solid #9ca3af; }
+
+  /* ── Tabelas ─────────────────────────────────────────────────── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 7.5pt;
+  }
+  th, td {
+    border: 1px solid #d1d5db;
+    padding: 3px 5px;
+  }
+  th {
+    background: #f3f4f6;
+    font-weight: bold;
+    text-align: center;
+    font-size: 7pt;
+    text-transform: uppercase;
+    color: #374151;
+  }
+  td { text-align: center; }
+  td.text-left { text-align: left; }
+
+  /* ── Grupos de colunas ───────────────────────────────────────── */
+  .th-ocorrencias  { background: #fef2f2 !important; color: #dc2626 !important; }
+  .th-movimentos   { background: #f0fdf4 !important; color: #16a34a !important; }
+  .th-consolidado  { background: #eff6ff !important; color: #1d4ed8 !important; }
+
+  /* ── Cores de valores ────────────────────────────────────────── */
+  .val-morte   { color: #dc2626; font-weight: 600; }
+  .val-venda   { color: #d97706; font-weight: 600; }
+  .val-abate   { color: #6b7280; font-weight: 600; }
+  .val-nasc    { color: #16a34a; font-weight: 600; }
+  .val-entrada { color: #16a34a; font-weight: bold; background: #f0fdf4; }
+  .val-saida   { color: #dc2626; font-weight: bold; background: #fef2f2; }
+  .val-zero    { color: #d1d5db; }
+
+  /* ── Linha de total ──────────────────────────────────────────── */
+  tr.total-row td {
+    background: #f3f4f6;
+    font-weight: bold;
+    border-top: 2px solid #9ca3af;
+  }
+
+  /* ── Estoque (linha única) ───────────────────────────────────── */
+  .estoque-table th { background: #f0fdf4; color: #166534; }
+  .estoque-table td { font-weight: bold; font-size: 9pt; }
+  .estoque-total    { background: #dcfce7 !important; color: #166534; font-size: 10pt; }
+
+  /* ── Grid de detalhamentos ───────────────────────────────────── */
+  .details-grid {
+    display: table;
+    width: 100%;
+    border-spacing: 6px 0;
+  }
+  .details-col {
+    display: table-cell;
+    width: 33%;
+    vertical-align: top;
+  }
+  .details-col table th { font-size: 6.5pt; }
+  .details-col table td { font-size: 7pt; }
+
+  /* ── Rodapé ──────────────────────────────────────────────────── */
+  .report-footer {
+    margin-top: 10px;
+    padding-top: 5px;
+    border-top: 1px solid #e5e7eb;
+    font-size: 6.5pt;
+    color: #9ca3af;
+    display: table;
+    width: 100%;
+  }
+  .footer-left  { display: table-cell; text-align: left; }
+  .footer-right { display: table-cell; text-align: right; }
+
+  /* ── Quebra de página ────────────────────────────────────────── */
+  .page-break { page-break-before: always; }
+
+  /* ── Badge de fazenda (para consolidado) ─────────────────────── */
+  .farm-badge {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 3px;
+    padding: 2px 6px;
+    font-size: 7pt;
+    color: #166534;
+    display: inline-block;
+    margin: 1px;
+  }
+</style>
+</head>
+<body>
+{% block content %}{% endblock %}
+</body>
+</html>

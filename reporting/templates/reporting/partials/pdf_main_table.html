@@ -1,0 +1,113 @@
+{% load report_tags %}
+{#
+  Partial reutilizável: estoque inicial + tabela principal + estoque final.
+  Recebe: r = report dict (farm_report ou farm_report dentro de consolidated)
+#}
+
+{# Estoque Inicial #}
+<div class="section">
+  <div class="section-title red">Estoque Inicial</div>
+  <table class="estoque-table">
+    <thead>
+      <tr>
+        {% for cat in r.categories %}<th>{{ cat }}</th>{% endfor %}
+        <th>Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        {% for cat in r.categories %}
+        <td>{{ r.estoque_inicial|get_item:cat }}</td>
+        {% endfor %}
+        <td class="estoque-total">{{ r.estoque_inicial|sum_values }}</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+{# Tabela Principal #}
+<div class="section">
+  <div class="section-title blue">{{ r.period.start|date:"F/Y"|upper }}</div>
+  <table>
+    <thead>
+      <tr>
+        <th rowspan="2" class="text-left">Animais</th>
+        <th colspan="3" class="th-ocorrencias">Ocorrências</th>
+        <th colspan="8" class="th-movimentos">Movimentações</th>
+        <th colspan="2" class="th-consolidado">Consolidado</th>
+      </tr>
+      <tr>
+        <th class="th-ocorrencias">Morte</th>
+        <th class="th-ocorrencias">Venda</th>
+        <th class="th-ocorrencias">Abate</th>
+        <th class="th-movimentos">Nasc.</th>
+        <th class="th-movimentos">Desm.</th>
+        <th class="th-movimentos">Man.(+)</th>
+        <th class="th-movimentos">Man.(−)</th>
+        <th class="th-movimentos">M.Cat.(+)</th>
+        <th class="th-movimentos">M.Cat.(−)</th>
+        <th class="th-movimentos">Compra</th>
+        <th class="th-movimentos">Doação</th>
+        <th class="th-consolidado">Entrada</th>
+        <th class="th-consolidado">Saída</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for cat in r.categories %}
+      <tr>
+        <td class="text-left">{{ cat }}</td>
+        {% with v=r.ocorrencias.morte|get_item:cat    %}<td class="{% if v %}val-morte{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
+        {% with v=r.ocorrencias.venda|get_item:cat    %}<td class="{% if v %}val-venda{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
+        {% with v=r.ocorrencias.abate|get_item:cat    %}<td class="{% if v %}val-abate{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
+        {% with v=r.entradas.nascimento|get_item:cat  %}<td class="{% if v %}val-nasc{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
+        {% with v=r.entradas.desmame|get_item:cat     %}<td class="{% if v %}val-nasc{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
+        {% with v=r.entradas.manejo_in|get_item:cat   %}<td class="{% if v %}val-nasc{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
+        {% with v=r.entradas.manejo_out|get_item:cat  %}<td class="{% if v %}val-morte{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
+        {% with v=r.entradas.mudanca_in|get_item:cat  %}<td class="{% if v %}val-nasc{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
+        {% with v=r.entradas.mudanca_out|get_item:cat %}<td class="{% if v %}val-venda{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
+        {% with v=r.entradas.compra|get_item:cat      %}<td class="{% if v %}val-nasc{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
+        {% with v=r.ocorrencias.doacao|get_item:cat   %}<td class="{% if v %}val-abate{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
+        {% with v=r.consolidado.entradas|get_item:cat %}<td class="{% if v %}val-entrada{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
+        {% with v=r.consolidado.saidas|get_item:cat   %}<td class="{% if v %}val-saida{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
+      </tr>
+      {% endfor %}
+      <tr class="total-row">
+        <td class="text-left">TOTAL</td>
+        <td class="val-morte">{{ r.ocorrencias.morte|sum_values }}</td>
+        <td class="val-venda">{{ r.ocorrencias.venda|sum_values }}</td>
+        <td class="val-abate">{{ r.ocorrencias.abate|sum_values }}</td>
+        <td class="val-nasc">{{ r.entradas.nascimento|sum_values }}</td>
+        <td class="val-nasc">{{ r.entradas.desmame|sum_values }}</td>
+        <td class="val-nasc">{{ r.entradas.manejo_in|sum_values }}</td>
+        <td class="val-morte">{{ r.entradas.manejo_out|sum_values }}</td>
+        <td class="val-nasc">{{ r.entradas.mudanca_in|sum_values }}</td>
+        <td class="val-venda">{{ r.entradas.mudanca_out|sum_values }}</td>
+        <td class="val-nasc">{{ r.entradas.compra|sum_values }}</td>
+        <td class="val-abate">{{ r.ocorrencias.doacao|sum_values }}</td>
+        <td class="val-entrada">{{ r.consolidado.entradas|sum_values }}</td>
+        <td class="val-saida">{{ r.consolidado.saidas|sum_values }}</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+{# Estoque Final #}
+<div class="section">
+  <div class="section-title green">Estoque Final do Mês</div>
+  <table class="estoque-table">
+    <thead>
+      <tr>
+        {% for cat in r.categories %}<th>{{ cat }}</th>{% endfor %}
+        <th>Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        {% for cat in r.categories %}
+        <td class="val-nasc">{{ r.estoque_final|get_item:cat }}</td>
+        {% endfor %}
+        <td class="estoque-total">{{ r.estoque_final|sum_values }}</td>
+      </tr>
+    </tbody>
+  </table>
+</div>

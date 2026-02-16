@@ -6,117 +6,194 @@
 <div class="max-w-3xl mx-auto">
     <div class="bg-white shadow sm:rounded-lg">
         <div class="px-4 py-5 sm:p-6">
-            <h3 class="text-lg leading-6 font-medium text-gray-900">{{ title }}</h3>
-            
-            <form method="post" class="mt-5 space-y-6">
+
+            {# Cabeçalho com ícone por tipo #}
+            <div class="flex items-center gap-3 mb-6">
+                <div class="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center
+                    {% if operation_type == 'morte' %}bg-red-100
+                    {% elif operation_type == 'abate' %}bg-gray-100
+                    {% elif operation_type == 'venda' %}bg-green-100
+                    {% elif operation_type == 'doacao' %}bg-blue-100
+                    {% else %}bg-gray-100{% endif %}">
+                    {% if operation_type == 'morte' %}☠️
+                    {% elif operation_type == 'abate' %}🔪
+                    {% elif operation_type == 'venda' %}💰
+                    {% elif operation_type == 'doacao' %}🎁
+                    {% else %}📋{% endif %}
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900">{{ title }}</h3>
+                    <p class="text-sm text-gray-500">
+                        {% if operation_type == 'morte' %}Registrar morte — apenas categorias com saldo disponível
+                        {% elif operation_type == 'abate' %}Registrar abate — apenas categorias com saldo disponível
+                        {% elif operation_type == 'venda' %}Registrar venda de animais
+                        {% elif operation_type == 'doacao' %}Registrar doação de animais
+                        {% else %}Preencha os dados abaixo{% endif %}
+                    </p>
+                </div>
+            </div>
+
+            <form method="post" class="space-y-5">
                 {% csrf_token %}
-                
+
                 {% if form.non_field_errors %}
-                <div class="rounded-md bg-red-50 p-4">
-                    <div class="text-sm text-red-700">{{ form.non_field_errors }}</div>
+                <div class="rounded-lg bg-red-50 border border-red-200 p-4">
+                    <div class="flex gap-2">
+                        <span class="text-red-500">⚠️</span>
+                        <div class="text-sm text-red-700">{{ form.non_field_errors }}</div>
+                    </div>
                 </div>
                 {% endif %}
-                
-                <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                    <!-- Fazenda -->
+
+                <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
+
+                    {# ── Fazenda ──────────────────────────────────────── #}
                     <div>
-                        <label for="{{ form.farm.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        <label for="{{ form.farm.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
                             {{ form.farm.label }} <span class="text-red-500">*</span>
                         </label>
                         {{ form.farm }}
-                        {% if form.farm.errors %}<p class="mt-1 text-sm text-red-600">{{ form.farm.errors.0 }}</p>{% endif %}
+                        {% if form.farm.errors %}
+                        <p class="mt-1 text-xs text-red-600">{{ form.farm.errors.0 }}</p>
+                        {% endif %}
                     </div>
-                    
-                    <!-- Tipo de Animal -->
+
+                    {# ── Tipo de Animal (só com saldo > 0) ────────────── #}
                     <div>
-                        <label for="{{ form.animal_category.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        <label for="{{ form.animal_category.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
                             {{ form.animal_category.label }} <span class="text-red-500">*</span>
                         </label>
                         {{ form.animal_category }}
-                        {% if form.animal_category.errors %}<p class="mt-1 text-sm text-red-600">{{ form.animal_category.errors.0 }}</p>{% endif %}
+                        {% if form.animal_category.errors %}
+                        <p class="mt-1 text-xs text-red-600">{{ form.animal_category.errors.0 }}</p>
+                        {% endif %}
+                        <p class="mt-1 text-xs text-gray-400">Apenas categorias com animais disponíveis</p>
                     </div>
-                    
-                    <!-- Quantidade -->
+
+                    {# ── Quantidade + badge de saldo ──────────────────── #}
                     <div>
-                        <label for="{{ form.quantity.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        <label for="{{ form.quantity.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
                             {{ form.quantity.label }} <span class="text-red-500">*</span>
                         </label>
                         {{ form.quantity }}
-                        {% if form.quantity.errors %}<p class="mt-1 text-sm text-red-600">{{ form.quantity.errors.0 }}</p>{% endif %}
+                        <div id="saldo-badge" class="mt-1.5 min-h-[24px]"></div>
+                        {% if form.quantity.errors %}
+                        <p class="mt-1 text-xs text-red-600">{{ form.quantity.errors.0 }}</p>
+                        {% endif %}
                     </div>
-                    
-                    <!-- Data/Hora -->
+
+                    {# ── Data/Hora ────────────────────────────────────── #}
                     <div>
-                        <label for="{{ form.timestamp.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        <label for="{{ form.timestamp.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
                             {{ form.timestamp.label }}
                         </label>
                         {{ form.timestamp }}
-                        {% if form.timestamp.help_text %}<p class="mt-1 text-sm text-gray-500">{{ form.timestamp.help_text }}</p>{% endif %}
+                        {% if form.timestamp.help_text %}
+                        <p class="mt-1 text-xs text-gray-500">{{ form.timestamp.help_text }}</p>
+                        {% endif %}
                     </div>
-                    
-                    <!-- Cliente (para Venda e Doação) -->
+
+                    {# ── Cliente (Venda / Doação) ─────────────────────── #}
                     {% if form.client %}
                     <div class="sm:col-span-2">
-                        <label for="{{ form.client.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        <label for="{{ form.client.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
                             {{ form.client.label }} <span class="text-red-500">*</span>
                         </label>
                         {{ form.client }}
-                        {% if form.client.help_text %}<p class="mt-1 text-sm text-gray-500">{{ form.client.help_text }}</p>{% endif %}
-                        {% if form.client.errors %}<p class="mt-1 text-sm text-red-600">{{ form.client.errors.0 }}</p>{% endif %}
+                        {% if form.client.help_text %}
+                        <p class="mt-1 text-xs text-gray-500">{{ form.client.help_text }}</p>
+                        {% endif %}
+                        {% if form.client.errors %}
+                        <p class="mt-1 text-xs text-red-600">{{ form.client.errors.0 }}</p>
+                        {% endif %}
                     </div>
                     {% endif %}
-                    
-                    <!-- Tipo de Morte (para Morte) -->
+
+                    {# ── Tipo de Morte ────────────────────────────────── #}
                     {% if form.death_reason %}
                     <div class="sm:col-span-2">
-                        <label for="{{ form.death_reason.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        <label for="{{ form.death_reason.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
                             {{ form.death_reason.label }} <span class="text-red-500">*</span>
                         </label>
                         {{ form.death_reason }}
-                        {% if form.death_reason.errors %}<p class="mt-1 text-sm text-red-600">{{ form.death_reason.errors.0 }}</p>{% endif %}
+                        {% if form.death_reason.errors %}
+                        <p class="mt-1 text-xs text-red-600">{{ form.death_reason.errors.0 }}</p>
+                        {% endif %}
                     </div>
                     {% endif %}
-                    
-                    <!-- Peso -->
+
+                    {# ── Peso ─────────────────────────────────────────── #}
                     {% if form.peso %}
                     <div>
-                        <label for="{{ form.peso.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                            {{ form.peso.label }}{% if 'venda' in title|lower %} <span class="text-red-500">*</span>{% endif %}
+                        <label for="{{ form.peso.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                            {{ form.peso.label }}
+                            {% if operation_type == 'venda' %}<span class="text-red-500">*</span>{% endif %}
                         </label>
                         {{ form.peso }}
-                        {% if form.peso.errors %}<p class="mt-1 text-sm text-red-600">{{ form.peso.errors.0 }}</p>{% endif %}
+                        {% if form.peso.errors %}
+                        <p class="mt-1 text-xs text-red-600">{{ form.peso.errors.0 }}</p>
+                        {% endif %}
                     </div>
                     {% endif %}
-                    
-                    <!-- Preço Total (para Venda) -->
+
+                    {# ── Preço Total (Venda) ──────────────────────────── #}
                     {% if form.preco_total %}
                     <div>
-                        <label for="{{ form.preco_total.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        <label for="{{ form.preco_total.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
                             {{ form.preco_total.label }}
                         </label>
                         {{ form.preco_total }}
                     </div>
                     {% endif %}
+
                 </div>
-                
-                <!-- Observação -->
+
+                {# ── Observação ───────────────────────────────────────── #}
                 <div>
-                    <label for="{{ form.observacao.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                    <label for="{{ form.observacao.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
                         {{ form.observacao.label }}
                     </label>
                     {{ form.observacao }}
                 </div>
-                
-                <div class="flex justify-end space-x-3">
-                    <a href="{% url 'ocorrencias:list' %}" class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+
+                {# ── Botões ───────────────────────────────────────────── #}
+                <div class="flex justify-end gap-3 pt-2 border-t border-gray-100">
+                    <a href="{% url 'ocorrencias:list' %}"
+                       class="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors">
                         Cancelar
                     </a>
-                    <button type="submit" class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700">
-                        Registrar
+                    <button type="submit"
+                        class="px-5 py-2 rounded-lg text-sm font-medium text-white transition-colors shadow-sm
+                            {% if operation_type == 'morte' %}bg-red-600 hover:bg-red-700
+                            {% elif operation_type == 'venda' %}bg-green-600 hover:bg-green-700
+                            {% elif operation_type == 'doacao' %}bg-blue-600 hover:bg-blue-700
+                            {% else %}bg-gray-700 hover:bg-gray-800{% endif %}">
+                        ✓ Registrar
                     </button>
                 </div>
             </form>
         </div>
     </div>
 </div>
+
+{# ── Script: max dinâmico no campo quantidade ────────────────────────── #}
+<script>
+document.addEventListener('htmx:afterSwap', function(evt) {
+    if (evt.detail.target.id === 'saldo-badge') {
+        const badge    = evt.detail.target.querySelector('[data-max-quantity]');
+        const qtyInput = document.getElementById('id_quantity');
+        if (badge && qtyInput) {
+            const maxQty = parseInt(badge.dataset.maxQuantity, 10);
+            if (maxQty === 0) {
+                qtyInput.setAttribute('max', 0);
+                qtyInput.setAttribute('disabled', 'disabled');
+                qtyInput.value = '';
+            } else {
+                qtyInput.setAttribute('max', maxQty);
+                qtyInput.removeAttribute('disabled');
+            }
+        }
+    }
+});
+</script>
 {% endblock %}

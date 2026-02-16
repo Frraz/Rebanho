@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aprovação Concluída — Gestão de Rebanhos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-green-50 to-gray-100 min-h-screen flex items-center justify-center px-4">
+<div class="w-full max-w-md text-center">
+
+    <div class="mb-6">
+        {% if acao == 'aprovado' %}
+        <div class="text-6xl mb-3">✅</div>
+        <h1 class="text-2xl font-bold text-gray-800">Usuário aprovado!</h1>
+        <p class="text-gray-500 text-sm mt-2">
+            A conta de <strong>{{ usuario.get_full_name|default:usuario.username }}</strong>
+            foi ativada com sucesso.<br>
+            Um e-mail de boas-vindas foi enviado para {{ usuario.email }}.
+        </p>
+        {% else %}
+        <div class="text-6xl mb-3">🗑️</div>
+        <h1 class="text-2xl font-bold text-gray-800">Cadastro rejeitado</h1>
+        <p class="text-gray-500 text-sm mt-2">
+            O cadastro de <strong>{{ nome_usuario }}</strong> foi rejeitado
+            e removido do sistema.<br>
+            O usuário foi notificado por e-mail.
+        </p>
+        {% endif %}
+    </div>
+
+    <div class="bg-white rounded-2xl shadow p-6">
+        <p class="text-sm text-gray-500 mb-4">Você pode fechar esta aba.</p>
+        <a href="/admin/" class="inline-block px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-lg transition-colors">
+            Ir para o Admin
+        </a>
+    </div>
+
+    <p class="text-gray-400 text-xs mt-6">© {% now "Y" %} Gestão de Rebanhos</p>
+</div>
+</body>
+</html>

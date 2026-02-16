@@ -5,6 +5,7 @@ find . -type f \( \
     -name "*.html" -o \
     -name "*.css" -o \
     -name "*.js" -o \
+    -name "*.txt" -o \
     -name "*.sh" -o \
     -name "*.yml" \
 \) \

@@ -1,0 +1,202 @@
+{% extends 'base/base.html' %}
+
+{% block title %}Auditoria — Detalhe - Sistema de Gestão{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto space-y-5">
+
+    {# ── Cabeçalho ─────────────────────────────────────────────────── #}
+    <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <a href="{% url 'core:audit_list' %}"
+               class="p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors">
+                ← Voltar
+            </a>
+            <div>
+                <h1 class="text-xl font-bold text-gray-900">Detalhe da Operação</h1>
+                <p class="text-xs text-gray-400 font-mono mt-0.5">{{ movement.id }}</p>
+            </div>
+        </div>
+        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium {{ color_class }}">
+            {{ op_label }}
+        </span>
+    </div>
+
+    {# ── Dados Principais ──────────────────────────────────────────── #}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="px-5 py-3 bg-gray-50 border-b border-gray-200">
+            <h2 class="text-sm font-semibold text-gray-700">Dados da Operação</h2>
+        </div>
+        <dl class="divide-y divide-gray-100">
+
+            <div class="px-5 py-3 grid grid-cols-3 gap-4">
+                <dt class="text-sm font-medium text-gray-500">Fazenda</dt>
+                <dd class="text-sm text-gray-900 col-span-2 font-semibold">
+                    🏡 {{ movement.farm_stock_balance.farm.name }}
+                </dd>
+            </div>
+
+            <div class="px-5 py-3 grid grid-cols-3 gap-4">
+                <dt class="text-sm font-medium text-gray-500">Categoria</dt>
+                <dd class="text-sm text-gray-900 col-span-2">
+                    🐄 {{ movement.farm_stock_balance.animal_category.name }}
+                </dd>
+            </div>
+
+            <div class="px-5 py-3 grid grid-cols-3 gap-4">
+                <dt class="text-sm font-medium text-gray-500">Quantidade</dt>
+                <dd class="col-span-2">
+                    <span class="text-lg font-bold {% if is_saida %}text-red-600{% else %}text-green-600{% endif %}">
+                        {% if is_saida %}−{% else %}+{% endif %}{{ movement.quantity }}
+                        <span class="text-sm font-normal text-gray-500 ml-1">
+                            {% if is_saida %}saída{% else %}entrada{% endif %}
+                        </span>
+                    </span>
+                </dd>
+            </div>
+
+            <div class="px-5 py-3 grid grid-cols-3 gap-4">
+                <dt class="text-sm font-medium text-gray-500">Data da Operação</dt>
+                <dd class="text-sm text-gray-900 col-span-2">
+                    {{ movement.timestamp|date:"d/m/Y" }} às {{ movement.timestamp|date:"H:i:s" }}
+                </dd>
+            </div>
+
+            <div class="px-5 py-3 grid grid-cols-3 gap-4">
+                <dt class="text-sm font-medium text-gray-500">Registrado em</dt>
+                <dd class="text-sm text-gray-500 col-span-2">
+                    {{ movement.created_at|date:"d/m/Y" }} às {{ movement.created_at|date:"H:i:s" }}
+                    {% if movement.timestamp.date != movement.created_at.date %}
+                    <span class="text-xs text-amber-600 ml-1">(retroativo)</span>
+                    {% endif %}
+                </dd>
+            </div>
+
+        </dl>
+    </div>
+
+    {# ── Rastreabilidade ───────────────────────────────────────────── #}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="px-5 py-3 bg-gray-50 border-b border-gray-200">
+            <h2 class="text-sm font-semibold text-gray-700">Rastreabilidade</h2>
+        </div>
+        <dl class="divide-y divide-gray-100">
+
+            <div class="px-5 py-3 grid grid-cols-3 gap-4">
+                <dt class="text-sm font-medium text-gray-500">Registrado por</dt>
+                <dd class="text-sm text-gray-900 col-span-2">
+                    <div class="flex items-center gap-2">
+                        <div class="w-7 h-7 rounded-full bg-green-100 flex items-center justify-center">
+                            <span class="text-xs font-bold text-green-700">
+                                {{ movement.created_by.username|first|upper }}
+                            </span>
+                        </div>
+                        <span class="font-medium">
+                            {{ movement.created_by.get_full_name|default:movement.created_by.username }}
+                        </span>
+                        {% if movement.created_by.get_full_name %}
+                        <span class="text-xs text-gray-400">({{ movement.created_by.username }})</span>
+                        {% endif %}
+                    </div>
+                </dd>
+            </div>
+
+            <div class="px-5 py-3 grid grid-cols-3 gap-4">
+                <dt class="text-sm font-medium text-gray-500">IP de Origem</dt>
+                <dd class="text-sm col-span-2">
+                    {% if movement.ip_address %}
+                    <span class="font-mono text-gray-700 bg-gray-100 px-2 py-0.5 rounded text-xs">
+                        {{ movement.ip_address }}
+                    </span>
+                    {% else %}
+                    <span class="text-gray-400 italic text-xs">Não registrado</span>
+                    {% endif %}
+                </dd>
+            </div>
+
+            <div class="px-5 py-3 grid grid-cols-3 gap-4">
+                <dt class="text-sm font-medium text-gray-500">ID do Registro</dt>
+                <dd class="text-xs font-mono text-gray-400 col-span-2 break-all">{{ movement.id }}</dd>
+            </div>
+
+        </dl>
+    </div>
+
+    {# ── Relacionamentos ───────────────────────────────────────────── #}
+    {% if movement.client or movement.death_reason or movement.related_movement %}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="px-5 py-3 bg-gray-50 border-b border-gray-200">
+            <h2 class="text-sm font-semibold text-gray-700">Relacionamentos</h2>
+        </div>
+        <dl class="divide-y divide-gray-100">
+
+            {% if movement.client %}
+            <div class="px-5 py-3 grid grid-cols-3 gap-4">
+                <dt class="text-sm font-medium text-gray-500">
+                    {% if movement.operation_type == 'DOACAO' %}Donatário{% else %}Cliente{% endif %}
+                </dt>
+                <dd class="text-sm text-gray-900 col-span-2">
+                    👤 {{ movement.client.name }}
+                    {% if movement.client.phone %}
+                    <span class="text-gray-400 ml-2 text-xs">{{ movement.client.phone }}</span>
+                    {% endif %}
+                </dd>
+            </div>
+            {% endif %}
+
+            {% if movement.death_reason %}
+            <div class="px-5 py-3 grid grid-cols-3 gap-4">
+                <dt class="text-sm font-medium text-gray-500">Causa da Morte</dt>
+                <dd class="text-sm text-gray-900 col-span-2">💀 {{ movement.death_reason.name }}</dd>
+            </div>
+            {% endif %}
+
+            {% if movement.related_movement %}
+            <div class="px-5 py-3 grid grid-cols-3 gap-4">
+                <dt class="text-sm font-medium text-gray-500">Operação Vinculada</dt>
+                <dd class="text-sm col-span-2">
+                    <a href="{% url 'core:audit_detail' movement.related_movement.id %}"
+                       class="inline-flex items-center gap-1.5 text-green-700 hover:underline">
+                        🔗 {{ movement.related_movement.farm_stock_balance.farm.name }} —
+                        {{ movement.related_movement.farm_stock_balance.animal_category.name }}
+                        ({{ movement.related_movement.get_operation_type_display }})
+                    </a>
+                </dd>
+            </div>
+            {% endif %}
+
+        </dl>
+    </div>
+    {% endif %}
+
+    {# ── Metadados ─────────────────────────────────────────────────── #}
+    {% if meta_items %}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="px-5 py-3 bg-gray-50 border-b border-gray-200">
+            <h2 class="text-sm font-semibold text-gray-700">Dados Adicionais</h2>
+        </div>
+        <dl class="divide-y divide-gray-100">
+            {% for label, value in meta_items %}
+            <div class="px-5 py-3 grid grid-cols-3 gap-4">
+                <dt class="text-sm font-medium text-gray-500">{{ label }}</dt>
+                <dd class="text-sm text-gray-900 col-span-2">{{ value }}</dd>
+            </div>
+            {% endfor %}
+        </dl>
+    </div>
+    {% endif %}
+
+    {# ── Alerta imutabilidade ──────────────────────────────────────── #}
+    <div class="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl px-5 py-4">
+        <span class="text-amber-500 text-lg flex-shrink-0">🔒</span>
+        <div>
+            <p class="text-sm font-medium text-amber-800">Registro Imutável</p>
+            <p class="text-xs text-amber-600 mt-0.5">
+                Este registro faz parte do ledger do sistema e não pode ser alterado ou excluído.
+                Para correções, registre uma operação de ajuste.
+            </p>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Cadastro Não Aprovado</title>
+<style>
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f3f4f6;margin:0;padding:24px;}
+  .card{max-width:520px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.08);}
+  .header{background:linear-gradient(135deg,#6b7280,#4b5563);padding:32px 32px 24px;text-align:center;}
+  .header h1{color:#fff;margin:0;font-size:22px;font-weight:700;}
+  .header p{color:#d1d5db;margin:6px 0 0;font-size:14px;}
+  .emoji{font-size:48px;display:block;margin-bottom:12px;}
+  .body{padding:28px 32px;}
+  .body p{color:#374151;font-size:15px;line-height:1.6;margin:0 0 16px;}
+  .info-box{background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:16px 20px;margin:20px 0;font-size:14px;color:#991b1b;}
+  .footer{background:#f9fafb;padding:16px 32px;text-align:center;font-size:12px;color:#9ca3af;border-top:1px solid #f3f4f6;}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="header">
+    <span class="emoji">❌</span>
+    <h1>Cadastro não aprovado</h1>
+    <p>Gestão de Rebanhos</p>
+  </div>
+  <div class="body">
+    <p>Olá, <strong>{{ nome_completo }}</strong>.</p>
+    <p>
+      Infelizmente seu cadastro no <strong>Sistema de Gestão de Rebanhos</strong>
+      não foi aprovado pelo administrador.
+    </p>
+    <div class="info-box">
+      Se acredita que isso é um engano, entre em contato diretamente
+      com o administrador do sistema para mais informações.
+    </div>
+    <p style="font-size:13px;color:#6b7280;">
+      Seus dados foram removidos do sistema.
+    </p>
+  </div>
+  <div class="footer">
+    © {% now "Y" %} Gestão de Rebanhos · Este e-mail foi enviado automaticamente
+  </div>
+</div>
+</body>
+</html>

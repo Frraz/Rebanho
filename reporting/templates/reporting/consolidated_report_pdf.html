@@ -1,0 +1,128 @@
+{% extends 'reporting/pdf_base.html' %}
+{% load report_tags %}
+
+{% block title %}Relatório Consolidado — {{ report.period.start|date:"m/Y" }}{% endblock %}
+
+{% block content %}
+
+{# ── Cabeçalho ──────────────────────────────────────────────────── #}
+<div class="report-header">
+  <div class="report-title">Movimentação do Gado — Fazendas Reunidas</div>
+  <div class="report-subtitle">{{ report.period.start|date:"F" }} / {{ report.period.start|date:"Y" }}</div>
+  <div class="report-meta">
+    {{ report.farm_count }} fazenda{{ report.farm_count|pluralize }} ·
+    Gerado em {% now "d/m/Y \à\s H:i" %} por {{ user.get_full_name|default:user.username }}
+  </div>
+  <div style="margin-top:4px;">
+    {% for fname in report.farms %}
+    <span class="farm-badge">{{ fname }}</span>
+    {% endfor %}
+  </div>
+</div>
+
+{# ── Macro: tabela principal ─────────────────────────────────────── #}
+{# Reutilizada para consolidado e para cada fazenda individual #}
+
+{% include 'reporting/partials/pdf_main_table.html' with r=report %}
+
+{# ── Detalhamentos consolidados ─────────────────────────────────── #}
+<div class="section">
+  <div class="section-title gray">Detalhamentos (todas as fazendas)</div>
+  <div class="details-grid">
+
+    <div class="details-col">
+      <table>
+        <thead>
+          <tr><th colspan="4">OBS: Causa das Mortes</th></tr>
+          <tr><th class="text-left">Fazenda</th><th class="text-left">Animal</th><th class="text-left">Motivo</th><th>Qtd</th></tr>
+        </thead>
+        <tbody>
+          {% for m in report.detalhamento.mortes %}
+          <tr>
+            <td class="text-left">{{ m.fazenda|default:"—" }}</td>
+            <td class="text-left">{{ m.categoria }}</td>
+            <td class="text-left">{{ m.motivo }}</td>
+            <td class="val-morte">{{ m.quantidade }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4" class="val-zero">Nenhuma morte</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="details-col">
+      <table>
+        <thead>
+          <tr><th colspan="4">OBS: Doações</th></tr>
+          <tr><th class="text-left">Animal</th><th class="text-left">Donatário</th><th>Peso</th><th>Qtd</th></tr>
+        </thead>
+        <tbody>
+          {% for d in report.detalhamento.doacoes %}
+          <tr>
+            <td class="text-left">{{ d.categoria }}</td>
+            <td class="text-left">{{ d.cliente }}</td>
+            <td>{{ d.peso|default:"—" }}</td>
+            <td class="val-abate">{{ d.quantidade }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4" class="val-zero">Nenhuma doação</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="details-col">
+      <table>
+        <thead>
+          <tr><th colspan="5">OBS: Controle de Vendas</th></tr>
+          <tr><th>Data</th><th class="text-left">Animal</th><th class="text-left">Cliente</th><th>Peso</th><th>Qtd</th></tr>
+        </thead>
+        <tbody>
+          {% for v in report.detalhamento.vendas %}
+          <tr>
+            <td>{{ v.data|date:"d/m/Y" }}</td>
+            <td class="text-left">{{ v.categoria }}</td>
+            <td class="text-left">{{ v.cliente }}</td>
+            <td>{{ v.peso|default:"—" }}</td>
+            <td class="val-nasc">{{ v.quantidade }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="5" class="val-zero">Nenhuma venda</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+{# ── Breakdown individual por fazenda ───────────────────────────── #}
+{% if report.farm_reports %}
+{% for farm_report in report.farm_reports %}
+<div class="page-break"></div>
+
+<div class="report-header" style="border-bottom-color: #1d4ed8;">
+  <div class="report-title" style="color: #1d4ed8; font-size: 11pt;">
+    {{ farm_report.farm.name }}
+  </div>
+  <div class="report-subtitle">{{ farm_report.period.start|date:"F/Y" }}</div>
+</div>
+
+{% include 'reporting/partials/pdf_main_table.html' with r=farm_report %}
+
+<div class="report-footer">
+  <div class="footer-left">Sistema de Gestão de Rebanhos — Fazendas Reunidas</div>
+  <div class="footer-right">{{ farm_report.farm.name }} · {{ farm_report.period.start|date:"F/Y" }}</div>
+</div>
+
+{% endfor %}
+{% endif %}
+
+{# ── Rodapé da página consolidada ───────────────────────────────── #}
+<div class="report-footer">
+  <div class="footer-left">Sistema de Gestão de Rebanhos</div>
+  <div class="footer-right">Relatório Consolidado · {{ report.period.start|date:"F/Y" }}</div>
+</div>
+
+{% endblock %}

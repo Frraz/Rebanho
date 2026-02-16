@@ -1,0 +1,276 @@
+{% extends 'reporting/pdf_base.html' %}
+{% load report_tags %}
+
+{% block title %}Relatório — {{ report.farm.name }} — {{ report.period.start|date:"m/Y" }}{% endblock %}
+
+{% block content %}
+
+{# ── Cabeçalho ──────────────────────────────────────────────────── #}
+<div class="report-header">
+  <div class="report-title">Movimentação do Gado — {{ report.farm.name }}</div>
+  <div class="report-subtitle">{{ report.period.start|date:"F" }} / {{ report.period.start|date:"Y" }}</div>
+  <div class="report-meta">
+    Gerado em {% now "d/m/Y \à\s H:i" %} por {{ user.get_full_name|default:user.username }}
+  </div>
+</div>
+
+{# ── 1. Estoque Inicial ──────────────────────────────────────────── #}
+<div class="section">
+  <div class="section-title red">Estoque Inicial</div>
+  <table class="estoque-table">
+    <thead>
+      <tr>
+        {% for cat in report.categories %}<th>{{ cat }}</th>{% endfor %}
+        <th>Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        {% for cat in report.categories %}
+        <td>{{ report.estoque_inicial|get_item:cat }}</td>
+        {% endfor %}
+        <td class="estoque-total">{{ report.estoque_inicial|sum_values }}</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+{# ── 2. Tabela Principal ─────────────────────────────────────────── #}
+<div class="section">
+  <div class="section-title blue">{{ report.period.start|date:"F/Y"|upper }}</div>
+  <table>
+    <thead>
+      <tr>
+        <th rowspan="2" class="text-left">Animais</th>
+        <th colspan="3" class="th-ocorrencias">Ocorrências</th>
+        <th colspan="8" class="th-movimentos">Movimentações</th>
+        <th colspan="2" class="th-consolidado">Consolidado</th>
+      </tr>
+      <tr>
+        <th class="th-ocorrencias">Morte</th>
+        <th class="th-ocorrencias">Venda</th>
+        <th class="th-ocorrencias">Abate</th>
+        <th class="th-movimentos">Nasc.</th>
+        <th class="th-movimentos">Desm.</th>
+        <th class="th-movimentos">Man.(+)</th>
+        <th class="th-movimentos">Man.(−)</th>
+        <th class="th-movimentos">M.Cat.(+)</th>
+        <th class="th-movimentos">M.Cat.(−)</th>
+        <th class="th-movimentos">Compra</th>
+        <th class="th-movimentos">Doação</th>
+        <th class="th-consolidado">Entrada</th>
+        <th class="th-consolidado">Saída</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for cat in report.categories %}
+      <tr>
+        <td class="text-left">{{ cat }}</td>
+        {# Ocorrências #}
+        {% with v=report.ocorrencias.morte|get_item:cat %}
+        <td class="{% if v %}val-morte{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>
+        {% endwith %}
+        {% with v=report.ocorrencias.venda|get_item:cat %}
+        <td class="{% if v %}val-venda{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>
+        {% endwith %}
+        {% with v=report.ocorrencias.abate|get_item:cat %}
+        <td class="{% if v %}val-abate{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>
+        {% endwith %}
+        {# Movimentações #}
+        {% with v=report.entradas.nascimento|get_item:cat %}
+        <td class="{% if v %}val-nasc{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>
+        {% endwith %}
+        {% with v=report.entradas.desmame|get_item:cat %}
+        <td class="{% if v %}val-nasc{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>
+        {% endwith %}
+        {% with v=report.entradas.manejo_in|get_item:cat %}
+        <td class="{% if v %}val-nasc{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>
+        {% endwith %}
+        {% with v=report.entradas.manejo_out|get_item:cat %}
+        <td class="{% if v %}val-morte{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>
+        {% endwith %}
+        {% with v=report.entradas.mudanca_in|get_item:cat %}
+        <td class="{% if v %}val-nasc{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>
+        {% endwith %}
+        {% with v=report.entradas.mudanca_out|get_item:cat %}
+        <td class="{% if v %}val-venda{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>
+        {% endwith %}
+        {% with v=report.entradas.compra|get_item:cat %}
+        <td class="{% if v %}val-nasc{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>
+        {% endwith %}
+        {% with v=report.ocorrencias.doacao|get_item:cat %}
+        <td class="{% if v %}val-abate{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>
+        {% endwith %}
+        {# Consolidado #}
+        {% with v=report.consolidado.entradas|get_item:cat %}
+        <td class="{% if v %}val-entrada{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>
+        {% endwith %}
+        {% with v=report.consolidado.saidas|get_item:cat %}
+        <td class="{% if v %}val-saida{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>
+        {% endwith %}
+      </tr>
+      {% endfor %}
+      <tr class="total-row">
+        <td class="text-left">TOTAL</td>
+        <td class="val-morte">{{ report.ocorrencias.morte|sum_values }}</td>
+        <td class="val-venda">{{ report.ocorrencias.venda|sum_values }}</td>
+        <td class="val-abate">{{ report.ocorrencias.abate|sum_values }}</td>
+        <td class="val-nasc">{{ report.entradas.nascimento|sum_values }}</td>
+        <td class="val-nasc">{{ report.entradas.desmame|sum_values }}</td>
+        <td class="val-nasc">{{ report.entradas.manejo_in|sum_values }}</td>
+        <td class="val-morte">{{ report.entradas.manejo_out|sum_values }}</td>
+        <td class="val-nasc">{{ report.entradas.mudanca_in|sum_values }}</td>
+        <td class="val-venda">{{ report.entradas.mudanca_out|sum_values }}</td>
+        <td class="val-nasc">{{ report.entradas.compra|sum_values }}</td>
+        <td class="val-abate">{{ report.ocorrencias.doacao|sum_values }}</td>
+        <td class="val-entrada">{{ report.consolidado.entradas|sum_values }}</td>
+        <td class="val-saida">{{ report.consolidado.saidas|sum_values }}</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+{# ── 3. Estoque Final ────────────────────────────────────────────── #}
+<div class="section">
+  <div class="section-title green">Estoque Final do Mês</div>
+  <table class="estoque-table">
+    <thead>
+      <tr>
+        {% for cat in report.categories %}<th>{{ cat }}</th>{% endfor %}
+        <th>Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        {% for cat in report.categories %}
+        <td class="val-nasc">{{ report.estoque_final|get_item:cat }}</td>
+        {% endfor %}
+        <td class="estoque-total">{{ report.estoque_final|sum_values }}</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+{# ── 4. Detalhamentos ────────────────────────────────────────────── #}
+<div class="section">
+  <div class="section-title gray">Detalhamentos</div>
+  <div class="details-grid">
+
+    {# Causa das Mortes #}
+    <div class="details-col">
+      <table>
+        <thead>
+          <tr><th colspan="3">OBS: Causa das Mortes</th></tr>
+          <tr>
+            <th class="text-left">Animal</th>
+            <th class="text-left">Motivo</th>
+            <th>Qtd</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for m in report.detalhamento.mortes %}
+          <tr>
+            <td class="text-left">{{ m.categoria }}</td>
+            <td class="text-left">{{ m.motivo }}</td>
+            <td class="val-morte">{{ m.quantidade }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="3" class="val-zero">Nenhuma morte</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {# Doações #}
+    <div class="details-col">
+      <table>
+        <thead>
+          <tr><th colspan="4">OBS: Doações</th></tr>
+          <tr>
+            <th class="text-left">Animal</th>
+            <th class="text-left">Donatário</th>
+            <th>Peso</th>
+            <th>Qtd</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for d in report.detalhamento.doacoes %}
+          <tr>
+            <td class="text-left">{{ d.categoria }}</td>
+            <td class="text-left">{{ d.cliente }}</td>
+            <td>{{ d.peso|default:"—" }}</td>
+            <td class="val-abate">{{ d.quantidade }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4" class="val-zero">Nenhuma doação</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {# Controle de Vendas #}
+    <div class="details-col">
+      <table>
+        <thead>
+          <tr><th colspan="5">OBS: Controle de Vendas</th></tr>
+          <tr>
+            <th>Data</th>
+            <th class="text-left">Animal</th>
+            <th class="text-left">Cliente</th>
+            <th>Peso</th>
+            <th>Qtd</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for v in report.detalhamento.vendas %}
+          <tr>
+            <td>{{ v.data|date:"d/m/Y" }}</td>
+            <td class="text-left">{{ v.categoria }}</td>
+            <td class="text-left">{{ v.cliente }}</td>
+            <td>{{ v.peso|default:"—" }}</td>
+            <td class="val-nasc">{{ v.quantidade }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="5" class="val-zero">Nenhuma venda</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+  </div>{# /details-grid #}
+</div>
+
+{# Abates — só se houver #}
+{% if report.detalhamento.abates %}
+<div class="section">
+  <table>
+    <thead>
+      <tr><th colspan="4">OBS: Abates</th></tr>
+      <tr>
+        <th class="text-left">Animal</th>
+        <th class="text-left">Observação</th>
+        <th>Peso</th>
+        <th>Qtd</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for a in report.detalhamento.abates %}
+      <tr>
+        <td class="text-left">{{ a.categoria }}</td>
+        <td class="text-left">{{ a.observacao|default:"—" }}</td>
+        <td>{{ a.peso|default:"—" }}</td>
+        <td class="val-abate">{{ a.quantidade }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+{# ── Rodapé ──────────────────────────────────────────────────────── #}
+<div class="report-footer">
+  <div class="footer-left">Sistema de Gestão de Rebanhos</div>
+  <div class="footer-right">{{ report.farm.name }} · {{ report.period.start|date:"F/Y" }}</div>
+</div>
+
+{% endblock %}
