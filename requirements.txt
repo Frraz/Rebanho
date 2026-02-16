@@ -32,7 +32,7 @@ black>=23.11.0
 isort>=5.12.0
 
 # Produção (opcional, descomentar quando necessário)
-# gunicorn>=21.2.0  # WSGI server
+gunicorn>=21.2.0  # WSGI server
 # whitenoise>=6.6.0  # Servir arquivos estáticos
 # sentry-sdk>=1.38.0  # Monitoramento de erros
 
