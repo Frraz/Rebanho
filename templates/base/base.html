@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -44,7 +45,9 @@
 
                 <!-- Logo -->
                 <a href="{% url 'core:dashboard' %}" class="flex items-center gap-2 group">
-                    <span class="text-2xl group-hover:scale-110 transition-transform duration-200">🐄</span>
+                    <img src="{% static 'img/logo-rebanho.png' %}"
+                        alt="Logo"
+                        class="h-8 w-8 rounded-lg object-contain" />
                     <span class="text-base font-bold text-gray-800 hidden sm:block">Gestão de Rebanhos</span>
                     <span class="text-base font-bold text-gray-800 sm:hidden">GR</span>
                 </a>
