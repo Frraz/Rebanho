@@ -1,0 +1,57 @@
+# ==============================================================================
+# .dockerignore — Exclui arquivos desnecessários do contexto de build
+# Reduz tamanho do contexto e evita vazar segredos na imagem
+# ==============================================================================
+
+# Git
+.git
+.gitignore
+.github
+
+# Ambientes Python
+venv/
+.venv/
+env/
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Arquivos de desenvolvimento
+.env
+.env.*
+!.env.prod.example        # mantém apenas o exemplo (sem segredos)
+*.env
+
+# Testes e cobertura
+tests/
+htmlcov/
+.coverage
+coverage.xml
+
+# Docs e configs locais
+docs/
+*.md
+DEPLOY.md
+README.md
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Assets de desenvolvimento (não vão para a imagem)
+node_modules/
+*.log
+
+# Dados locais
+media/
+staticfiles/
+logs/
+
+# Docker (evita inception)
+Dockerfile*
+docker-compose*.yml

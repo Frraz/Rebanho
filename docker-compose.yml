@@ -1,56 +1,167 @@
+# ==============================================================================
+# docker-compose.yml — Gestão de Rebanhos
+# ==============================================================================
+
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+x-restart: &default-restart
+  restart: unless-stopped
+
 services:
 
-  web:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: rebanho_web
-    restart: unless-stopped
-    env_file: .env.prod
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+  # ── PostgreSQL ──────────────────────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    container_name: rebanho_db
+    <<: *default-restart
+    environment:
+      POSTGRES_DB:       ${DB_NAME}
+      POSTGRES_USER:     ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8"
     volumes:
-      - ./staticfiles:/app/staticfiles
-      - ./media:/app/media
-      - logs_volume:/app/logs
-    ports:
-      - "127.0.0.1:8080:8000"
-    depends_on:
-      - redis
+      - postgres_data:/var/lib/postgresql/data
     networks:
       - rebanho_net
-    command: sh -c "python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120 --access-logfile /app/logs/gunicorn_access.log --error-logfile /app/logs/gunicorn_error.log"
+    logging: *default-logging
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          memory: 256M
 
-  celery:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: rebanho_celery
-    restart: unless-stopped
-    env_file: .env.prod
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    volumes:
-      - logs_volume:/app/logs
-    depends_on:
-      - redis
-    networks:
-      - rebanho_net
-    command: celery -A config worker --loglevel=info --concurrency=2 --logfile=/app/logs/celery.log
-
+  # ── Redis ───────────────────────────────────────────────────────────────────
   redis:
     image: redis:7-alpine
     container_name: rebanho_redis
-    restart: unless-stopped
+    <<: *default-restart
+    command: ["redis-server", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru", "--appendonly", "yes", "--save", "60", "1"]
     volumes:
       - redis_data:/data
     networks:
       - rebanho_net
-    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    logging: *default-logging
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 192M
+        reservations:
+          memory: 64M
+
+  # ── Web (Django + Gunicorn) ─────────────────────────────────────────────────
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: rebanho_web:latest
+    container_name: rebanho_web
+    <<: *default-restart
+    env_file: .env.prod
+    volumes:
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+      - logs_volume:/app/logs
+    ports:
+      - "127.0.0.1:8080:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - rebanho_net
+    logging: *default-logging
+    command:
+      - sh
+      - -c
+      - |
+        echo '==> Aguardando DB...' &&
+        python manage.py wait_for_db &&
+        echo '==> Rodando migrations...' &&
+        python manage.py migrate --noinput &&
+        echo '==> Coletando estaticos...' &&
+        python manage.py collectstatic --noinput --clear &&
+        echo '==> Iniciando Gunicorn em 0.0.0.0:8000...' &&
+        exec gunicorn config.wsgi:application --config /app/gunicorn.conf.py
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 512M
+        reservations:
+          memory: 256M
+
+  # ── Celery Worker ───────────────────────────────────────────────────────────
+  celery:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: rebanho_web:latest
+    container_name: rebanho_celery
+    <<: *default-restart
+    env_file: .env.prod
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - rebanho_net
+    logging: *default-logging
+    command:
+      - celery
+      - -A
+      - config
+      - worker
+      - --loglevel=info
+      - --concurrency=2
+      - --max-tasks-per-child=100
+      - --without-gossip
+      - --without-mingle
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A config inspect ping -d celery@$$HOSTNAME | grep -q 'pong'"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 256M
+        reservations:
+          memory: 128M
 
 volumes:
+  postgres_data:
+    driver: local
   redis_data:
+    driver: local
+  static_volume:
+    driver: local
+  media_volume:
+    driver: local
   logs_volume:
+    driver: local
 
 networks:
   rebanho_net:
