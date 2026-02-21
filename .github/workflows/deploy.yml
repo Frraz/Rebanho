@@ -6,8 +6,6 @@ on:
       - main
 
 # Garante que apenas um deploy rode por vez.
-# Se um novo push chegar enquanto o deploy anterior ainda roda,
-# o anterior é cancelado e o novo começa.
 concurrency:
   group: deploy-production
   cancel-in-progress: true
@@ -20,119 +18,108 @@ jobs:
 
     steps:
 
-      # ── 1. Checkout ──────────────────────────────────────────────────────────
       - name: 📥 Checkout do repositório
         uses: actions/checkout@v4
 
-      # ── 2. Informações do deploy ─────────────────────────────────────────────
       - name: 📋 Informações do deploy
         run: |
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "  Repositório : ${{ github.repository }}"
-          echo "  Branch      : ${{ github.ref_name }}"
-          echo "  Commit      : ${{ github.sha }}"
-          echo "  Autor       : ${{ github.actor }}"
-          echo "  Mensagem    : ${{ github.event.head_commit.message }}"
-          echo "  Data/Hora   : $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "Repositório : ${{ github.repository }}"
+          echo "Branch      : ${{ github.ref_name }}"
+          echo "Commit      : ${{ github.sha }}"
+          echo "Autor       : ${{ github.actor }}"
+          echo "Mensagem    : ${{ github.event.head_commit.message }}"
 
-      # ── 3. Deploy via SSH ────────────────────────────────────────────────────
       - name: 🔄 Atualizar código e rebuild na VPS
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host:            ${{ secrets.VPS_HOST }}
-          username:        ${{ secrets.VPS_USER }}
-          key:             ${{ secrets.VPS_SSH_PRIVATE_KEY }}
-          timeout:         30s
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+          timeout: 30s
           command_timeout: 12m
-          script_stop:     true   # aborta ao primeiro erro — não continua deploy quebrado
-
+          script_stop: true
           script: |
             set -euo pipefail
-
             PROJECT_DIR="/var/www/docker-instances/Rebanho"
             cd "$PROJECT_DIR"
 
-            echo "━━━ [1/5] Atualizando código ━━━"
+            echo "[1/5] Atualizando codigo..."
             git fetch origin main
             git reset --hard origin/main
-            echo "  Commit atual: $(git log -1 --oneline)"
+            echo "Commit: $(git log -1 --oneline)"
 
-            echo "━━━ [2/5] Rebuild da imagem web ━━━"
+            echo "[2/5] Rebuild da imagem web..."
             docker compose build web
 
-            echo "━━━ [3/5] Aplicando novo container web (zero-downtime) ━━━"
+            echo "[3/5] Aplicando novo container web..."
             docker compose --env-file .env.prod up -d --no-deps web
 
-            echo "━━━ [4/5] Reiniciando Celery ━━━"
+            echo "[4/5] Reiniciando Celery..."
             docker compose restart celery
 
-            echo "━━━ [5/5] Limpando imagens antigas ━━━"
+            echo "[5/5] Limpando imagens antigas..."
             docker image prune -f
 
-            echo ""
-            echo "✅ Deploy concluído: $(git log -1 --oneline)"
+            echo "Deploy concluido: $(git log -1 --oneline)"
 
-      # ── 4. Health check ──────────────────────────────────────────────────────
-      - name: 🏥 Health check da aplicação
+      - name: 🏥 Health check da aplicacao
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host:            ${{ secrets.VPS_HOST }}
-          username:        ${{ secrets.VPS_USER }}
-          key:             ${{ secrets.VPS_SSH_PRIVATE_KEY }}
-          timeout:         30s
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+          timeout: 30s
           command_timeout: 3m
-          script_stop:     true
-
+          script_stop: true
           script: |
             set -euo pipefail
             PROJECT_DIR="/var/www/docker-instances/Rebanho"
 
-            echo "Aguardando aplicação inicializar (30s)..."
+            echo "Aguardando 30s..."
             sleep 30
-
-            echo "Verificando HTTP..."
-            # curl roda NA VPS — usa 127.0.0.1 (loopback local da VPS)
-            # NÃO usar localhost pois pode resolver IPv6 (::1) em algumas distros
-            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
-              --max-time 15 \
-              --retry 3 \
-              --retry-delay 5 \
-              http://127.0.0.1:8080/login/)
-
-            if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "302" ]; then
-              echo "✅ Aplicação respondendo — HTTP $HTTP_CODE"
-            else
-              echo "❌ Health check falhou — HTTP $HTTP_CODE"
-              echo "Últimos logs do container web:"
-              docker compose -f "$PROJECT_DIR/docker-compose.yml" logs --tail=30 web
-              exit 1
-            fi
 
             echo "Status dos containers:"
             docker compose -f "$PROJECT_DIR/docker-compose.yml" ps
 
-      # ── 5. Notificação de sucesso ────────────────────────────────────────────
-      - name: ✅ Deploy concluído com sucesso
+            echo "Testando HTTP na porta 8080..."
+            RETRIES=5
+            COUNT=0
+            HTTP_OK=0
+
+            while [ $COUNT -lt $RETRIES ]; do
+              CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 http://127.0.0.1:8080/login/ 2>/dev/null || echo "000")
+              echo "  Tentativa $((COUNT+1))/$RETRIES — HTTP $CODE"
+
+              if [ "$CODE" = "200" ] || [ "$CODE" = "302" ]; then
+                HTTP_OK=1
+                break
+              fi
+
+              COUNT=$((COUNT + 1))
+              sleep 5
+            done
+
+            if [ $HTTP_OK -eq 1 ]; then
+              echo "OK — aplicacao respondendo HTTP $CODE"
+            else
+              echo "FALHOU — aplicacao nao respondeu apos $RETRIES tentativas"
+              echo "Ultimos logs:"
+              docker compose -f "$PROJECT_DIR/docker-compose.yml" logs --tail=30 web
+              exit 1
+            fi
+
+      - name: ✅ Sucesso
         if: success()
         run: |
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "  ✅ DEPLOY CONCLUÍDO COM SUCESSO"
-          echo ""
-          echo "  Commit  : ${{ github.sha }}"
-          echo "  Autor   : ${{ github.actor }}"
-          echo "  URL     : https://rebanho.ferzion.com.br"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "DEPLOY CONCLUIDO COM SUCESSO"
+          echo "Commit : ${{ github.sha }}"
+          echo "Autor  : ${{ github.actor }}"
+          echo "URL    : https://rebanho.ferzion.com.br"
 
-      # ── 6. Notificação de falha ──────────────────────────────────────────────
-      - name: ❌ Falha no deploy
+      - name: ❌ Falha
         if: failure()
         run: |
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "  ❌ DEPLOY FALHOU"
-          echo ""
-          echo "  Commit  : ${{ github.sha }}"
-          echo "  Autor   : ${{ github.actor }}"
-          echo "  Veja os logs acima para identificar o erro."
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "DEPLOY FALHOU"
+          echo "Commit : ${{ github.sha }}"
+          echo "Autor  : ${{ github.actor }}"
           exit 1
