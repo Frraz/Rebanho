@@ -86,29 +86,31 @@ jobs:
 
           script: |
             set -euo pipefail
+            PROJECT_DIR="/var/www/docker-instances/Rebanho"
 
             echo "Aguardando aplicação inicializar (30s)..."
             sleep 30
 
             echo "Verificando HTTP..."
+            # curl roda NA VPS — usa 127.0.0.1 (loopback local da VPS)
+            # NÃO usar localhost pois pode resolver IPv6 (::1) em algumas distros
             HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
               --max-time 15 \
               --retry 3 \
               --retry-delay 5 \
-              http://localhost:8080/login/)
+              http://127.0.0.1:8080/login/)
 
             if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "302" ]; then
               echo "✅ Aplicação respondendo — HTTP $HTTP_CODE"
             else
               echo "❌ Health check falhou — HTTP $HTTP_CODE"
               echo "Últimos logs do container web:"
-              docker compose -f /var/www/docker-instances/Rebanho/docker-compose.yml \
-                logs --tail=30 web
+              docker compose -f "$PROJECT_DIR/docker-compose.yml" logs --tail=30 web
               exit 1
             fi
 
-            echo "Verificando containers..."
-            docker compose -f /var/www/docker-instances/Rebanho/docker-compose.yml ps
+            echo "Status dos containers:"
+            docker compose -f "$PROJECT_DIR/docker-compose.yml" ps
 
       # ── 5. Notificação de sucesso ────────────────────────────────────────────
       - name: ✅ Deploy concluído com sucesso
