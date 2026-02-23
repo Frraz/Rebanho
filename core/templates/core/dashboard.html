@@ -45,10 +45,69 @@
                 </div>
             </div>
 
-            <h1 class="text-3xl font-bold text-gray-800">
-                Bom dia, {{ request.user.first_name|default:request.user.username }}!
-            </h1>
-            <p class="text-gray-500 mt-2 text-lg">{{ mes_atual|capfirst }}</p>
+            <!-- Versão Minimalista Centralizada -->
+            <div class="mb-10">
+                <div class="text-center space-y-3">
+                    <!-- Saudação + Emoji -->
+                    {% now "H" as hora %}
+                    <h1 class="text-4xl md:text-5xl font-bold text-gray-800">
+                        <span class="inline-block mr-3">
+                            {% if hora|add:"0" < 12 %}🌅
+                            {% elif hora|add:"0" < 18 %}☀️
+                            {% else %}🌙{% endif %}
+                        </span>
+                        {% if hora|add:"0" < 12 %}Bom dia
+                        {% elif hora|add:"0" < 18 %}Boa tarde
+                        {% else %}Boa noite{% endif %}, 
+                        <span class="text-green-600">{{ request.user.first_name|default:request.user.username }}</span>!
+                    </h1>
+                    
+                    <!-- Data com Badge -->
+                    <div class="inline-block">
+                        <div class="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-gray-50 to-gray-100 rounded-full border border-gray-200">
+                            <svg class="h-4 w-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
+                            <span class="text-sm text-gray-700 font-medium">
+                                {% now "w" as dia_semana %}
+                                {% now "j" as dia %}
+                                {% now "n" as mes_num %}
+                                {% now "Y" as ano %}
+                                
+                                {# Dia da semana #}
+                                {% if dia_semana == "0" %}Domingo
+                                {% elif dia_semana == "1" %}Segunda-feira
+                                {% elif dia_semana == "2" %}Terça-feira
+                                {% elif dia_semana == "3" %}Quarta-feira
+                                {% elif dia_semana == "4" %}Quinta-feira
+                                {% elif dia_semana == "5" %}Sexta-feira
+                                {% elif dia_semana == "6" %}Sábado
+                                {% endif %}, {{ dia }} de 
+                                
+                                {# Mês #}
+                                {% if mes_num == "1" %}janeiro
+                                {% elif mes_num == "2" %}fevereiro
+                                {% elif mes_num == "3" %}março
+                                {% elif mes_num == "4" %}abril
+                                {% elif mes_num == "5" %}maio
+                                {% elif mes_num == "6" %}junho
+                                {% elif mes_num == "7" %}julho
+                                {% elif mes_num == "8" %}agosto
+                                {% elif mes_num == "9" %}setembro
+                                {% elif mes_num == "10" %}outubro
+                                {% elif mes_num == "11" %}novembro
+                                {% elif mes_num == "12" %}dezembro
+                                {% endif %} de {{ ano }}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <!-- Separador decorativo (opcional) -->
+                    <div class="flex items-center justify-center pt-4">
+                        <div class="h-px w-32 bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Cards simples -->

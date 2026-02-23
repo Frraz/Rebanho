@@ -31,17 +31,28 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     PYTHONHASHSEED=random \
-    PATH="/home/django/.local/bin:$PATH"
+    PATH="/home/django/.local/bin:$PATH" \
+    LANG=pt_BR.UTF-8 \
+    LC_ALL=pt_BR.UTF-8 \
+    LANGUAGE=pt_BR:pt:en
 
 WORKDIR /app
 
+# Instalar dependências + locale pt_BR
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
     curl \
+    libcairo2 \
     libpango-1.0-0 \
     libpangoft2-1.0-0 \
     libharfbuzz0b \
+    shared-mime-info \
+    fonts-dejavu-core \
     tini \
+    locales \
+    && sed -i -e 's/# pt_BR.UTF-8 UTF-8/pt_BR.UTF-8 UTF-8/' /etc/locale.gen \
+    && locale-gen pt_BR.UTF-8 \
+    && update-locale LANG=pt_BR.UTF-8 LC_ALL=pt_BR.UTF-8 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /wheels /wheels

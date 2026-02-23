@@ -5,11 +5,18 @@ from django import forms
 from django.core.exceptions import ValidationError
 from operations.models import Client, DeathReason
 from inventory.forms import MovementBaseForm
+from .validators import validate_cpf_or_cnpj, format_cpf_or_cnpj
+import re
 
+
+# ==============================================================================
+# FORMS DE CADASTROS
+# ==============================================================================
 
 class ClientForm(forms.ModelForm):
     """
     Formulário para criar e editar clientes.
+    Aceita CPF/CNPJ com ou sem máscara e formata automaticamente.
     """
     
     class Meta:
@@ -22,15 +29,17 @@ class ClientForm(forms.ModelForm):
             }),
             'cpf_cnpj': forms.TextInput(attrs={
                 'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm',
-                'placeholder': '000.000.000-00 ou 00.000.000/0000-00',
+                'placeholder': 'CPF ou CNPJ',
+                'data-mask': 'cpf-cnpj',  # Identificador para JS
             }),
             'phone': forms.TextInput(attrs={
                 'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm',
                 'placeholder': '(00) 00000-0000',
+                'data-mask': 'phone',
             }),
             'email': forms.EmailInput(attrs={
                 'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm',
-                'placeholder': 'email@example.com',
+                'placeholder': 'email@exemplo.com',
             }),
             'address': forms.Textarea(attrs={
                 'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm',
@@ -45,9 +54,39 @@ class ClientForm(forms.ModelForm):
             'email': 'Email',
             'address': 'Endereço',
         }
-        help_texts = {
-            'cpf_cnpj': 'CPF ou CNPJ (opcional)',
-        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # CPF/CNPJ é opcional mas se preenchido deve ser válido
+        self.fields['cpf_cnpj'].required = False
+        # Substituir validadores antigos do modelo
+        self.fields['cpf_cnpj'].validators = [validate_cpf_or_cnpj]
+        # Help text claro
+        self.fields['cpf_cnpj'].help_text = 'Digite apenas os números (será formatado automaticamente)'
+    
+    def clean_cpf_cnpj(self):
+        """
+        Normaliza e formata CPF/CNPJ antes de salvar.
+        Aceita com ou sem máscara e sempre salva formatado.
+        """
+        cpf_cnpj = self.cleaned_data.get('cpf_cnpj')
+        
+        if not cpf_cnpj:
+            return cpf_cnpj
+        
+        # Formata automaticamente (adiciona pontos, traços, barra)
+        formatted = format_cpf_or_cnpj(cpf_cnpj)
+        
+        return formatted
+    
+    def clean_phone(self):
+        """Mantém formatação do telefone."""
+        phone = self.cleaned_data.get('phone')
+        if not phone:
+            return phone
+        
+        # Deixa formatado como está (com parênteses, traço)
+        return phone
 
 
 class DeathReasonForm(forms.ModelForm):

@@ -12,17 +12,10 @@
             <div class="flex justify-between items-center mb-4">
                 <h1 class="text-2xl font-bold text-gray-900">📊 Relatório Consolidado</h1>
                 {% if report %}
-                <div class="flex items-center gap-2">
-                    <button onclick="window.print()"
-                        class="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors">
-                        🖨️ Imprimir
-                    </button>
-                    <a href="{% url 'reporting:consolidated_pdf' %}?month={{ selected_month }}&year={{ selected_year }}{% if selected_category_id %}&category={{ selected_category_id }}{% endif %}"
-                       target="_blank"
-                       class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-white bg-red-600 hover:bg-red-700 transition-colors shadow-sm">
-                        📄 Exportar PDF
-                    </a>
-                </div>
+                <button onclick="window.print()"
+                    class="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+                    🖨️ Imprimir
+                </button>
                 {% endif %}
             </div>
 
@@ -272,6 +265,65 @@
             </div>
         </div>
     </div>
+
+    <!-- 5. RESUMO DE ESTOQUE ATUAL POR FAZENDA -->
+    {% if report.farm_reports %}
+    <div class="bg-white shadow sm:rounded-lg print:shadow-none print:break-before-page">
+        <div class="px-4 py-3 sm:px-6">
+            <h2 class="text-sm font-bold text-gray-700 text-center mb-3 uppercase tracking-wider border-b pb-2">
+                Resumo de Estoque Atual por Fazenda
+            </h2>
+            
+            <div class="overflow-x-auto">
+                <table class="min-w-full border border-gray-300 text-xs">
+                    <thead>
+                        <tr class="bg-gray-100">
+                            <th class="border border-gray-300 px-3 py-2 text-left font-semibold text-gray-700 bg-gray-100 sticky left-0 uppercase">Fazenda</th>
+                            {% for category in report.categories %}
+                            <th class="border border-gray-300 px-3 py-2 text-center font-semibold text-gray-700 uppercase">{{ category }}</th>
+                            {% endfor %}
+                            <th class="border border-gray-300 px-3 py-2 text-center font-semibold text-gray-800 bg-gray-200 uppercase">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for farm_report in report.farm_reports %}
+                        <tr class="hover:bg-gray-50 transition-colors {% cycle 'bg-white' 'bg-gray-50' %}">
+                            <td class="border border-gray-300 px-3 py-2 font-medium text-gray-900 bg-gray-50 sticky left-0">{{ farm_report.farm.name }}</td>
+                            {% for category in report.categories %}
+                            <td class="border border-gray-300 px-3 py-2 text-center text-gray-900">
+                                {% with qty=farm_report.estoque_final|get_item:category|default:0 %}
+                                {% if qty %}{{ qty }}{% endif %}
+                                {% endwith %}
+                            </td>
+                            {% endfor %}
+                            <td class="border border-gray-300 px-3 py-2 text-center font-bold text-gray-900 bg-gray-50">
+                                {{ farm_report.estoque_final|sum_values }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        
+                        <!-- Linha de TOTAL GERAL -->
+                        <tr class="bg-gray-100 font-bold">
+                            <td class="border border-gray-300 px-3 py-2.5 text-gray-900 bg-gray-100 sticky left-0">TOTAL</td>
+                            {% for category in report.categories %}
+                            <td class="border border-gray-300 px-3 py-2.5 text-center text-gray-900">
+                                {{ report.estoque_final|get_item:category|default:0 }}
+                            </td>
+                            {% endfor %}
+                            <td class="border border-gray-300 px-3 py-2.5 text-center text-gray-900 bg-gray-200 font-bold">
+                                {{ report.estoque_final|sum_values }}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <p class="mt-2 text-xs text-gray-500 text-center italic">
+                * Estoque final de {{ report.period.end|date:"d/m/Y" }}
+            </p>
+        </div>
+    </div>
+    {% endif %}
 
     {% else %}
     <div class="text-center py-12 bg-white rounded-lg shadow">

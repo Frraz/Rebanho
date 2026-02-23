@@ -1,215 +1,209 @@
-"""
-Movement Forms - Formulários de Movimentações.
+{% extends 'base/base.html' %}
 
-HTMX URLs centralizadas em /htmx/:
-  /htmx/categorias-saida/   → categorias com saldo > 0
-  /htmx/categorias-entrada/ → todas as categorias
-  /htmx/saldo-atual/        → badge de saldo para o campo quantity
+{% block title %}{{ title }} - Sistema de Gestão{% endblock %}
 
-FIX: hx-vals com js: para ler o valor do select de fazenda em tempo real
-     e passar como farm_id (que é o que o endpoint espera).
-"""
-from django import forms
-from django.core.exceptions import ValidationError
-from inventory.models import AnimalCategory, FarmStockBalance
-from farms.models import Farm
+{% block content %}
+<div class="max-w-5xl mx-auto">
+    <!-- Cabeçalho -->
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold text-gray-900">{{ title }}</h1>
+        <p class="mt-1 text-sm text-gray-500">Preencha os dados da movimentação abaixo</p>
+    </div>
 
-_SELECT_CSS = (
-    'mt-1 block w-full rounded-md border-gray-300 shadow-sm '
-    'focus:border-green-500 focus:ring-green-500 sm:text-sm'
-)
-_INPUT_CSS = (
-    'mt-1 block w-full rounded-md border-gray-300 shadow-sm '
-    'focus:border-green-500 focus:ring-green-500 sm:text-sm'
-)
+    <!-- Formulário -->
+    <div class="bg-white shadow-sm rounded-lg border border-gray-200">
+        <div class="px-6 py-6">
+            <form method="post" class="space-y-6">
+                {% csrf_token %}
+                
+                <!-- Erros Gerais -->
+                {% if form.non_field_errors %}
+                <div class="rounded-md bg-red-50 p-4 border-l-4 border-red-400">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm text-red-700">{{ form.non_field_errors }}</p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Seção 1: Origem -->
+                <div class="space-y-4">
+                    <h3 class="text-sm font-semibold text-gray-900 border-b pb-2">📍 Localização</h3>
+                    
+                    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                        <!-- Fazenda -->
+                        <div class="sm:col-span-2">
+                            <label for="{{ form.farm.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                                🏡 {{ form.farm.label }} <span class="text-red-500">*</span>
+                            </label>
+                            {{ form.farm }}
+                            {% if form.farm.errors %}
+                                <p class="mt-1.5 text-sm text-red-600">{{ form.farm.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Tipo de Animal -->
+                        <div class="sm:col-span-2">
+                            <label for="{{ form.animal_category.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                                🐄 {{ form.animal_category.label }} <span class="text-red-500">*</span>
+                            </label>
+                            {{ form.animal_category }}
+                            
+                            <!-- Badge de Saldo (atualizado via HTMX) -->
+                            <div id="saldo-badge" class="mt-2"></div>
+                            
+                            {% if form.animal_category.errors %}
+                                <p class="mt-1.5 text-sm text-red-600">{{ form.animal_category.errors.0 }}</p>
+                            {% endif %}
+                            <p class="mt-1 text-xs text-gray-500">O saldo disponível aparecerá automaticamente ao selecionar fazenda e categoria</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Seção 2: Dados da Movimentação -->
+                <div class="space-y-4 pt-4 border-t border-gray-200">
+                    <h3 class="text-sm font-semibold text-gray-900 border-b pb-2">📦 Dados da Movimentação</h3>
+                    
+                    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                        <!-- Quantidade -->
+                        <div>
+                            <label for="{{ form.quantity.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                                🔢 {{ form.quantity.label }} <span class="text-red-500">*</span>
+                            </label>
+                            {{ form.quantity }}
+                            {% if form.quantity.errors %}
+                                <p class="mt-1.5 text-sm text-red-600">{{ form.quantity.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Data/Hora -->
+                        <div>
+                            <label for="{{ form.timestamp.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                                📅 {{ form.timestamp.label }}
+                            </label>
+                            {{ form.timestamp }}
+                            {% if form.timestamp.help_text %}
+                                <p class="mt-1 text-xs text-gray-500">{{ form.timestamp.help_text }}</p>
+                            {% endif %}
+                            {% if form.timestamp.errors %}
+                                <p class="mt-1.5 text-sm text-red-600">{{ form.timestamp.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Peso (se presente) -->
+                        {% if form.peso %}
+                        <div>
+                            <label for="{{ form.peso.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                                ⚖️ {{ form.peso.label }}
+                            </label>
+                            {{ form.peso }}
+                            {% if form.peso.errors %}
+                                <p class="mt-1.5 text-sm text-red-600">{{ form.peso.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Seção 3: Campos Específicos -->
+                {% if form.preco_unitario or form.fornecedor or form.target_farm or form.target_category %}
+                <div class="space-y-4 pt-4 border-t border-gray-200">
+                    <h3 class="text-sm font-semibold text-gray-900 border-b pb-2">ℹ️ Informações Adicionais</h3>
+                    
+                    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                        <!-- Campos específicos de Compra -->
+                        {% if form.preco_unitario %}
+                        <div>
+                            <label for="{{ form.preco_unitario.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                                💰 {{ form.preco_unitario.label }}
+                            </label>
+                            {{ form.preco_unitario }}
+                            {% if form.preco_unitario.errors %}
+                                <p class="mt-1.5 text-sm text-red-600">{{ form.preco_unitario.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                        
+                        {% if form.fornecedor %}
+                        <div>
+                            <label for="{{ form.fornecedor.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                                🏭 {{ form.fornecedor.label }}
+                            </label>
+                            {{ form.fornecedor }}
+                            {% if form.fornecedor.errors %}
+                                <p class="mt-1.5 text-sm text-red-600">{{ form.fornecedor.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Campos específicos de Manejo -->
+                        {% if form.target_farm %}
+                        <div class="sm:col-span-2">
+                            <label for="{{ form.target_farm.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                                🎯 {{ form.target_farm.label }} <span class="text-red-500">*</span>
+                            </label>
+                            {{ form.target_farm }}
+                            {% if form.target_farm.errors %}
+                                <p class="mt-1.5 text-sm text-red-600">{{ form.target_farm.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Campos específicos de Mudança de Categoria -->
+                        {% if form.target_category %}
+                        <div class="sm:col-span-2">
+                            <label for="{{ form.target_category.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                                🔄 {{ form.target_category.label }} <span class="text-red-500">*</span>
+                            </label>
+                            {{ form.target_category }}
+                            {% if form.target_category.errors %}
+                                <p class="mt-1.5 text-sm text-red-600">{{ form.target_category.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Seção 4: Observação -->
+                <div class="space-y-4 pt-4 border-t border-gray-200">
+                    <h3 class="text-sm font-semibold text-gray-900 border-b pb-2">📝 Observações</h3>
+                    
+                    <div>
+                        <label for="{{ form.observacao.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                            {{ form.observacao.label }}
+                        </label>
+                        {{ form.observacao }}
+                        {% if form.observacao.errors %}
+                            <p class="mt-1.5 text-sm text-red-600">{{ form.observacao.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Ações -->
+                <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+                    <a href="{% url 'movimentacoes:list' %}" 
+                       class="inline-flex items-center px-5 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors">
+                        Cancelar
+                    </a>
+                    <button type="submit" 
+                            class="inline-flex items-center px-5 py-2.5 border border-transparent rounded-lg text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors shadow-sm">
+                        <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        Salvar Movimentação
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
-
-class MovementBaseForm(forms.Form):
-    """
-    Base para todos os formulários de movimentação/ocorrência.
-
-    Fluxo HTMX:
-      1. Usuário troca fazenda
-         → farm.hx-get dispara /htmx/categorias-{endpoint}/
-         → passa farm_id via hx-vals (lê o valor do próprio select)
-         → resultado substitui o innerHTML do #id_animal_category
-
-      2. Usuário troca categoria
-         → animal_category.hx-get dispara /htmx/saldo-atual/
-         → passa farm_id + category_id via hx-vals
-         → resultado substitui o #saldo-badge
-    """
-    hx_categoria_endpoint = 'categorias-saida'  # sobrescrito nas subclasses
-
-    farm = forms.ModelChoiceField(
-        queryset=Farm.objects.filter(is_active=True),
-        label='Fazenda',
-        widget=forms.Select(attrs={
-            'class':      _SELECT_CSS,
-            'hx-trigger': 'change',
-            'hx-target':  '#id_animal_category',
-            'hx-swap':    'innerHTML',
-            # hx-get e hx-vals são injetados no __init__ com o endpoint correto
-        })
-    )
-
-    animal_category = forms.ModelChoiceField(
-        queryset=AnimalCategory.objects.filter(is_active=True),
-        label='Tipo de Animal',
-        widget=forms.Select(attrs={
-            'class':      _SELECT_CSS,
-            'id':         'id_animal_category',
-            'hx-get':     '/htmx/saldo-atual/',
-            'hx-target':  '#saldo-badge',
-            'hx-trigger': 'change',
-            'hx-swap':    'innerHTML',
-            # Lê farm e category do DOM em tempo real
-            'hx-vals':    'js:{"farm_id": document.querySelector("select[name=farm]").value, "category_id": this.value}',
-        })
-    )
-
-    quantity = forms.IntegerField(
-        min_value=1,
-        label='Quantidade',
-        widget=forms.NumberInput(attrs={
-            'class':       _INPUT_CSS,
-            'placeholder': '1',
-            'id':          'id_quantity',
-        })
-    )
-
-    timestamp = forms.DateTimeField(
-        label='Data/Hora',
-        widget=forms.DateTimeInput(attrs={
-            'class': _INPUT_CSS,
-            'type':  'datetime-local',
-        }),
-        required=False,
-        help_text='Deixe em branco para usar a data/hora atual'
-    )
-
-    observacao = forms.CharField(
-        label='Observação',
-        required=False,
-        widget=forms.Textarea(attrs={
-            'class':       _INPUT_CSS,
-            'rows':        3,
-            'placeholder': 'Observações adicionais (opcional)',
-        })
-    )
-
-    peso = forms.DecimalField(
-        label='Peso (kg)',
-        required=False,
-        max_digits=8,
-        decimal_places=2,
-        widget=forms.NumberInput(attrs={
-            'class':       _INPUT_CSS,
-            'placeholder': 'Peso em kg (opcional)',
-            'step':        '0.01',
-        })
-    )
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        endpoint = f'/htmx/{self.hx_categoria_endpoint}/'
-        # Injeta hx-get e hx-vals no select de fazenda
-        # hx-vals lê o valor do próprio elemento (this.value) em tempo real
-        self.fields['farm'].widget.attrs.update({
-            'hx-get':  endpoint,
-            'hx-vals': 'js:{"farm_id": this.value}',
-        })
-
-
-# ── Entradas ──────────────────────────────────────────────────────────────────
-
-class NascimentoForm(MovementBaseForm):
-    hx_categoria_endpoint = 'categorias-entrada'
-
-
-class DesmameForm(MovementBaseForm):
-    hx_categoria_endpoint = 'categorias-entrada'
-
-
-class SaldoForm(MovementBaseForm):
-    hx_categoria_endpoint = 'categorias-entrada'
-
-
-class CompraForm(MovementBaseForm):
-    hx_categoria_endpoint = 'categorias-entrada'
-
-    preco_unitario = forms.DecimalField(
-        label='Preço Unitário (R$)',
-        required=False,
-        max_digits=10,
-        decimal_places=2,
-        widget=forms.NumberInput(attrs={
-            'class':       _INPUT_CSS,
-            'placeholder': '0.00',
-            'step':        '0.01',
-        })
-    )
-
-    fornecedor = forms.CharField(
-        label='Fornecedor',
-        required=False,
-        max_length=200,
-        widget=forms.TextInput(attrs={
-            'class':       _INPUT_CSS,
-            'placeholder': 'Nome do fornecedor (opcional)',
-        })
-    )
-
-
-# ── Manejo ────────────────────────────────────────────────────────────────────
-
-class ManejoForm(MovementBaseForm):
-    hx_categoria_endpoint = 'categorias-saida'
-
-    target_farm = forms.ModelChoiceField(
-        queryset=Farm.objects.filter(is_active=True),
-        label='Fazenda Destino',
-        widget=forms.Select(attrs={'class': _SELECT_CSS})
-    )
-
-    def clean(self):
-        cleaned_data = super().clean()
-        farm        = cleaned_data.get('farm')
-        target_farm = cleaned_data.get('target_farm')
-        if farm and target_farm and farm == target_farm:
-            raise ValidationError('A fazenda de origem e destino não podem ser iguais.')
-        return cleaned_data
-
-
-# ── Mudança de Categoria ──────────────────────────────────────────────────────
-
-class MudancaCategoriaForm(MovementBaseForm):
-    hx_categoria_endpoint = 'categorias-saida'
-
-    target_category = forms.ModelChoiceField(
-        queryset=AnimalCategory.objects.filter(is_active=True),
-        label='Categoria Destino',
-        widget=forms.Select(attrs={
-            'class': _SELECT_CSS,
-            'id':    'id_target_category',
-        })
-    )
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Ao mudar categoria origem → atualiza destino excluindo a origem
-        self.fields['animal_category'].widget.attrs.update({
-            'hx-get':     '/htmx/categorias-entrada/',
-            'hx-target':  '#id_target_category',
-            'hx-trigger': 'change',
-            'hx-swap':    'innerHTML',
-            'hx-vals':    'js:{"exclude_category": this.value}',
-        })
-
-    def clean(self):
-        cleaned_data    = super().clean()
-        category        = cleaned_data.get('animal_category')
-        target_category = cleaned_data.get('target_category')
-        if category and target_category and category == target_category:
-            raise ValidationError('A categoria de origem e destino não podem ser iguais.')
-        return cleaned_data
+<!-- HTMX já carregado no base.html via CDN -->
+{% endblock %}

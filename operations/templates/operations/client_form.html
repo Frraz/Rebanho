@@ -11,50 +11,107 @@
             <form method="post" class="mt-5 space-y-6">
                 {% csrf_token %}
                 
+                {% if form.non_field_errors %}
+                <div class="rounded-md bg-red-50 p-4">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-red-800">Erro ao salvar</h3>
+                            <div class="mt-2 text-sm text-red-700">
+                                {{ form.non_field_errors }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
                 <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                    <!-- Nome -->
                     <div class="sm:col-span-2">
                         <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-gray-700">
                             {{ form.name.label }} <span class="text-red-500">*</span>
                         </label>
                         {{ form.name }}
-                        {% if form.name.errors %}<p class="mt-1 text-sm text-red-600">{{ form.name.errors.0 }}</p>{% endif %}
+                        {% if form.name.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.name.errors.0 }}</p>
+                        {% endif %}
                     </div>
                     
+                    <!-- CPF/CNPJ -->
                     <div>
                         <label for="{{ form.cpf_cnpj.id_for_label }}" class="block text-sm font-medium text-gray-700">
                             {{ form.cpf_cnpj.label }}
                         </label>
                         {{ form.cpf_cnpj }}
-                        {% if form.cpf_cnpj.help_text %}<p class="mt-1 text-sm text-gray-500">{{ form.cpf_cnpj.help_text }}</p>{% endif %}
+                        {% if form.cpf_cnpj.help_text %}
+                            <p class="mt-1 text-xs text-gray-500">{{ form.cpf_cnpj.help_text }}</p>
+                        {% endif %}
+                        {% if form.cpf_cnpj.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.cpf_cnpj.errors.0 }}</p>
+                        {% endif %}
                     </div>
                     
+                    <!-- Telefone -->
                     <div>
                         <label for="{{ form.phone.id_for_label }}" class="block text-sm font-medium text-gray-700">
                             {{ form.phone.label }}
                         </label>
                         {{ form.phone }}
+                        {% if form.phone.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.phone.errors.0 }}</p>
+                        {% endif %}
                     </div>
                     
+                    <!-- E-mail -->
                     <div class="sm:col-span-2">
                         <label for="{{ form.email.id_for_label }}" class="block text-sm font-medium text-gray-700">
                             {{ form.email.label }}
                         </label>
                         {{ form.email }}
+                        {% if form.email.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.email.errors.0 }}</p>
+                        {% endif %}
                     </div>
                     
+                    <!-- Endereço -->
                     <div class="sm:col-span-2">
                         <label for="{{ form.address.id_for_label }}" class="block text-sm font-medium text-gray-700">
                             {{ form.address.label }}
                         </label>
                         {{ form.address }}
+                        {% if form.address.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.address.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Dicas de formatação -->
+                <div class="bg-blue-50 border-l-4 border-blue-400 p-4">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm text-blue-700">
+                                <strong>Dica:</strong> Você pode digitar CPF/CNPJ com ou sem máscara. O sistema formata automaticamente!
+                            </p>
+                        </div>
                     </div>
                 </div>
                 
                 <div class="flex justify-end space-x-3">
-                    <a href="{% url 'operations_cadastros:client_list' %}" class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                    <a href="{% url 'operations_cadastros:client_list' %}" 
+                       class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
                         Cancelar
                     </a>
-                    <button type="submit" class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700">
+                    <button type="submit" 
+                            class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
                         {{ button_text }}
                     </button>
                 </div>
