@@ -1,40 +1,43 @@
 # ==============================================================================
-# gunicorn.conf.py — Configuração do Gunicorn
-# Coloque este arquivo na raiz do projeto (/app/gunicorn.conf.py)
-# O Gunicorn carrega automaticamente se o arquivo existir no diretório atual.
+# gunicorn.conf.py — Rebanho (Gestão de Rebanhos)
+# Servidor: 2 vCPUs / 7.8GB RAM — dividido entre 4 sistemas Django
+# Rebanho tem Celery, budget de CPU do web é menor que sistemas sem Celery
 # ==============================================================================
 
-import multiprocessing
-
-# Binding
+# ── Bind ───────────────────────────────────────────────────────────────────────
 bind = "0.0.0.0:8000"
 
-# Workers — regra: (2 × nº_cores) + 1
-workers = 3
+# ── Workers ────────────────────────────────────────────────────────────────────
+# 2 workers + 2 threads = boa concorrência sem estourar CPU compartilhada
+workers = 2
 worker_class = "sync"
-worker_tmp_dir = "/tmp/gunicorn"
+threads = 2
+worker_connections = 100
 
-# Timeouts
-timeout = 120
-graceful_timeout = 30
-keepalive = 5
+# ── Timeouts ───────────────────────────────────────────────────────────────────
+timeout = 30
+graceful_timeout = 20
+keepalive = 2
 
-# Reciclagem de workers (evita memory leaks)
-max_requests = 1000
-max_requests_jitter = 100
+# ── Processo ───────────────────────────────────────────────────────────────────
+max_requests = 500
+max_requests_jitter = 50
+preload_app = True
 
-# Logs para stdout/stderr (capturados pelo Docker)
+# ── Logging ────────────────────────────────────────────────────────────────────
 accesslog = "-"
-errorlog = "-"
-loglevel = "info"
+errorlog  = "-"
+loglevel  = "warning"
+access_log_format = '%(h)s "%(r)s" %(s)s %(b)s %(D)sµs'
 
-# SOLUÇÃO: desativa o Control Socket Server (Gunicorn 25.x)
-# Esse recurso serve apenas para hot-reload sem downtime via SIGUSR2,
-# que não é usado em ambientes Docker onde o ciclo de vida é gerenciado
-# pelo Compose. Sem isso, o Gunicorn loga:
-# "[Errno 13] Control server error: Permission denied"
-# porque containers não-root não têm CAP_SYS_RESOURCE para fcntl.F_SETPIPE_SZ.
+# ── Segurança ──────────────────────────────────────────────────────────────────
+forwarded_allow_ips = "127.0.0.1"
+proxy_protocol = False
+
+# ── Control socket ─────────────────────────────────────────────────────────────
+# Desativa o socket de controle — não utilizado em Docker e causa
+# "[Errno 13] Control server error" em containers sem CAP_SYS_RESOURCE
 control_socket_disable = True
 
-# Performance
+# ── Performance ────────────────────────────────────────────────────────────────
 sendfile = False
