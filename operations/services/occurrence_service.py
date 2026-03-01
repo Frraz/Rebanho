@@ -7,7 +7,7 @@ Service responsável pelo cancelamento (estorno) de ocorrências.
 DESIGN:
 - AnimalMovement é imutável (ledger pattern) — nunca tocamos nele
 - O cancelamento cria um AnimalMovementCancellation (evento separado)
-- O saldo é devolvido via FarmStockBalance.quantity += quantidade
+- O saldo é devolvido via FarmStockBalance.current_quantity += quantidade
 - Toda a operação é atômica (transaction.atomic + select_for_update)
 
 IMPORTANTE — select_for_update() + PostgreSQL:
@@ -100,12 +100,12 @@ class OccurrenceService:
         farm_name = balance.farm.name
         category_name = balance.animal_category.name
         quantity = movement.quantity
-        balance_before = balance.quantity
+        balance_before = balance.current_quantity       # ← campo correto
 
         # ── 6. Estornar o saldo (ocorrência era SAÍDA → somamos de volta)
-        balance.quantity += quantity
-        balance.save(update_fields=['quantity'])
-        balance_after = balance.quantity
+        balance.current_quantity += quantity            # ← campo correto
+        balance.save(update_fields=['current_quantity'])  # ← campo correto
+        balance_after = balance.current_quantity        # ← campo correto
 
         # ── 7. Registrar o cancelamento (evento separado, auditável)
         AnimalMovementCancellation.objects.create(
