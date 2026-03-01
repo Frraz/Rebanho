@@ -44,6 +44,10 @@ from inventory.domain import OperationType
 from inventory.models import AnimalMovement
 from farms.models import Farm
 
+from django.http import HttpResponse
+from django.views.decorators.http import require_POST   # já existe no arquivo
+from operations.services.occurrence_service import OccurrenceService
+
 logger = logging.getLogger(__name__)
 
 # Tipos de operação classificados como "ocorrências" (sempre saídas)
@@ -621,3 +625,175 @@ def doacao_create_view(request):
     }
     
     return render(request, 'shared/generic_form.html', context)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# CANCELAMENTO DE OCORRÊNCIA
+# ══════════════════════════════════════════════════════════════════════════════
+
+@login_required
+@require_http_methods(["POST"])
+def occurrence_cancel_view(request, pk):
+    """
+    Cancela (estorna) uma ocorrência, devolvendo o saldo ao estoque.
+
+    Design:
+    - Apenas POST (protege contra cancelamentos por bots/crawlers via GET)
+    - CSRF verificado automaticamente pelo Django middleware
+    - Lógica de negócio delegada ao OccurrenceService (não na view)
+    - Resposta dual: HTML parcial para HTMX, redirect para requests normais
+
+    Segurança:
+    - @login_required: autenticação obrigatória
+    - @require_http_methods(["POST"]): bloqueia GET, PUT, DELETE
+    - get_object_or_404: não revela se o UUID existe (404 genérico)
+    - select_for_update() no service: anti race condition
+
+    Args:
+        pk: UUID do AnimalMovement a cancelar
+
+    Returns:
+        HTMX: <tr> substituta com confirmação visual (200) ou erro (400)
+        Normal: redirect para ocorrencias:list com messages
+    """
+    from django.http import HttpResponse
+    from operations.services.occurrence_service import OccurrenceService
+
+    movement = get_object_or_404(
+        AnimalMovement.objects.select_related(
+            'farm_stock_balance__farm',
+            'farm_stock_balance__animal_category',
+            'cancellation',          # prefetch do cancelamento se existir
+        ).prefetch_related(
+            'cancellation__cancelled_by',
+        ),
+        pk=pk,
+    )
+
+    is_htmx = request.headers.get('HX-Request') == 'true'
+
+    # ── Verificação rápida antes de entrar no service (evita hit desnecessário no DB)
+    if hasattr(movement, 'cancellation'):
+        c = movement.cancellation
+        error_msg = (
+            f"Esta ocorrência já foi cancelada em "
+            f"{c.cancelled_at.strftime('%d/%m/%Y às %H:%M')} "
+            f"por {c.cancelled_by.username}."
+        )
+        if is_htmx:
+            return HttpResponse(
+                _render_already_cancelled_row(movement, c),
+                status=200,   # 200 para HTMX não tratar como erro e fazer swap
+            )
+        messages.warning(request, error_msg)
+        return redirect('ocorrencias:list')
+
+    # ── Executar cancelamento via service
+    try:
+        result = OccurrenceService.cancel_occurrence(
+            movement_id=str(pk),
+            cancelled_by=request.user,
+            notes=request.POST.get('notes', ''),
+        )
+
+        logger.info(
+            f"Cancelamento realizado por {request.user.username}. "
+            f"Movement: {pk} | {result['operation_display']} | "
+            f"Saldo: {result['balance_before']} → {result['balance_after']}"
+        )
+
+        if is_htmx:
+            return HttpResponse(
+                _render_cancelled_row(result),
+                status=200,
+            )
+
+        messages.success(
+            request,
+            f"Ocorrência estornada com sucesso. "
+            f"{result['quantity_restored']} animal(is) devolvido(s) "
+            f"ao estoque de {result['category']} em {result['farm']}."
+        )
+
+    except ValidationError as e:
+        error_msg = e.message if hasattr(e, 'message') else str(e)
+
+        logger.warning(
+            f"Tentativa de cancelamento inválida. "
+            f"Usuário: {request.user.username} | Movement: {pk} | Erro: {error_msg}"
+        )
+
+        if is_htmx:
+            return HttpResponse(
+                f'<span class="text-red-600 text-xs font-medium px-3 py-2 '
+                f'bg-red-50 rounded-lg inline-block">{error_msg}</span>',
+                status=400,
+            )
+        messages.error(request, error_msg)
+
+    except Exception as e:
+        logger.error(
+            f"Erro inesperado no cancelamento. "
+            f"Usuário: {request.user.username} | Movement: {pk}",
+            exc_info=True
+        )
+        if is_htmx:
+            return HttpResponse(
+                '<span class="text-red-600 text-xs font-medium px-3 py-2 '
+                'bg-red-50 rounded-lg inline-block">'
+                'Erro interno. Tente novamente.</span>',
+                status=500,
+            )
+        messages.error(request, "Erro interno ao cancelar. Tente novamente.")
+
+    return redirect('ocorrencias:list')
+
+
+# ── Helpers de renderização HTML para respostas HTMX ─────────────────────────
+
+def _render_cancelled_row(result: dict) -> str:
+    """Retorna a <tr> de confirmação após cancelamento bem-sucedido."""
+    qty = result['quantity_restored']
+    category = result['category']
+    farm = result['farm']
+    op = result['operation_display']
+
+    return f"""
+    <tr class="bg-amber-50 transition-all duration-500">
+        <td colspan="8" class="px-6 py-4">
+            <div class="flex items-center justify-center gap-3 text-sm">
+                <div class="flex-shrink-0 w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center">
+                    <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+                <div class="text-amber-800">
+                    <span class="font-semibold">{op}</span> cancelada —
+                    <span class="font-semibold text-green-700">+{qty}</span> animal(is)
+                    devolvido(s) ao estoque de
+                    <span class="font-semibold">{category}</span>
+                    em <span class="font-semibold">{farm}</span>
+                </div>
+            </div>
+        </td>
+    </tr>
+    """
+
+
+def _render_already_cancelled_row(movement, cancellation) -> str:
+    """Retorna a <tr> informando que já foi cancelada (para HTMX)."""
+    return f"""
+    <tr class="bg-gray-50 opacity-60">
+        <td colspan="8" class="px-6 py-4">
+            <div class="flex items-center justify-center gap-2 text-sm text-gray-500">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                Já cancelada em {cancellation.cancelled_at.strftime('%d/%m/%Y às %H:%M')}
+                por {cancellation.cancelled_by.username}
+            </div>
+        </td>
+    </tr>
+    """
