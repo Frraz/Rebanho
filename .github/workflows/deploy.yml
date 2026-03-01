@@ -5,7 +5,6 @@ on:
     branches:
       - main
 
-# Garante que apenas um deploy rode por vez.
 concurrency:
   group: deploy-production
   cancel-in-progress: true
@@ -69,25 +68,25 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
           timeout: 30s
-          command_timeout: 3m
+          command_timeout: 5m
           script_stop: true
           script: |
             set -euo pipefail
             PROJECT_DIR="/var/www/docker-instances/Rebanho"
 
-            echo "Aguardando 30s..."
-            sleep 30
+            echo "Aguardando container inicializar (60s)..."
+            sleep 60
 
             echo "Status dos containers:"
             docker compose -f "$PROJECT_DIR/docker-compose.yml" ps
 
             echo "Testando HTTP na porta 8080..."
-            RETRIES=5
+            RETRIES=10
             COUNT=0
             HTTP_OK=0
 
             while [ $COUNT -lt $RETRIES ]; do
-              CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 http://127.0.0.1:8080/login/ 2>/dev/null || echo "000")
+              CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 http://127.0.0.1:8080/login/) || CODE="000"
               echo "  Tentativa $((COUNT+1))/$RETRIES — HTTP $CODE"
 
               if [ "$CODE" = "200" ] || [ "$CODE" = "302" ]; then
@@ -96,7 +95,7 @@ jobs:
               fi
 
               COUNT=$((COUNT + 1))
-              sleep 5
+              sleep 10
             done
 
             if [ $HTTP_OK -eq 1 ]; then
@@ -104,7 +103,7 @@ jobs:
             else
               echo "FALHOU — aplicacao nao respondeu apos $RETRIES tentativas"
               echo "Ultimos logs:"
-              docker compose -f "$PROJECT_DIR/docker-compose.yml" logs --tail=30 web
+              docker compose -f "$PROJECT_DIR/docker-compose.yml" logs --tail=50 web
               exit 1
             fi
 
