@@ -94,11 +94,18 @@ jobs:
             sep
             echo "  [2/5] Build da imagem web..."
             sep
+            BUILD_FLAGS=""
             if [ "$NO_CACHE" = "true" ]; then
               echo "  ⚠ Modo sem cache ativado."
-              docker compose build --no-cache web
-            else
-              docker compose build web
+              BUILD_FLAGS="--no-cache"
+            fi
+
+            # progress=plain exibe cada camada do build para facilitar diagnóstico de erros
+            if ! docker compose build --progress=plain $BUILD_FLAGS web 2>&1; then
+              echo ""
+              echo "❌ Build falhou. Últimas linhas do log de compose:"
+              docker compose logs --tail=50 web 2>&1 || true
+              exit 1
             fi
 
             sep
