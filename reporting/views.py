@@ -45,7 +45,8 @@ def _get_period_from_request(request) -> Tuple[date, date, int, int]:
 
     try:
         month = int(request.GET.get('month', today.month))
-        year = int(request.GET.get('year', today.year))
+        year_raw = str(request.GET.get('year', today.year)).replace(".", "").replace(",", "")
+        year = int(year_raw)
 
         # month=0 é válido (todos os meses); fora disso, clampar entre 1-12
         if month != 0:
