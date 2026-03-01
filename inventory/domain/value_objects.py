@@ -10,6 +10,10 @@ CHANGELOG v2:
 - DESMAME original renomeado para DESMAME_IN (retrocompatível no banco)
   ATENÇÃO: Se já existirem registros com operation_type='DESMAME' no banco,
   será necessária uma data migration para renomear para 'DESMAME_IN'.
+
+CHANGELOG v2.1:
+- choices() agora retorna labels legíveis em português para exibição na UI
+  (get_operation_type_display() passa a mostrar "Desmame (Saída)" em vez de "DESMAME_OUT")
 """
 from enum import Enum
 
@@ -29,6 +33,27 @@ class MovementType(str, Enum):
         return [(item.value, item.name) for item in cls]
 
 
+# Labels legíveis em português para cada OperationType.
+# Usados pelo choices() e consequentemente pelo get_operation_type_display() do Django.
+OPERATION_TYPE_LABELS = {
+    # Entradas
+    "NASCIMENTO":           "Nascimento",
+    "COMPRA":               "Compra",
+    "MANEJO_IN":            "Manejo (Entrada)",
+    "MUDANCA_CATEGORIA_IN": "Mud. Categoria (Entrada)",
+    "DESMAME_IN":           "Desmame (Entrada)",
+    "SALDO":                "Ajuste de Saldo",
+    # Saídas
+    "MORTE":                "Morte",
+    "VENDA":                "Venda",
+    "ABATE":                "Abate",
+    "DOACAO":               "Doação",
+    "MANEJO_OUT":           "Manejo (Saída)",
+    "MUDANCA_CATEGORIA_OUT":"Mud. Categoria (Saída)",
+    "DESMAME_OUT":          "Desmame (Saída)",
+}
+
+
 class OperationType(str, Enum):
     """
     Tipos específicos de operações que geram movimentações.
@@ -40,7 +65,7 @@ class OperationType(str, Enum):
     # === ENTRADAS ===
     NASCIMENTO = "NASCIMENTO"
     COMPRA = "COMPRA"
-    MANEJO_IN = "MANEJO_IN"                      # Recebimento de outra fazenda
+    MANEJO_IN = "MANEJO_IN"                        # Recebimento de outra fazenda
     MUDANCA_CATEGORIA_IN = "MUDANCA_CATEGORIA_IN"  # Entrada na nova categoria
     DESMAME_IN = "DESMAME_IN"                      # Entrada na categoria pós-desmame
     SALDO = "SALDO"                                # Ajuste positivo de saldo
@@ -50,13 +75,20 @@ class OperationType(str, Enum):
     VENDA = "VENDA"
     ABATE = "ABATE"
     DOACAO = "DOACAO"
-    MANEJO_OUT = "MANEJO_OUT"                      # Envio para outra fazenda
+    MANEJO_OUT = "MANEJO_OUT"                        # Envio para outra fazenda
     MUDANCA_CATEGORIA_OUT = "MUDANCA_CATEGORIA_OUT"  # Saída da categoria origem
-    DESMAME_OUT = "DESMAME_OUT"                    # Saída da categoria pré-desmame
+    DESMAME_OUT = "DESMAME_OUT"                      # Saída da categoria pré-desmame
 
     @classmethod
     def choices(cls):
-        return [(item.value, item.name) for item in cls]
+        """
+        Retorna choices com labels legíveis em português.
+        Alimenta get_operation_type_display() no Django ORM.
+        """
+        return [
+            (item.value, OPERATION_TYPE_LABELS.get(item.value, item.value))
+            for item in cls
+        ]
 
     @classmethod
     def entrada_operations(cls):
@@ -83,7 +115,7 @@ class OperationType(str, Enum):
             cls.DESMAME_OUT,
         ]
 
-    def get_movement_type(self) -> MovementType:
+    def get_movement_type(self) -> 'MovementType':
         """
         Determina automaticamente o tipo de movimento baseado na operação.
 
@@ -96,6 +128,10 @@ class OperationType(str, Enum):
             return MovementType.SAIDA
         else:
             raise ValueError(f"Operação {self.value} não reconhecida")
+
+    def get_label(self) -> str:
+        """Retorna o label legível em português desta operação."""
+        return OPERATION_TYPE_LABELS.get(self.value, self.value)
 
     def requires_client(self) -> bool:
         """Indica se a operação requer cliente"""
