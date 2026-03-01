@@ -109,6 +109,8 @@ services:
     container_name: rebanho_web
     <<: *default-restart
     env_file: .env
+    environment:
+      ALLOWED_HOSTS: rebanho.ferzion.com.br,www.rebanho.ferzion.com.br,127.0.0.1,localhost
     volumes:
       - ./staticfiles:/app/staticfiles
       - ./media:/app/media
