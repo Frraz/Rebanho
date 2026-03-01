@@ -9,7 +9,12 @@ DESIGN:
 - O cancelamento cria um AnimalMovementCancellation (evento separado)
 - O saldo é devolvido via FarmStockBalance.quantity += quantidade
 - Toda a operação é atômica (transaction.atomic + select_for_update)
-- select_for_update() em DOIS registros: movement + balance (anti race condition)
+
+IMPORTANTE — select_for_update() + PostgreSQL:
+- NÃO combinar com select_related() de FKs nullable (client, death_reason)
+- Isso gera LEFT OUTER JOIN que o PostgreSQL rejeita com FOR UPDATE
+- AnimalMovement é buscado sem select_related
+- FarmStockBalance não tem FKs nullable, select_related seguro ali
 """
 import logging
 from django.db import transaction
@@ -21,11 +26,9 @@ logger = logging.getLogger(__name__)
 class OccurrenceService:
     """
     Serviço de domínio para operações sobre ocorrências.
-
     Regras de negócio encapsuladas aqui, nunca nas views.
     """
 
-    # Tipos que podem ser cancelados (saídas definitivas)
     CANCELLABLE_TYPES = frozenset({'MORTE', 'ABATE', 'VENDA', 'DOACAO'})
 
     @staticmethod
@@ -33,13 +36,6 @@ class OccurrenceService:
     def cancel_occurrence(movement_id: str, cancelled_by, notes: str = '') -> dict:
         """
         Estorna uma ocorrência, devolvendo o saldo ao estoque da fazenda.
-
-        O método:
-        1. Valida que a ocorrência existe e é cancelável
-        2. Valida que ainda não foi cancelada (via OneToOne)
-        3. Bloqueia as linhas de movement + balance com select_for_update()
-        4. Devolve a quantidade ao FarmStockBalance
-        5. Cria o registro AnimalMovementCancellation (evento auditável)
 
         Args:
             movement_id: UUID (string) do AnimalMovement
@@ -55,31 +51,34 @@ class OccurrenceService:
         from inventory.models import AnimalMovement, FarmStockBalance
         from inventory.models import AnimalMovementCancellation
 
-        # ── 1. Buscar o movement com lock (impede cancelamento duplo concorrente)
+        # ── 1. Buscar o movement com lock
+        # SEM select_related: client e death_reason são FKs nullable e
+        # geram LEFT OUTER JOIN — incompatível com FOR UPDATE no PostgreSQL.
         try:
             movement = (
                 AnimalMovement.objects
-                .select_related(
-                    'farm_stock_balance',
-                    'farm_stock_balance__farm',
-                    'farm_stock_balance__animal_category',
-                    'client',
-                    'death_reason',
-                )
-                .select_for_update(nowait=False)   # bloqueia a linha
+                .select_for_update(nowait=False)
                 .get(id=movement_id)
             )
         except AnimalMovement.DoesNotExist:
             raise ValidationError("Ocorrência não encontrada.")
 
-        # ── 2. Verificar se já foi cancelada (OneToOne levanta RelatedObjectDoesNotExist)
-        if hasattr(movement, 'cancellation'):
-            c = movement.cancellation
+        # ── 2. Verificar se já foi cancelada
+        # Usamos query direta em vez de hasattr(): mais explícito e
+        # não depende do cache de atributo do ORM após select_for_update.
+        try:
+            c = (
+                AnimalMovementCancellation.objects
+                .select_related('cancelled_by')
+                .get(movement_id=movement_id)
+            )
             raise ValidationError(
                 f"Esta ocorrência já foi cancelada em "
                 f"{c.cancelled_at.strftime('%d/%m/%Y às %H:%M')} "
                 f"por {c.cancelled_by.get_full_name() or c.cancelled_by.username}."
             )
+        except AnimalMovementCancellation.DoesNotExist:
+            pass  # ainda não cancelada — prosseguir
 
         # ── 3. Validar tipo cancelável
         if movement.operation_type not in OccurrenceService.CANCELLABLE_TYPES:
@@ -88,23 +87,24 @@ class OccurrenceService:
                 f"não podem ser canceladas por este método."
             )
 
-        # ── 4. Buscar o saldo com lock (operação de escrita no balance)
+        # ── 4. Buscar o saldo com lock
+        # FarmStockBalance só tem FKs NOT NULL, select_related é seguro aqui.
         balance = (
             FarmStockBalance.objects
+            .select_related('farm', 'animal_category')
             .select_for_update(nowait=False)
             .get(id=movement.farm_stock_balance_id)
         )
 
-        # ── 5. Capturar dados antes de alterar (para retorno e auditoria)
+        # ── 5. Capturar dados antes de alterar
         farm_name = balance.farm.name
         category_name = balance.animal_category.name
         quantity = movement.quantity
         balance_before = balance.quantity
 
-        # ── 6. Estornar o saldo
-        #       A ocorrência original era uma SAÍDA → devolvemos somando
+        # ── 6. Estornar o saldo (ocorrência era SAÍDA → somamos de volta)
         balance.quantity += quantity
-        balance.save(update_fields=['quantity'])   # update direto, não chama AnimalMovement.save()
+        balance.save(update_fields=['quantity'])
         balance_after = balance.quantity
 
         # ── 7. Registrar o cancelamento (evento separado, auditável)
