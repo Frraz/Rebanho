@@ -61,51 +61,73 @@ jobs:
 
             echo "Deploy concluido: $(git log -1 --oneline)"
 
-      - name: 🏥 Health check da aplicacao
+      - name: 🏥 Health Check Produção
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
-          timeout: 30s
-          command_timeout: 5m
+          timeout: 60s
+          command_timeout: 10m
           script_stop: true
           script: |
             set -euo pipefail
+
             PROJECT_DIR="/var/www/docker-instances/Rebanho"
+            COMPOSE="docker compose -f $PROJECT_DIR/docker-compose.yml"
 
-            echo "Aguardando container inicializar (60s)..."
-            sleep 60
+            echo "📦 Verificando containers..."
+            $COMPOSE ps
 
-            echo "Status dos containers:"
-            docker compose -f "$PROJECT_DIR/docker-compose.yml" ps
+            echo ""
+            echo "⏳ Aguardando container 'web' ficar saudável..."
 
-            echo "Testando HTTP na porta 8080..."
-            RETRIES=10
-            COUNT=0
-            HTTP_OK=0
+            MAX_WAIT=180
+            INTERVAL=5
+            ELAPSED=0
 
-            while [ $COUNT -lt $RETRIES ]; do
-              CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 http://127.0.0.1:8080/login/) || CODE="000"
-              echo "  Tentativa $((COUNT+1))/$RETRIES — HTTP $CODE"
+            while true; do
+              STATUS=$($COMPOSE ps --format json | jq -r '.[] | select(.Service=="web") | .State')
 
-              if [ "$CODE" = "200" ] || [ "$CODE" = "302" ]; then
-                HTTP_OK=1
+              echo "   Status atual: $STATUS"
+
+              if [ "$STATUS" = "running" ]; then
+                echo "   Container está rodando."
                 break
               fi
 
-              COUNT=$((COUNT + 1))
+              if [ "$ELAPSED" -ge "$MAX_WAIT" ]; then
+                echo "❌ Timeout aguardando container iniciar."
+                $COMPOSE logs --tail=100
+                exit 1
+              fi
+
+              sleep $INTERVAL
+              ELAPSED=$((ELAPSED + INTERVAL))
+            done
+
+            echo ""
+            echo "🌐 Testando HTTP..."
+
+            RETRIES=12
+            for i in $(seq 1 $RETRIES); do
+              CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 http://127.0.0.1:8080/login/ || echo "000")
+              echo "   Tentativa $i/$RETRIES — HTTP $CODE"
+
+              if [ "$CODE" = "200" ] || [ "$CODE" = "302" ]; then
+                echo "✅ Aplicação respondendo corretamente."
+                exit 0
+              fi
+
               sleep 10
             done
 
-            if [ $HTTP_OK -eq 1 ]; then
-              echo "OK — aplicacao respondendo HTTP $CODE"
-            else
-              echo "FALHOU — aplicacao nao respondeu apos $RETRIES tentativas"
-              echo "Ultimos logs:"
-              docker compose -f "$PROJECT_DIR/docker-compose.yml" logs --tail=50 web
-              exit 1
-            fi
+            echo ""
+            echo "❌ Aplicação não respondeu corretamente."
+            echo "📋 Últimos logs:"
+            $COMPOSE logs --tail=100
+
+            exit 1
 
       - name: ✅ Sucesso
         if: success()
