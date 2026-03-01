@@ -108,7 +108,7 @@ services:
     image: rebanho_web:latest
     container_name: rebanho_web
     <<: *default-restart
-    env_file: .env
+    env_file: .env.prod
     environment:
       ALLOWED_HOSTS: rebanho.ferzion.com.br,www.rebanho.ferzion.com.br,127.0.0.1,localhost
     volumes:
@@ -158,7 +158,7 @@ services:
     image: rebanho_web:latest
     container_name: rebanho_celery
     <<: *default-restart
-    env_file: .env
+    env_file: .env.prod
     depends_on:
       db:
         condition: service_healthy
