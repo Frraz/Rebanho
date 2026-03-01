@@ -47,6 +47,7 @@ from farms.models import Farm
 from django.http import HttpResponse
 from django.views.decorators.http import require_POST   # já existe no arquivo
 from operations.services.occurrence_service import OccurrenceService
+from django.core.exceptions import ValidationError
 
 logger = logging.getLogger(__name__)
 
