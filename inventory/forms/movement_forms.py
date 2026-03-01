@@ -248,6 +248,7 @@ class DesmameForm(forms.Form):
     quantity_males = forms.IntegerField(
         min_value=0,
         initial=0,
+        required=False,
         label='B. Macho → Bois - 2A.',
         widget=forms.NumberInput(attrs={
             'class': _INPUT_CSS,
@@ -261,6 +262,7 @@ class DesmameForm(forms.Form):
     quantity_females = forms.IntegerField(
         min_value=0,
         initial=0,
+        required=False,
         label='B. Fêmea → Nov. - 2A.',
         widget=forms.NumberInput(attrs={
             'class': _INPUT_CSS,
