@@ -396,6 +396,7 @@ LOGS_DIR.mkdir(exist_ok=True)
 if not DEBUG:
     # HTTPS
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    USE_X_FORWARDED_HOST = True
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
@@ -407,12 +408,14 @@ if not DEBUG:
 
     # Security headers
     SECURE_CONTENT_TYPE_NOSNIFF = True
-    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin"
+    SECURE_CROSS_ORIGIN_RESOURCE_POLICY = "same-origin"
     X_FRAME_OPTIONS = 'DENY'
 
     # Cookie security
-    CSRF_COOKIE_HTTPONLY = True
+    CSRF_COOKIE_HTTPONLY = False
     SESSION_COOKIE_HTTPONLY = True
+    CSRF_COOKIE_SAMESITE = "Lax"
 
     # Referrer policy
     SECURE_REFERRER_POLICY = 'same-origin'
@@ -519,12 +522,13 @@ SESSION_SAVE_EVERY_REQUEST = False
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 
 # CSRF settings
-CSRF_COOKIE_NAME = 'livestock_csrftoken'
-CSRF_COOKIE_AGE = 31449600  # 1 ano
+CSRF_COOKIE_NAME = "livestock_csrftoken"
+CSRF_COOKIE_AGE = 60 * 60 * 24 * 365  # 1 ano
+
 CSRF_TRUSTED_ORIGINS = config(
-    'CSRF_TRUSTED_ORIGINS',
-    default='http://localhost:8000,http://127.0.0.1:8000',
-    cast=Csv()
+    "CSRF_TRUSTED_ORIGINS",
+    default="https://rebanho.ferzion.com.br,https://www.rebanho.ferzion.com.br",
+    cast=Csv(),
 )
 
 # Password reset
