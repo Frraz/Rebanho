@@ -110,9 +110,9 @@ services:
     <<: *default-restart
     env_file: .env
     volumes:
-      - static_volume:/app/staticfiles
-      - media_volume:/app/media
-      - logs_volume:/app/logs
+      - ./staticfiles:/app/staticfiles
+      - ./media:/app/media
+      - ./logs:/app/logs
     tmpfs:
       - /tmp:size=32m,mode=1777
     ports:
