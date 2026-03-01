@@ -135,20 +135,6 @@
                             </span>
                         </div>
 
-                        {% if item.summary %}
-                        <div class="flex flex-wrap gap-x-6 gap-y-2">
-                            {% for saldo in item.summary %}
-                            <div class="flex items-center gap-2">
-                                <span class="text-sm text-gray-600">{{ saldo.categoria_nome }}:</span>
-                                <span class="text-sm font-bold {% if saldo.quantidade == 0 %}text-gray-400{% else %}text-gray-900{% endif %}">
-                                    {{ saldo.quantidade }}
-                                </span>
-                            </div>
-                            {% endfor %}
-                        </div>
-                        {% else %}
-                        <p class="text-sm text-gray-400 italic">Nenhum animal cadastrado</p>
-                        {% endif %}
                     </div>
 
                     <!-- AÇÕES + MODAL INLINE -->
