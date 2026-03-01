@@ -4,79 +4,120 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Motivo do deploy manual"
+        required: false
+        default: "Deploy manual"
 
 concurrency:
   group: deploy-production
   cancel-in-progress: true
+
+env:
+  PROJECT_DIR: /var/www/docker-instances/Rebanho
 
 jobs:
   deploy:
     name: 🚀 Deploy para VPS
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    environment:
+      name: production
+      url: https://rebanho.ferzion.com.br
 
     steps:
-
       - name: 📥 Checkout do repositório
         uses: actions/checkout@v4
 
       - name: 📋 Informações do deploy
         run: |
-          echo "Repositório : ${{ github.repository }}"
-          echo "Branch      : ${{ github.ref_name }}"
-          echo "Commit      : ${{ github.sha }}"
-          echo "Autor       : ${{ github.actor }}"
-          echo "Mensagem    : ${{ github.event.head_commit.message }}"
+          echo "### 📋 Informações do Deploy" >> $GITHUB_STEP_SUMMARY
+          echo "| Campo      | Valor |" >> $GITHUB_STEP_SUMMARY
+          echo "|------------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Repositório | \`${{ github.repository }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Branch      | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Commit      | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Autor       | \`${{ github.actor }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Mensagem    | ${{ github.event.head_commit.message }} |" >> $GITHUB_STEP_SUMMARY
+
+      - name: 🔐 Verificar secrets obrigatórios
+        run: |
+          missing=()
+          [ -z "${{ secrets.VPS_HOST }}" ]             && missing+=("VPS_HOST")
+          [ -z "${{ secrets.VPS_USER }}" ]             && missing+=("VPS_USER")
+          [ -z "${{ secrets.VPS_SSH_PRIVATE_KEY }}" ]  && missing+=("VPS_SSH_PRIVATE_KEY")
+
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "❌ Secrets ausentes: ${missing[*]}"
+            exit 1
+          fi
+          echo "✅ Todos os secrets estão configurados."
 
       - name: 🔄 Atualizar código e rebuild na VPS
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.VPS_SSH_PORT || 22 }}
           timeout: 30s
           command_timeout: 12m
           script_stop: true
           script: |
             set -euo pipefail
-            PROJECT_DIR="/var/www/docker-instances/Rebanho"
+
+            PROJECT_DIR="${{ env.PROJECT_DIR }}"
             cd "$PROJECT_DIR"
 
-            echo "[1/5] Atualizando codigo..."
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "[1/5] Atualizando código..."
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             git fetch origin main
             git reset --hard origin/main
-            echo "Commit: $(git log -1 --oneline)"
+            echo "✔ Commit: $(git log -1 --oneline)"
 
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo "[2/5] Rebuild da imagem web..."
-            docker compose build web
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            docker compose build --no-cache web
 
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo "[3/5] Aplicando novo container web..."
-            docker compose --env-file .env.prod up -d --no-deps web
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            docker compose --env-file .env.prod up -d --no-deps --remove-orphans web
 
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo "[4/5] Reiniciando Celery..."
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             docker compose restart celery
 
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo "[5/5] Limpando imagens antigas..."
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             docker image prune -f
 
-            echo "Deploy concluido: $(git log -1 --oneline)"
+            echo ""
+            echo "✅ Deploy concluído: $(git log -1 --oneline)"
 
-      - name: 🏥 Health Check Produção
-        uses: appleboy/ssh-action@v1.0.3
+      - name: 🏥 Health Check
+        uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.VPS_SSH_PORT || 22 }}
           timeout: 60s
           command_timeout: 10m
           script_stop: true
           script: |
             set -euo pipefail
 
-            PROJECT_DIR="/var/www/docker-instances/Rebanho"
+            PROJECT_DIR="${{ env.PROJECT_DIR }}"
             COMPOSE="docker compose -f $PROJECT_DIR/docker-compose.yml"
 
-            echo "📦 Verificando containers..."
+            echo "📦 Status dos containers:"
             $COMPOSE ps
 
             echo ""
@@ -86,61 +127,69 @@ jobs:
             INTERVAL=5
             ELAPSED=0
 
-            while true; do
-              STATUS=$($COMPOSE ps --format json | jq -r '.[] | select(.Service=="web") | .State')
+            until [ "$ELAPSED" -ge "$MAX_WAIT" ]; do
+              STATE=$($COMPOSE ps --format json | jq -r '.[] | select(.Service=="web") | .State // "unknown"')
+              echo "   [$ELAPSED/${MAX_WAIT}s] Estado: $STATE"
 
-              echo "   Status atual: $STATUS"
-
-              if [ "$STATUS" = "running" ]; then
-                echo "   Container está rodando."
+              if [ "$STATE" = "running" ]; then
+                echo "   ✔ Container rodando."
                 break
-              fi
-
-              if [ "$ELAPSED" -ge "$MAX_WAIT" ]; then
-                echo "❌ Timeout aguardando container iniciar."
-                $COMPOSE logs --tail=100
-                exit 1
               fi
 
               sleep $INTERVAL
               ELAPSED=$((ELAPSED + INTERVAL))
             done
 
+            if [ "$ELAPSED" -ge "$MAX_WAIT" ]; then
+              echo "❌ Timeout aguardando container iniciar."
+              $COMPOSE logs --tail=100
+              exit 1
+            fi
+
             echo ""
-            echo "🌐 Testando HTTP..."
+            echo "🌐 Testando endpoint HTTP..."
 
             RETRIES=12
+            SUCCESS=false
+
             for i in $(seq 1 $RETRIES); do
-              CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 http://127.0.0.1:8080/login/ || echo "000")
+              CODE=$(curl -sf -o /dev/null -w "%{http_code}" --max-time 10 http://127.0.0.1:8080/login/ || echo "000")
               echo "   Tentativa $i/$RETRIES — HTTP $CODE"
 
-              if [ "$CODE" = "200" ] || [ "$CODE" = "302" ]; then
-                echo "✅ Aplicação respondendo corretamente."
-                exit 0
+              if [[ "$CODE" =~ ^(200|302)$ ]]; then
+                SUCCESS=true
+                break
               fi
 
-              sleep 10
+              [ "$i" -lt "$RETRIES" ] && sleep 10
             done
 
+            if [ "$SUCCESS" = false ]; then
+              echo ""
+              echo "❌ Aplicação não respondeu corretamente após $RETRIES tentativas."
+              echo "📋 Últimos logs:"
+              $COMPOSE logs --tail=100
+              exit 1
+            fi
+
             echo ""
-            echo "❌ Aplicação não respondeu corretamente."
-            echo "📋 Últimos logs:"
-            $COMPOSE logs --tail=100
+            echo "✅ Health check OK — Aplicação respondendo."
 
-            exit 1
-
-      - name: ✅ Sucesso
+      - name: 📝 Resumo do Deploy
         if: success()
         run: |
-          echo "DEPLOY CONCLUIDO COM SUCESSO"
-          echo "Commit : ${{ github.sha }}"
-          echo "Autor  : ${{ github.actor }}"
-          echo "URL    : https://rebanho.ferzion.com.br"
+          echo "### ✅ Deploy Concluído com Sucesso!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Autor:** \`${{ github.actor }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **URL:** [rebanho.ferzion.com.br](https://rebanho.ferzion.com.br)" >> $GITHUB_STEP_SUMMARY
 
-      - name: ❌ Falha
+      - name: ❌ Resumo de Falha
         if: failure()
         run: |
-          echo "DEPLOY FALHOU"
-          echo "Commit : ${{ github.sha }}"
-          echo "Autor  : ${{ github.actor }}"
+          echo "### ❌ Deploy Falhou" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Autor:** \`${{ github.actor }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Verifique os logs acima para identificar a causa.**" >> $GITHUB_STEP_SUMMARY
           exit 1
