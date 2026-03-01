@@ -10,248 +10,121 @@ on:
         description: "Motivo do deploy manual"
         required: false
         default: "Deploy manual"
-      no_cache:
-        description: "Forçar rebuild sem cache?"
-        required: false
-        type: boolean
-        default: false
 
 concurrency:
   group: deploy-production
   cancel-in-progress: true
 
-env:
-  PROJECT_DIR: /var/www/docker-instances/Rebanho
-  APP_URL: https://rebanho.ferzion.com.br
-  CONTAINER_NAME: rebanho_web
-  APP_PORT: "8080"
-
 jobs:
   deploy:
     name: 🚀 Deploy para VPS
     runs-on: ubuntu-latest
-    timeout-minutes: 25
-    environment:
-      name: production
-      url: https://rebanho.ferzion.com.br
+    timeout-minutes: 20
 
     steps:
-      # ─────────────────────────────────────────────
-      # PREPARAÇÃO
-      # ─────────────────────────────────────────────
 
       - name: 📥 Checkout do repositório
         uses: actions/checkout@v4
 
       - name: 📋 Informações do deploy
         run: |
-          echo "### 📋 Deploy iniciado" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Campo        | Valor |" >> $GITHUB_STEP_SUMMARY
-          echo "|--------------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Repositório  | \`${{ github.repository }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Branch       | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Commit       | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Autor        | \`${{ github.actor }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Trigger      | \`${{ github.event_name }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Mensagem     | ${{ github.event.head_commit.message }} |" >> $GITHUB_STEP_SUMMARY
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "| Motivo       | ${{ github.event.inputs.reason }} |" >> $GITHUB_STEP_SUMMARY
-            echo "| Sem cache    | \`${{ github.event.inputs.no_cache }}\` |" >> $GITHUB_STEP_SUMMARY
-          fi
-
-      # ─────────────────────────────────────────────
-      # DEPLOY
-      # ─────────────────────────────────────────────
+          echo "Repositório : ${{ github.repository }}"
+          echo "Branch      : ${{ github.ref_name }}"
+          echo "Commit      : ${{ github.sha }}"
+          echo "Autor       : ${{ github.actor }}"
+          echo "Mensagem    : ${{ github.event.head_commit.message }}"
 
       - name: 🔄 Atualizar código e rebuild na VPS
-        uses: appleboy/ssh-action@v1.2.0
+        uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
-          port: 22
           timeout: 30s
-          command_timeout: 15m
+          command_timeout: 12m
           script_stop: true
           script: |
             set -euo pipefail
-
-            PROJECT_DIR="${{ env.PROJECT_DIR }}"
-            NO_CACHE="${{ github.event.inputs.no_cache || 'false' }}"
-
-            sep() { echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"; }
-
+            PROJECT_DIR="/var/www/docker-instances/Rebanho"
             cd "$PROJECT_DIR"
 
-            sep
-            echo "  [1/5] Atualizando código..."
-            sep
+            echo "[1/5] Atualizando codigo..."
             git fetch origin main
             git reset --hard origin/main
-            echo "  ✔ Commit: $(git log -1 --oneline)"
+            echo "Commit: $(git log -1 --oneline)"
 
-            sep
-            echo "  [2/5] Build da imagem web..."
-            sep
-            BUILD_FLAGS=""
-            if [ "$NO_CACHE" = "true" ]; then
-              echo "  ⚠ Modo sem cache ativado."
-              BUILD_FLAGS="--no-cache"
-            fi
+            echo "[2/5] Rebuild da imagem web..."
+            docker compose build web 2>&1
 
-            # progress=plain exibe cada camada do build para facilitar diagnóstico de erros
-            if ! docker compose build --progress=plain $BUILD_FLAGS web 2>&1; then
-              echo ""
-              echo "❌ Build falhou. Últimas linhas do log de compose:"
-              docker compose logs --tail=50 web 2>&1 || true
-              exit 1
-            fi
+            echo "[3/5] Aplicando novo container web..."
+            docker compose --env-file .env.prod up -d --no-deps web
 
-            sep
-            echo "  [3/5] Subindo novo container web..."
-            sep
-            docker compose --env-file .env.prod up -d \
-              --no-deps \
-              --remove-orphans \
-              web
-
-            sep
-            echo "  [4/5] Reiniciando Celery..."
-            sep
+            echo "[4/5] Reiniciando Celery..."
             docker compose restart celery
 
-            sep
-            echo "  [5/5] Limpando imagens obsoletas..."
-            sep
+            echo "[5/5] Limpando imagens antigas..."
             docker image prune -f
 
-            echo ""
-            echo "✅ Deploy aplicado: $(git log -1 --oneline)"
+            echo "Deploy concluido: $(git log -1 --oneline)"
 
-      # ─────────────────────────────────────────────
-      # HEALTH CHECK
-      # ─────────────────────────────────────────────
-
-      - name: 🏥 Health Check
-        uses: appleboy/ssh-action@v1.2.0
+      - name: 🏥 Health check da aplicacao
+        uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
-          port: 22
-          timeout: 60s
-          command_timeout: 10m
+          timeout: 30s
+          command_timeout: 3m
           script_stop: true
           script: |
             set -euo pipefail
+            PROJECT_DIR="/var/www/docker-instances/Rebanho"
 
-            PROJECT_DIR="${{ env.PROJECT_DIR }}"
-            CONTAINER="${{ env.CONTAINER_NAME }}"
-            APP_PORT="${{ env.APP_PORT }}"
-            COMPOSE="docker compose -f $PROJECT_DIR/docker-compose.yml"
+            echo "Aguardando 30s para o container estabilizar..."
+            sleep 30
 
-            # ── 1. Status geral ────────────────────────
-            echo "📦 Status dos containers:"
-            $COMPOSE ps
-            echo ""
+            echo "Status dos containers:"
+            docker compose -f "$PROJECT_DIR/docker-compose.yml" ps
 
-            # ── 2. Aguardar container ficar pronto ─────
-            echo "⏳ Aguardando '$CONTAINER' ficar pronto..."
+            echo "Testando HTTP na porta 8080..."
+            RETRIES=5
+            COUNT=0
+            HTTP_OK=0
 
-            MAX_WAIT=180
-            INTERVAL=5
-            ELAPSED=0
+            while [ $COUNT -lt $RETRIES ]; do
+              CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 http://127.0.0.1:8080/login/ 2>/dev/null || echo "000")
+              echo "  Tentativa $((COUNT+1))/$RETRIES — HTTP $CODE"
 
-            while [ "$ELAPSED" -lt "$MAX_WAIT" ]; do
-              HEALTH=$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$CONTAINER" 2>/dev/null || echo "not_found")
-              STATE=$(docker inspect --format='{{.State.Status}}' "$CONTAINER" 2>/dev/null || echo "not_found")
-
-              echo "   [$ELAPSED/${MAX_WAIT}s] state=$STATE health=$HEALTH"
-
-              case "$STATE" in
-                exited|dead)
-                  echo "❌ Container encerrou inesperadamente (state=$STATE)."
-                  $COMPOSE logs --tail=150 web
-                  exit 1
-                  ;;
-              esac
-
-              # Pronto quando: healthy, ou running sem healthcheck configurado
-              if [ "$HEALTH" = "healthy" ] || { [ "$STATE" = "running" ] && [ "$HEALTH" = "none" ]; }; then
-                echo "   ✔ Container pronto."
+              if [ "$CODE" = "200" ] || [ "$CODE" = "302" ]; then
+                HTTP_OK=1
                 break
               fi
 
-              sleep "$INTERVAL"
-              ELAPSED=$((ELAPSED + INTERVAL))
+              COUNT=$((COUNT + 1))
+              sleep 5
             done
 
-            if [ "$ELAPSED" -ge "$MAX_WAIT" ]; then
-              echo "❌ Timeout: container não ficou pronto em ${MAX_WAIT}s."
-              $COMPOSE logs --tail=150 web
+            if [ $HTTP_OK -eq 1 ]; then
+              echo "OK — aplicacao respondendo HTTP $CODE"
+            else
+              echo "FALHOU — aplicacao nao respondeu apos $RETRIES tentativas"
+              echo "Ultimos logs do container web:"
+              docker compose -f "$PROJECT_DIR/docker-compose.yml" logs --tail=50 web
               exit 1
             fi
 
-            # ── 3. Teste HTTP ──────────────────────────
-            echo ""
-            echo "🌐 Testando endpoint HTTP (porta $APP_PORT)..."
-
-            RETRIES=12
-            DELAY=10
-            SUCCESS=false
-
-            for i in $(seq 1 "$RETRIES"); do
-              CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 \
-                    "http://127.0.0.1:${APP_PORT}/login/" || echo "000")
-              echo "   Tentativa $i/$RETRIES — HTTP $CODE"
-
-              case "$CODE" in
-                200|301|302)
-                  SUCCESS=true
-                  break
-                  ;;
-                000)
-                  echo "   ⚠ Sem resposta (timeout ou conexão recusada)."
-                  ;;
-              esac
-
-              [ "$i" -lt "$RETRIES" ] && sleep "$DELAY"
-            done
-
-            if [ "$SUCCESS" = "false" ]; then
-              echo ""
-              echo "❌ Aplicação não respondeu após $RETRIES tentativas."
-              echo "📋 Logs do container:"
-              $COMPOSE logs --tail=150 web
-              exit 1
-            fi
-
-            echo ""
-            echo "✅ Health check OK — Aplicação respondendo corretamente."
-
-      # ─────────────────────────────────────────────
-      # RESULTADO
-      # ─────────────────────────────────────────────
-
-      - name: ✅ Resumo de Sucesso
+      - name: ✅ Sucesso
         if: success()
         run: |
-          echo "### ✅ Deploy concluído com sucesso!" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Campo   | Valor |" >> $GITHUB_STEP_SUMMARY
-          echo "|---------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Commit  | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Autor   | \`${{ github.actor }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| URL     | [${{ env.APP_URL }}](${{ env.APP_URL }}) |" >> $GITHUB_STEP_SUMMARY
+          echo "DEPLOY CONCLUIDO COM SUCESSO"
+          echo "Commit : ${{ github.sha }}"
+          echo "Autor  : ${{ github.actor }}"
+          echo "URL    : https://rebanho.ferzion.com.br"
 
-      - name: ❌ Resumo de Falha
+      - name: ❌ Falha
         if: failure()
         run: |
-          echo "### ❌ Deploy falhou" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Campo   | Valor |" >> $GITHUB_STEP_SUMMARY
-          echo "|---------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Commit  | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Autor   | \`${{ github.actor }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Logs    | Verifique os steps acima para identificar a causa. |" >> $GITHUB_STEP_SUMMARY
+          echo "DEPLOY FALHOU"
+          echo "Commit : ${{ github.sha }}"
+          echo "Autor  : ${{ github.actor }}"
+          exit 1
