@@ -12,13 +12,23 @@
             <div class="flex justify-between items-center mb-4">
                 <h1 class="text-2xl font-bold text-gray-900">Relatório Consolidado</h1>
                 {% if report %}
-                <button onclick="window.print()"
-                    class="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
-                    </svg>
-                    Imprimir
-                </button>
+                <div class="flex items-center gap-2">
+                    <button onclick="window.print()"
+                        class="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                        </svg>
+                        Imprimir
+                    </button>
+                    <a href="{% url 'reporting:consolidated_pdf' %}?month={{ selected_month }}&year={{ selected_year }}{% if selected_category_id %}&category={{ selected_category_id }}{% endif %}"
+                       target="_blank"
+                       class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-white bg-red-600 hover:bg-red-700 transition-colors shadow-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                        </svg>
+                        Exportar PDF
+                    </a>
+                </div>
                 {% endif %}
             </div>
 
@@ -27,6 +37,7 @@
                 <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1">Mês</label>
                     <select name="month" class="w-full rounded-md border-gray-300 shadow-sm text-sm focus:border-green-500 focus:ring-green-500">
+                        <option value="0" {% if selected_month == 0 %}selected{% endif %}>Todos os meses</option>
                         {% for num, nome in months %}
                         <option value="{{ num }}" {% if num == selected_month %}selected{% endif %}>{{ nome }}</option>
                         {% endfor %}
@@ -72,8 +83,17 @@
     <!-- CABEÇALHO IMPRESSÃO -->
     <div class="hidden print:block text-center py-2">
         <p class="text-lg font-bold">MOVIMENTAÇÃO DO GADO — FAZENDAS REUNIDAS</p>
-        <p class="text-sm">{{ report.period.start|date:"F/Y"|upper }}</p>
-        <p class="text-xs text-gray-500">{{ report.farm_count }} fazenda{{ report.farm_count|pluralize }}: {% for f in report.farms %}{{ f }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
+        <p class="text-sm">
+            {% if selected_month == 0 %}
+                {{ selected_year }}
+            {% else %}
+                {{ report.period.start|date:"F/Y"|upper }}
+            {% endif %}
+        </p>
+        <p class="text-xs text-gray-500">
+            {{ report.farm_count }} fazenda{{ report.farm_count|pluralize }}:
+            {% for f in report.farms %}{{ f }}{% if not forloop.last %}, {% endif %}{% endfor %}
+        </p>
     </div>
 
     <!-- Fazendas incluídas -->
@@ -84,38 +104,15 @@
         {% endfor %}
     </div>
 
-    <!-- 1. ESTOQUE INICIAL -->
-    <div class="bg-white shadow sm:rounded-lg print:shadow-none">
-        <div class="px-4 py-3 sm:px-6">
-            <h2 class="text-sm font-bold text-red-600 text-center mb-2 uppercase tracking-wider">Estoque Inicial</h2>
-            <div class="overflow-x-auto">
-                <table class="min-w-full border border-gray-300 text-sm">
-                    <thead>
-                        <tr class="bg-gray-100">
-                            {% for category in report.categories %}
-                            <th class="border border-gray-300 px-3 py-2 text-center text-xs font-medium text-gray-700 uppercase">{{ category }}</th>
-                            {% endfor %}
-                            <th class="border border-gray-300 px-3 py-2 text-center text-xs font-bold text-gray-900 bg-gray-200 uppercase">Total</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr class="bg-white">
-                            {% for category in report.categories %}
-                            <td class="border border-gray-300 px-3 py-2 text-center font-semibold text-gray-900">{{ report.estoque_inicial|get_item:category }}</td>
-                            {% endfor %}
-                            <td class="border border-gray-300 px-3 py-2 text-center font-bold text-green-700 bg-gray-50">{{ report.estoque_inicial|sum_values }}</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <!-- 2. TABELA PRINCIPAL -->
+    <!-- TABELA PRINCIPAL -->
     <div class="bg-white shadow sm:rounded-lg print:shadow-none">
         <div class="px-4 py-3 sm:px-6">
             <h2 class="text-sm font-bold text-blue-600 text-center mb-2 uppercase tracking-wider">
-                {{ report.period.start|date:"N/Y"|upper }}
+                {% if selected_month == 0 %}
+                    {{ selected_year }}
+                {% else %}
+                    {{ report.period.start|date:"N/Y"|upper }}
+                {% endif %}
             </h2>
             <div class="overflow-x-auto">
                 <table class="min-w-full border border-gray-300 text-xs">
@@ -183,100 +180,13 @@
         </div>
     </div>
 
-    <!-- 3. ESTOQUE FINAL -->
-    <div class="bg-white shadow sm:rounded-lg print:shadow-none">
-        <div class="px-4 py-3 sm:px-6">
-            <h2 class="text-sm font-bold text-green-600 text-center mb-2 uppercase tracking-wider">Estoque Final do Mês</h2>
-            <div class="overflow-x-auto">
-                <table class="min-w-full border border-gray-300 text-sm">
-                    <thead>
-                        <tr class="bg-green-50">
-                            {% for category in report.categories %}
-                            <th class="border border-gray-300 px-3 py-2 text-center text-xs font-medium text-green-800 uppercase">{{ category }}</th>
-                            {% endfor %}
-                            <th class="border border-gray-300 px-3 py-2 text-center text-xs font-bold text-green-900 bg-green-100 uppercase">Total</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr class="bg-white">
-                            {% for category in report.categories %}
-                            <td class="border border-gray-300 px-3 py-2 text-center font-bold text-green-700">{{ report.estoque_final|get_item:category }}</td>
-                            {% endfor %}
-                            <td class="border border-gray-300 px-3 py-2 text-center text-lg font-bold text-green-800 bg-green-50">{{ report.estoque_final|sum_values }}</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <!-- 4. DETALHAMENTOS -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div class="bg-white shadow sm:rounded-lg print:shadow-none">
-            <div class="px-4 py-3 sm:px-6">
-                <h3 class="text-xs font-bold text-gray-700 uppercase mb-2 text-center border-b pb-1">OBS: Causa das Mortes</h3>
-                <table class="min-w-full border border-gray-200 text-xs">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="border px-2 py-1 text-left">Animais</th>
-                            <th class="border px-2 py-1 text-left">Motivo</th>
-                            <th class="border px-2 py-1 text-center">Qtd</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for morte in report.detalhamento.mortes %}
-                        <tr><td class="border px-2 py-1">{{ morte.categoria }}</td><td class="border px-2 py-1">{{ morte.motivo }}</td><td class="border px-2 py-1 text-center text-red-600 font-semibold">{{ morte.quantidade }}</td></tr>
-                        {% empty %}
-                        <tr><td colspan="3" class="border px-2 py-2 text-center text-gray-400 italic">Nenhuma morte</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        <div class="bg-white shadow sm:rounded-lg print:shadow-none">
-            <div class="px-4 py-3 sm:px-6">
-                <h3 class="text-xs font-bold text-gray-700 uppercase mb-2 text-center border-b pb-1">OBS: Doações</h3>
-                <table class="min-w-full border border-gray-200 text-xs">
-                    <thead class="bg-gray-50">
-                        <tr><th class="border px-2 py-1 text-left">Animais</th><th class="border px-2 py-1 text-left">Donatário</th><th class="border px-2 py-1 text-center">Peso</th><th class="border px-2 py-1 text-center">Qtd</th></tr>
-                    </thead>
-                    <tbody>
-                        {% for doacao in report.detalhamento.doacoes %}
-                        <tr><td class="border px-2 py-1">{{ doacao.categoria }}</td><td class="border px-2 py-1">{{ doacao.cliente }}</td><td class="border px-2 py-1 text-center">{{ doacao.peso }}</td><td class="border px-2 py-1 text-center text-blue-600 font-semibold">{{ doacao.quantidade }}</td></tr>
-                        {% empty %}
-                        <tr><td colspan="4" class="border px-2 py-2 text-center text-gray-400 italic">Nenhuma doação</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        <div class="bg-white shadow sm:rounded-lg print:shadow-none">
-            <div class="px-4 py-3 sm:px-6">
-                <h3 class="text-xs font-bold text-gray-700 uppercase mb-2 text-center border-b pb-1">OBS: Controle de Vendas</h3>
-                <table class="min-w-full border border-gray-200 text-xs">
-                    <thead class="bg-gray-50">
-                        <tr><th class="border px-2 py-1">Data</th><th class="border px-2 py-1 text-left">Animais</th><th class="border px-2 py-1 text-left">Cliente</th><th class="border px-2 py-1 text-center">Peso</th><th class="border px-2 py-1 text-center">Qtd</th></tr>
-                    </thead>
-                    <tbody>
-                        {% for venda in report.detalhamento.vendas %}
-                        <tr><td class="border px-2 py-1 whitespace-nowrap">{{ venda.data|date:"d/m/Y" }}</td><td class="border px-2 py-1">{{ venda.categoria }}</td><td class="border px-2 py-1">{{ venda.cliente }}</td><td class="border px-2 py-1 text-center">{{ venda.peso }}</td><td class="border px-2 py-1 text-center text-green-600 font-semibold">{{ venda.quantidade }}</td></tr>
-                        {% empty %}
-                        <tr><td colspan="5" class="border px-2 py-2 text-center text-gray-400 italic">Nenhuma venda</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <!-- 5. RESUMO DE ESTOQUE ATUAL POR FAZENDA -->
+    <!-- RESUMO DE ESTOQUE ATUAL POR FAZENDA -->
     {% if report.farm_reports %}
     <div class="bg-white shadow sm:rounded-lg print:shadow-none print:break-before-page">
         <div class="px-4 py-3 sm:px-6">
             <h2 class="text-sm font-bold text-gray-700 text-center mb-3 uppercase tracking-wider border-b pb-2">
                 Resumo de Estoque Atual por Fazenda
             </h2>
-            
             <div class="overflow-x-auto">
                 <table class="min-w-full border border-gray-300 text-xs">
                     <thead>
@@ -304,8 +214,6 @@
                             </td>
                         </tr>
                         {% endfor %}
-                        
-                        <!-- Linha de TOTAL GERAL -->
                         <tr class="bg-gray-100 font-bold">
                             <td class="border border-gray-300 px-3 py-2.5 text-gray-900 bg-gray-100 sticky left-0">TOTAL</td>
                             {% for category in report.categories %}
@@ -320,7 +228,6 @@
                     </tbody>
                 </table>
             </div>
-            
             <p class="mt-2 text-xs text-gray-500 text-center italic">
                 * Estoque final de {{ report.period.end|date:"d/m/Y" }}
             </p>
