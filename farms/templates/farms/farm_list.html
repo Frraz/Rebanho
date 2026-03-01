@@ -1,132 +1,281 @@
+{# farm_list.html — v3-inline-modal — Modal 100% inline com Alpine.js. #}
 {% extends 'base/base.html' %}
 
-{% block title %}Fazendas - Sistema de Gestão{% endblock %}
+{% block title %}Fazendas — Sistema de Gestão{% endblock %}
 
 {% block content %}
-<div class="space-y-5"
-     x-data="{
-        modal: { open: false, title: '', message: '', url: '', btnLabel: '', btnColor: 'red' },
-        openConfirm(title, message, url, btnLabel, btnColor) {
-            this.modal = { open: true, title, message, url, btnLabel, btnColor: btnColor || 'red' };
-        }
-     }">
+<div class="space-y-6">
 
-    {# ── Cabeçalho ────────────────────────────────────────────────── #}
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-            <h1 class="text-2xl font-bold text-gray-900">Fazendas</h1>
-            <p class="mt-1 text-sm text-gray-500">Gerencie suas fazendas cadastradas</p>
+    <!-- HEADER -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center shadow-lg flex-shrink-0">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Fazendas</h1>
+                <p class="mt-1 text-sm text-gray-600">
+                    Gerencie suas propriedades rurais
+                    {% if total_count %}
+                    <span class="text-gray-400">•</span>
+                    <span class="font-medium text-gray-900">{{ total_count }}</span>
+                    fazenda{{ total_count|pluralize }} ativa{{ total_count|pluralize }}
+                    {% endif %}
+                </p>
+            </div>
         </div>
-        <a href="{% url 'farms:create' %}"
-           class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white bg-green-600 hover:bg-green-700 transition-colors shadow-sm">
-            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-            </svg>
-            Nova Fazenda
-        </a>
+
+        <div class="flex items-center gap-3">
+            <a href="{% url 'farms:inactive_list' %}"
+               class="inline-flex items-center gap-2 px-4 py-3 border-2 border-gray-300 rounded-xl text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-400 transition-all"
+               title="Ver fazendas arquivadas">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
+                </svg>
+                <span class="hidden sm:inline">Arquivadas</span>
+            </a>
+
+            <a href="{% url 'farms:create' %}"
+               class="inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                <span>Nova Fazenda</span>
+            </a>
+        </div>
     </div>
 
-    {# ── Busca ────────────────────────────────────────────────────── #}
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-        <form method="get" class="flex gap-3">
+    <!-- BUSCA -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+        <form method="get" action="" class="flex flex-col sm:flex-row gap-3">
             <div class="relative flex-1">
-                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                     </svg>
                 </div>
-                <input type="search" name="q" value="{{ search_term }}"
-                    class="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500"
-                    placeholder="Buscar por nome da fazenda...">
+                <input type="search"
+                       name="q"
+                       value="{{ search_term }}"
+                       placeholder="Buscar por nome ou localização..."
+                       class="block w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all">
             </div>
+
             <button type="submit"
-                class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors">
-                Buscar
+                    class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-xl transition-all shadow-sm hover:shadow">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+                <span>Buscar</span>
             </button>
+
             {% if search_term %}
             <a href="{% url 'farms:list' %}"
-               class="px-3 py-2 border border-gray-300 text-gray-600 text-sm rounded-lg hover:bg-gray-50 transition-colors">
-                ✕
+               class="inline-flex items-center justify-center px-4 py-3 border-2 border-gray-300 text-gray-600 text-sm font-medium rounded-xl hover:bg-gray-50 hover:border-gray-400 transition-all"
+               title="Limpar busca">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
             </a>
             {% endif %}
         </form>
+
         {% if search_term %}
-        <p class="mt-2 text-xs text-gray-500">{{ total_count }} fazenda{{ total_count|pluralize }} encontrada{{ total_count|pluralize }}</p>
+        <div class="mt-3 pt-3 border-t border-gray-100">
+            <p class="text-sm text-gray-600">
+                <span class="font-semibold text-gray-900">{{ total_count }}</span>
+                resultado{{ total_count|pluralize }} encontrado{{ total_count|pluralize }} para
+                "<span class="font-medium text-gray-900">{{ search_term }}</span>"
+            </p>
+        </div>
         {% endif %}
     </div>
 
-    {# ── Lista de Fazendas ─────────────────────────────────────────── #}
+    <!-- LISTA DE FAZENDAS -->
     {% if farms_with_summary %}
-    <div class="space-y-3">
+    <div class="space-y-4">
         {% for item in farms_with_summary %}
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 hover:border-green-300 transition-colors">
-            <div class="p-5">
-                <div class="flex items-start justify-between gap-4">
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 hover:border-green-200 hover:shadow-md transition-all duration-200">
+            <div class="p-6">
+                <div class="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
 
-                    {# Info da fazenda #}
+                    <!-- Info da fazenda -->
                     <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-2">
-                            <span class="text-xl">🏡</span>
-                            <a href="{% url 'farms:detail' item.farm.id %}"
-                               class="text-base font-semibold text-green-700 hover:text-green-800 hover:underline truncate">
-                                {{ item.farm.name }}
-                            </a>
-                            <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 flex-shrink-0">
-                                {{ item.total_animals }} animais
+                        <div class="flex items-center gap-3 mb-3">
+                            <div class="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center flex-shrink-0">
+                                <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                                </svg>
+                            </div>
+
+                            <div class="flex-1 min-w-0">
+                                <a href="{% url 'farms:detail' item.farm.id %}"
+                                   class="text-lg font-bold text-gray-900 hover:text-green-600 transition-colors truncate block">
+                                    {{ item.farm.name }}
+                                </a>
+                                {% if item.farm.location %}
+                                <p class="text-sm text-gray-500 flex items-center gap-1.5 mt-0.5">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                    </svg>
+                                    {{ item.farm.location }}
+                                </p>
+                                {% endif %}
+                            </div>
+
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold bg-green-100 text-green-800 flex-shrink-0">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/>
+                                </svg>
+                                {{ item.total_animals }}
+                                <span class="hidden sm:inline">{{ item.total_animals|pluralize:"animal,animais" }}</span>
                             </span>
                         </div>
 
-                        {# Saldos por categoria #}
                         {% if item.summary %}
-                        <div class="mt-2.5 flex flex-wrap gap-x-4 gap-y-1">
+                        <div class="flex flex-wrap gap-x-6 gap-y-2">
                             {% for saldo in item.summary %}
-                            <span class="text-sm text-gray-600">
-                                {{ saldo.categoria_nome }}:
-                                <strong class="{% if saldo.quantidade == 0 %}text-gray-400{% else %}text-gray-800{% endif %}">
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm text-gray-600">{{ saldo.categoria_nome }}:</span>
+                                <span class="text-sm font-bold {% if saldo.quantidade == 0 %}text-gray-400{% else %}text-gray-900{% endif %}">
                                     {{ saldo.quantidade }}
-                                </strong>
-                            </span>
+                                </span>
+                            </div>
                             {% endfor %}
                         </div>
+                        {% else %}
+                        <p class="text-sm text-gray-400 italic">Nenhum animal cadastrado</p>
                         {% endif %}
                     </div>
 
-                    {# Ações #}
+                    <!-- AÇÕES + MODAL INLINE -->
                     <div class="flex items-center gap-2 flex-shrink-0">
+
+                        <!-- Ver -->
                         <a href="{% url 'farms:detail' item.farm.id %}"
-                           title="Visualizar"
-                           class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
-                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                           title="Ver detalhes"
+                           class="inline-flex items-center gap-2 px-4 py-2.5 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-all">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                             </svg>
+                            <span class="hidden sm:inline text-sm font-medium">Ver</span>
                         </a>
+
+                        <!-- Editar -->
                         <a href="{% url 'farms:update' item.farm.id %}"
-                           title="Editar"
-                           class="p-2 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors">
-                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                           title="Editar fazenda"
+                           class="inline-flex items-center gap-2 px-4 py-2.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-xl transition-all">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                             </svg>
+                            <span class="hidden sm:inline text-sm font-medium">Editar</span>
                         </a>
-                        <button
-                            @click="openConfirm(
-                                'Desativar Fazenda',
-                                'Tem certeza que deseja desativar {{ item.farm.name|escapejs }}? A fazenda e seus saldos serão ocultados do sistema.',
-                                '{% url "farms:deactivate" item.farm.id %}',
-                                'Desativar',
-                                'red'
-                            )"
-                            title="Desativar"
-                            class="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
-                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
-                            </svg>
-                        </button>
+
+                        <!-- Desativar — modal Alpine.js 100% inline -->
+                        <div x-data="{ open: false, submitting: false }">
+                            <button @click="open = true"
+                                    title="Desativar fazenda"
+                                    class="inline-flex items-center gap-2 px-4 py-2.5 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-xl transition-all">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
+                                </svg>
+                                <span class="hidden sm:inline text-sm font-medium">Desativar</span>
+                            </button>
+
+                            <template x-teleport="body">
+                                <div x-show="open"
+                                     x-transition:enter="ease-out duration-300"
+                                     x-transition:enter-start="opacity-0"
+                                     x-transition:enter-end="opacity-100"
+                                     x-transition:leave="ease-in duration-200"
+                                     x-transition:leave-start="opacity-100"
+                                     x-transition:leave-end="opacity-0"
+                                     class="fixed inset-0 z-50 overflow-y-auto"
+                                     @keydown.escape.window="if (open && !submitting) open = false"
+                                     style="display: none;">
+
+                                    <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm"
+                                         @click="if (!submitting) open = false"></div>
+
+                                    <div class="flex min-h-full items-center justify-center p-4">
+                                        <div x-show="open"
+                                             x-transition:enter="ease-out duration-300"
+                                             x-transition:enter-start="opacity-0 scale-95"
+                                             x-transition:enter-end="opacity-100 scale-100"
+                                             x-transition:leave="ease-in duration-200"
+                                             x-transition:leave-start="opacity-100 scale-100"
+                                             x-transition:leave-end="opacity-0 scale-95"
+                                             class="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 sm:p-8"
+                                             @click.stop>
+
+                                            <button @click="if (!submitting) open = false"
+                                                    class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors">
+                                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                                </svg>
+                                            </button>
+
+                                            <div class="flex items-center justify-center w-16 h-16 rounded-2xl mx-auto mb-5 bg-red-100">
+                                                <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                                </svg>
+                                            </div>
+
+                                            <h3 class="text-xl font-bold text-gray-900 text-center mb-3">Desativar Fazenda</h3>
+
+                                            <div class="text-center mb-6">
+                                                <p class="text-sm text-gray-600 leading-relaxed">
+                                                    Tem certeza que deseja desativar a fazenda
+                                                    <strong class="text-gray-900">{{ item.farm.name }}</strong>?
+                                                    A fazenda e seus saldos serão ocultados do sistema.
+                                                </p>
+                                                <div class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                                    <p class="text-xs text-yellow-800 font-medium">
+                                                        Esta ação pode ser revertida a qualquer momento reativando a fazenda.
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div class="flex flex-col-reverse sm:flex-row gap-3">
+                                                <button @click="if (!submitting) open = false"
+                                                        type="button"
+                                                        :disabled="submitting"
+                                                        class="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3 border-2 border-gray-300 rounded-xl text-sm font-semibold text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-400 transition-all disabled:opacity-50">
+                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                                    </svg>
+                                                    <span>Cancelar</span>
+                                                </button>
+
+                                                <form method="post"
+                                                      action="{% url 'farms:deactivate' item.farm.pk %}"
+                                                      class="flex-1"
+                                                      x-ref="confirmForm"
+                                                      @submit.prevent="submitting = true; $refs.confirmForm.submit();">
+                                                    {% csrf_token %}
+                                                    <button type="submit"
+                                                            :disabled="submitting"
+                                                            class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold text-white shadow-lg transition-all disabled:opacity-50 bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600">
+                                                        <svg class="w-5 h-5" x-show="!submitting" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                                        </svg>
+                                                        <svg class="w-5 h-5 animate-spin" x-show="submitting" x-cloak fill="none" viewBox="0 0 24 24">
+                                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                        </svg>
+                                                        <span x-text="submitting ? 'Processando...' : 'Sim, desativar'"></span>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -134,79 +283,107 @@
         {% endfor %}
     </div>
 
+    <!-- PAGINAÇÃO -->
+    {% if is_paginated %}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 px-6 py-4">
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="text-sm text-gray-600">
+                Mostrando
+                <span class="font-semibold text-gray-900">{{ page_obj.start_index }}</span>
+                a
+                <span class="font-semibold text-gray-900">{{ page_obj.end_index }}</span>
+                de
+                <span class="font-semibold text-gray-900">{{ page_obj.paginator.count }}</span>
+                fazenda{{ page_obj.paginator.count|pluralize }}
+            </div>
+
+            <nav class="flex items-center gap-2">
+                {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}{% if search_term %}&q={{ search_term }}{% endif %}"
+                   class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-all">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                    </svg>
+                    Anterior
+                </a>
+                {% else %}
+                <span class="inline-flex items-center px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-400 bg-gray-50 cursor-not-allowed">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                    </svg>
+                    Anterior
+                </span>
+                {% endif %}
+
+                <div class="hidden sm:flex items-center gap-1">
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                        <span class="inline-flex items-center justify-center w-10 h-10 rounded-lg text-sm font-bold text-white bg-green-600">{{ num }}</span>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <a href="?page={{ num }}{% if search_term %}&q={{ search_term }}{% endif %}"
+                           class="inline-flex items-center justify-center w-10 h-10 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 transition-all">{{ num }}</a>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{% if search_term %}&q={{ search_term }}{% endif %}"
+                   class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-all">
+                    Próxima
+                    <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
+                </a>
+                {% else %}
+                <span class="inline-flex items-center px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-400 bg-gray-50 cursor-not-allowed">
+                    Próxima
+                    <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
+                </span>
+                {% endif %}
+            </nav>
+        </div>
+    </div>
+    {% endif %}
+
     {% else %}
-    <div class="text-center py-16 bg-white rounded-xl border border-gray-200">
-        <div class="text-5xl mb-3">🏡</div>
+    <!-- EMPTY STATE -->
+    <div class="bg-white rounded-2xl border border-gray-200 text-center py-16 px-6">
+        <div class="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gray-100 mb-6">
+            <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+            </svg>
+        </div>
+
         {% if search_term %}
-        <h3 class="text-base font-semibold text-gray-900 mb-1">Nenhuma fazenda encontrada</h3>
-        <p class="text-sm text-gray-500 mb-4">Tente uma busca diferente.</p>
-        <a href="{% url 'farms:list' %}" class="text-sm text-green-600 hover:underline">← Ver todas as fazendas</a>
+        <h3 class="text-lg font-semibold text-gray-900 mb-2">Nenhuma fazenda encontrada</h3>
+        <p class="text-sm text-gray-500 mb-6 max-w-md mx-auto">
+            Não encontramos fazendas com o termo "<span class="font-medium text-gray-900">{{ search_term }}</span>".
+            Tente uma busca diferente.
+        </p>
+        <a href="{% url 'farms:list' %}"
+           class="inline-flex items-center gap-2 px-6 py-3 border-2 border-gray-300 text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition-all">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+            Limpar busca
+        </a>
         {% else %}
-        <h3 class="text-base font-semibold text-gray-900 mb-1">Nenhuma fazenda cadastrada</h3>
-        <p class="text-sm text-gray-500 mb-4">Comece cadastrando a primeira fazenda.</p>
+        <h3 class="text-lg font-semibold text-gray-900 mb-2">Nenhuma fazenda cadastrada</h3>
+        <p class="text-sm text-gray-500 mb-6 max-w-md mx-auto">
+            Comece cadastrando sua primeira fazenda para gerenciar o rebanho.
+        </p>
         <a href="{% url 'farms:create' %}"
-           class="inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium text-white bg-green-600 hover:bg-green-700">
-            Nova Fazenda
+           class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:scale-105">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            Cadastrar Primeira Fazenda
         </a>
         {% endif %}
     </div>
     {% endif %}
-
-    {# ── Modal de Confirmação (único, dinâmico) ────────────────────── #}
-    <div x-show="modal.open"
-         x-cloak
-         class="fixed inset-0 z-50 overflow-y-auto"
-         @keydown.escape.window="modal.open = false">
-
-        {# Overlay #}
-        <div class="fixed inset-0 bg-gray-500/75 transition-opacity"
-             x-show="modal.open"
-             x-transition:enter="ease-out duration-200"
-             x-transition:enter-start="opacity-0"
-             x-transition:enter-end="opacity-100"
-             x-transition:leave="ease-in duration-150"
-             x-transition:leave-start="opacity-100"
-             x-transition:leave-end="opacity-0"
-             @click="modal.open = false">
-        </div>
-
-        <div class="flex min-h-full items-center justify-center p-4">
-            <div class="relative bg-white rounded-xl shadow-xl w-full max-w-md p-6"
-                 x-show="modal.open"
-                 x-transition:enter="ease-out duration-200"
-                 x-transition:enter-start="opacity-0 scale-95"
-                 x-transition:enter-end="opacity-100 scale-100"
-                 x-transition:leave="ease-in duration-150"
-                 x-transition:leave-start="opacity-100 scale-100"
-                 x-transition:leave-end="opacity-0 scale-95"
-                 @click.stop>
-
-                <div class="flex items-center justify-center w-12 h-12 rounded-full bg-red-100 mx-auto mb-4">
-                    <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                    </svg>
-                </div>
-
-                <h3 class="text-lg font-semibold text-gray-900 text-center mb-2" x-text="modal.title"></h3>
-                <p class="text-sm text-gray-500 text-center mb-6" x-text="modal.message"></p>
-
-                <div class="flex gap-3">
-                    <button @click="modal.open = false"
-                        class="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-                        Cancelar
-                    </button>
-                    <form method="post" :action="modal.url" class="flex-1">
-                        {% csrf_token %}
-                        <button type="submit"
-                            class="w-full px-4 py-2.5 rounded-lg text-sm font-medium text-white bg-red-600 hover:bg-red-700 transition-colors">
-                            <span x-text="modal.btnLabel">Confirmar</span>
-                        </button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
 
 </div>
 {% endblock %}

@@ -1,83 +1,132 @@
 {% extends 'base/base.html' %}
 
-{% block title %}Ocorrências - Sistema de Gestão{% endblock %}
+{% block title %}Ocorrências — Sistema de Gestão{% endblock %}
 
 {% block content %}
-<div class="space-y-5">
+<div class="space-y-6">
 
-    {# ── Cabeçalho ─────────────────────────────────────────────────────── #}
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-            <h1 class="text-2xl font-bold text-gray-900">Histórico de Ocorrências</h1>
-            <p class="mt-1 text-sm text-gray-500">Mortes, abates, vendas e doações registradas</p>
+    <!-- ══════════════════════════════════════════════════════════════════════
+         HEADER
+    ══════════════════════════════════════════════════════════════════════ -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div class="flex items-center gap-4">
+            <!-- Ícone do módulo -->
+            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-lg flex-shrink-0">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+            </div>
+            
+            <!-- Título e descrição -->
+            <div>
+                <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Histórico de Ocorrências</h1>
+                <p class="mt-1 text-sm text-gray-600">
+                    Mortes, abates, vendas e doações registradas
+                    {% if total_count %}
+                    <span class="text-gray-400">•</span>
+                    <span class="font-medium text-gray-900">{{ total_count }}</span> 
+                    registro{{ total_count|pluralize }}
+                    {% endif %}
+                </p>
+            </div>
         </div>
+        
+        <!-- Botões de ação -->
         <div class="flex flex-wrap gap-2">
+            <!-- Morte -->
             <a href="{% url 'ocorrencias:morte' %}"
-               class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-white bg-red-600 hover:bg-red-700 transition-colors shadow-sm">
-                ☠️ Morte
+               class="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white text-sm font-semibold rounded-xl shadow-md hover:shadow-lg transition-all">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+                <span class="hidden sm:inline">Morte</span>
             </a>
+            
+            <!-- Abate -->
             <a href="{% url 'ocorrencias:abate' %}"
-               class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-white bg-gray-700 hover:bg-gray-800 transition-colors shadow-sm">
-                🔪 Abate
+               class="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-gray-700 to-gray-600 hover:from-gray-800 hover:to-gray-700 text-white text-sm font-semibold rounded-xl shadow-md hover:shadow-lg transition-all">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+                <span class="hidden sm:inline">Abate</span>
             </a>
+            
+            <!-- Venda -->
             <a href="{% url 'ocorrencias:venda' %}"
-               class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-white bg-green-600 hover:bg-green-700 transition-colors shadow-sm">
-                💰 Venda
+               class="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white text-sm font-semibold rounded-xl shadow-md hover:shadow-lg transition-all">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <span class="hidden sm:inline">Venda</span>
             </a>
+            
+            <!-- Doação -->
             <a href="{% url 'ocorrencias:doacao' %}"
-               class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-sm">
-                🎁 Doação
+               class="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white text-sm font-semibold rounded-xl shadow-md hover:shadow-lg transition-all">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/>
+                </svg>
+                <span class="hidden sm:inline">Doação</span>
             </a>
         </div>
     </div>
 
-    {# ── Barra de filtros ──────────────────────────────────────────────── #}
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-        <form method="get" class="space-y-3">
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-
-                {# Busca livre #}
-                <div class="lg:col-span-2 relative">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                        </svg>
-                    </div>
-                    <input type="search" name="q" value="{{ search_term }}"
-                        class="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                        placeholder="Buscar fazenda, animal, cliente, motivo...">
+    <!-- ══════════════════════════════════════════════════════════════════════
+         FILTROS AVANÇADOS
+    ══════════════════════════════════════════════════════════════════════ -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+        <form method="get" action="" class="space-y-4">
+            
+            <!-- Linha 1: Busca -->
+            <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
                 </div>
-
-                {# Tipo de ocorrência #}
+                <input type="search" 
+                       name="q" 
+                       value="{{ search_term }}"
+                       placeholder="Buscar por fazenda, categoria, cliente, tipo de morte ou observação..."
+                       class="block w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all">
+            </div>
+            
+            <!-- Linha 2: Filtros -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                
+                <!-- Tipo de Ocorrência -->
                 <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1.5">Tipo de Ocorrência</label>
                     <select name="tipo"
-                        class="w-full border border-gray-300 rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-green-500">
+                            class="block w-full border border-gray-300 rounded-xl py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent">
                         <option value="">Todos os tipos</option>
                         {% for val, label in tipos %}
-                        <option value="{{ val }}" {% if val == tipo_filtro %}selected{% endif %}>{{ label }}</option>
+                        <option value="{{ val }}" {% if val == tipo_filtro %}selected{% endif %}>
+                            {{ label }}
+                        </option>
                         {% endfor %}
                     </select>
                 </div>
 
-                {# Fazenda #}
+                <!-- Fazenda -->
                 <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1.5">Fazenda</label>
                     <select name="farm"
-                        class="w-full border border-gray-300 rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-green-500">
+                            class="block w-full border border-gray-300 rounded-xl py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent">
                         <option value="">Todas as fazendas</option>
                         {% for farm in farms %}
-                        <option value="{{ farm.id }}"
-                            {% if farm.id|stringformat:"s" == farm_filtro %}selected{% endif %}>
+                        <option value="{{ farm.id }}" {% if farm.id|stringformat:"s" == farm_filtro %}selected{% endif %}>
                             {{ farm.name }}
                         </option>
                         {% endfor %}
                     </select>
                 </div>
 
-                {# Mês #}
+                <!-- Mês -->
                 <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1.5">Mês</label>
                     <select name="mes"
-                        class="w-full border border-gray-300 rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-green-500">
+                            class="block w-full border border-gray-300 rounded-xl py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent">
                         <option value="">Todos os meses</option>
                         {% for val, label in meses %}
                         <option value="{{ val }}" {% if val == mes_filtro %}selected{% endif %}>{{ label }}</option>
@@ -85,115 +134,183 @@
                     </select>
                 </div>
 
-                {# Ano #}
+                <!-- Ano -->
                 <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1.5">Ano</label>
                     <select name="ano"
-                        class="w-full border border-gray-300 rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-green-500">
+                            class="block w-full border border-gray-300 rounded-xl py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent">
                         <option value="">Todos os anos</option>
                         {% for ano in anos %}
-                        <option value="{{ ano }}" {% if ano|stringformat:"s" == ano_filtro %}selected{% endif %}>
-                            {{ ano }}
-                        </option>
+                        <option value="{{ ano }}" {% if ano|stringformat:"s" == ano_filtro %}selected{% endif %}>{{ ano }}</option>
                         {% endfor %}
                     </select>
                 </div>
+                
             </div>
 
-            {# Botões #}
-            <div class="flex flex-wrap items-center gap-2">
+            <!-- Botões de ação -->
+            <div class="flex flex-wrap items-center gap-3 pt-3 border-t border-gray-100">
                 <button type="submit"
-                    class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors">
-                    🔍 Filtrar
+                        class="inline-flex items-center gap-2 px-6 py-2.5 bg-orange-600 hover:bg-orange-700 text-white text-sm font-semibold rounded-xl transition-all shadow-sm hover:shadow">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                    <span>Filtrar</span>
                 </button>
+                
                 {% if filtros_ativos %}
                 <a href="{% url 'ocorrencias:list' %}"
-                   class="px-4 py-2 border border-gray-300 text-gray-600 text-sm rounded-lg hover:bg-gray-50 transition-colors">
-                    ✕ Limpar
+                   class="inline-flex items-center gap-2 px-6 py-2.5 border-2 border-gray-300 text-gray-600 text-sm font-medium rounded-xl hover:bg-gray-50 hover:border-gray-400 transition-all">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                    <span>Limpar Filtros</span>
                 </a>
-                <span class="text-sm text-gray-500">
-                    <strong>{{ total_count }}</strong> resultado{{ total_count|pluralize }}
+                
+                <span class="text-sm text-gray-600">
+                    <span class="font-semibold text-gray-900">{{ total_count }}</span> 
+                    resultado{{ total_count|pluralize }} encontrado{{ total_count|pluralize }}
                 </span>
                 {% endif %}
             </div>
         </form>
     </div>
 
-    {# ── Tabela ────────────────────────────────────────────────────────── #}
+    <!-- ══════════════════════════════════════════════════════════════════════
+         TABELA DE OCORRÊNCIAS
+    ══════════════════════════════════════════════════════════════════════ -->
     {% if page_obj %}
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Data</th>
-                        <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Fazenda</th>
-                        <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Categoria</th>
-                        <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Tipo</th>
-                        <th class="px-5 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Qtd</th>
-                        <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Detalhes</th>
-                        <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Usuário</th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                            Data/Hora
+                        </th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                            Fazenda
+                        </th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                            Categoria
+                        </th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                            Tipo
+                        </th>
+                        <th scope="col" class="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                            Quantidade
+                        </th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                            Detalhes
+                        </th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                            Usuário
+                        </th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-100">
                     {% for movement in page_obj %}
                     <tr class="hover:bg-gray-50 transition-colors">
-
-                        {# Data #}
-                        <td class="px-5 py-3.5 whitespace-nowrap text-sm text-gray-900">
-                            {{ movement.timestamp|date:"d/m/Y" }}
-                            <span class="text-gray-400 text-xs ml-1">{{ movement.timestamp|date:"H:i" }}</span>
+                        
+                        <!-- Data/Hora -->
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                            <div class="flex flex-col">
+                                <span class="font-medium text-gray-900">{{ movement.timestamp|date:"d/m/Y" }}</span>
+                                <span class="text-xs text-gray-500">{{ movement.timestamp|date:"H:i" }}</span>
+                            </div>
                         </td>
 
-                        {# Fazenda #}
-                        <td class="px-5 py-3.5 text-sm font-medium text-gray-900">
+                        <!-- Fazenda -->
+                        <td class="px-6 py-4 text-sm font-medium text-gray-900">
                             {{ movement.farm_stock_balance.farm.name }}
                         </td>
 
-                        {# Categoria #}
-                        <td class="px-5 py-3.5 text-sm text-gray-700">
+                        <!-- Categoria -->
+                        <td class="px-6 py-4 text-sm text-gray-700">
                             {{ movement.farm_stock_balance.animal_category.name }}
                         </td>
 
-                        {# Badge do tipo #}
-                        <td class="px-5 py-3.5 whitespace-nowrap">
+                        <!-- Tipo (Badge) -->
+                        <td class="px-6 py-4 whitespace-nowrap">
                             {% if movement.operation_type == 'MORTE' %}
-                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800">☠️ Morte</span>
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-red-100 text-red-800">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                </svg>
+                                {{ occurrence_labels.MORTE|default:"Morte" }}
+                            </span>
                             {% elif movement.operation_type == 'ABATE' %}
-                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-800">🔪 Abate</span>
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-gray-100 text-gray-800">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                                {{ occurrence_labels.ABATE|default:"Abate" }}
+                            </span>
                             {% elif movement.operation_type == 'VENDA' %}
-                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">💰 Venda</span>
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-green-100 text-green-800">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                {{ occurrence_labels.VENDA|default:"Venda" }}
+                            </span>
                             {% elif movement.operation_type == 'DOACAO' %}
-                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">🎁 Doação</span>
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-blue-100 text-blue-800">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/>
+                                </svg>
+                                {{ occurrence_labels.DOACAO|default:"Doação" }}
+                            </span>
                             {% else %}
-                            <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">{{ movement.get_operation_type_display }}</span>
+                            <span class="inline-flex items-center px-3 py-1 rounded-lg text-xs font-semibold bg-gray-100 text-gray-700">
+                                {{ movement.get_operation_type_display }}
+                            </span>
                             {% endif %}
                         </td>
 
-                        {# Quantidade #}
-                        <td class="px-5 py-3.5 whitespace-nowrap text-sm font-bold text-red-600 text-center">
-                            −{{ movement.quantity }}
+                        <!-- Quantidade -->
+                        <td class="px-6 py-4 whitespace-nowrap text-center">
+                            <span class="text-sm font-bold text-red-600">
+                                −{{ movement.quantity }}
+                            </span>
                         </td>
 
-                        {# Detalhes #}
-                        <td class="px-5 py-3.5 text-sm text-gray-500">
+                        <!-- Detalhes -->
+                        <td class="px-6 py-4 text-sm">
                             {% if movement.client %}
-                            <span class="text-gray-700">{{ movement.client.name }}</span>
-                            {% if movement.metadata.peso %}
-                            <span class="text-gray-400 text-xs ml-1">({{ movement.metadata.peso }} kg)</span>
-                            {% endif %}
+                            <!-- Venda ou Doação -->
+                            <div class="flex items-center gap-2">
+                                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                </svg>
+                                <span class="text-gray-900 font-medium">{{ movement.client.name }}</span>
+                                {% if movement.metadata.peso %}
+                                <span class="text-xs text-gray-500">({{ movement.metadata.peso }} kg)</span>
+                                {% endif %}
+                                {% if movement.metadata.preco_total %}
+                                <span class="text-xs text-green-700 font-semibold">R$ {{ movement.metadata.preco_total }}</span>
+                                {% endif %}
+                            </div>
                             {% elif movement.death_reason %}
-                            {{ movement.death_reason.name }}
+                            <!-- Morte -->
+                            <div class="flex items-center gap-2">
+                                <svg class="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                </svg>
+                                <span class="text-gray-700">{{ movement.death_reason.name }}</span>
+                            </div>
                             {% elif movement.metadata.observacao %}
-                            <span class="italic text-gray-400">{{ movement.metadata.observacao|truncatechars:40 }}</span>
+                            <!-- Observação -->
+                            <span class="italic text-gray-500 text-xs">{{ movement.metadata.observacao|truncatechars:50 }}</span>
                             {% else %}
-                            <span class="text-gray-300">—</span>
+                            <span class="text-gray-400">—</span>
                             {% endif %}
                         </td>
 
-                        {# Usuário #}
-                        <td class="px-5 py-3.5 whitespace-nowrap text-xs text-gray-400">
-                            {{ movement.created_by.username }}
+                        <!-- Usuário -->
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                            {{ movement.created_by.username|default:"Sistema" }}
                         </td>
+                        
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -201,23 +318,91 @@
         </div>
     </div>
 
-    {# ── Paginação ─────────────────────────────────────────────────────── #}
-    {% include 'shared/pagination.html' %}
+    <!-- ══════════════════════════════════════════════════════════════════════
+         PAGINAÇÃO
+    ══════════════════════════════════════════════════════════════════════ -->
+    {% if is_paginated %}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 px-6 py-4">
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+            
+            <!-- Info -->
+            <div class="text-sm text-gray-600">
+                Mostrando 
+                <span class="font-semibold text-gray-900">{{ page_obj.start_index }}</span> 
+                a 
+                <span class="font-semibold text-gray-900">{{ page_obj.end_index }}</span> 
+                de 
+                <span class="font-semibold text-gray-900">{{ page_obj.paginator.count }}</span> 
+                ocorrência{{ page_obj.paginator.count|pluralize:"s" }}
+            </div>
+
+            <!-- Navegação -->
+            <nav class="flex items-center gap-2">
+                {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}{% if search_term %}&q={{ search_term }}{% endif %}{% if tipo_filtro %}&tipo={{ tipo_filtro }}{% endif %}{% if farm_filtro %}&farm={{ farm_filtro }}{% endif %}{% if mes_filtro %}&mes={{ mes_filtro }}{% endif %}{% if ano_filtro %}&ano={{ ano_filtro }}{% endif %}" 
+                   class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-all">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                    </svg>
+                    Anterior
+                </a>
+                {% endif %}
+
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{% if search_term %}&q={{ search_term }}{% endif %}{% if tipo_filtro %}&tipo={{ tipo_filtro }}{% endif %}{% if farm_filtro %}&farm={{ farm_filtro }}{% endif %}{% if mes_filtro %}&mes={{ mes_filtro }}{% endif %}{% if ano_filtro %}&ano={{ ano_filtro }}{% endif %}" 
+                   class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-all">
+                    Próxima
+                    <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
+                </a>
+                {% endif %}
+            </nav>
+        </div>
+    </div>
+    {% endif %}
 
     {% else %}
-    {# Empty state #}
-    <div class="text-center py-16 bg-white rounded-xl border border-gray-200">
-        <div class="text-5xl mb-3">📋</div>
+    <!-- ══════════════════════════════════════════════════════════════════════
+         EMPTY STATE
+    ══════════════════════════════════════════════════════════════════════ -->
+    <div class="bg-white rounded-2xl border border-gray-200 text-center py-16 px-6">
+        <div class="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gray-100 mb-6">
+            <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+        </div>
+        
         {% if filtros_ativos %}
-        <h3 class="text-base font-semibold text-gray-900 mb-1">Nenhum resultado encontrado</h3>
-        <p class="text-sm text-gray-500 mb-4">Tente remover alguns filtros.</p>
-        <a href="{% url 'ocorrencias:list' %}"
-           class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
-            ✕ Limpar filtros
+        <h3 class="text-lg font-semibold text-gray-900 mb-2">Nenhuma ocorrência encontrada</h3>
+        <p class="text-sm text-gray-500 mb-6 max-w-md mx-auto">
+            Não há ocorrências para os filtros selecionados. Tente remover alguns filtros.
+        </p>
+        <a href="{% url 'ocorrencias:list' %}" 
+           class="inline-flex items-center gap-2 px-6 py-3 border-2 border-gray-300 text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition-all">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+            Limpar filtros
         </a>
         {% else %}
-        <h3 class="text-base font-semibold text-gray-900 mb-1">Nenhuma ocorrência registrada</h3>
-        <p class="text-sm text-gray-500">Use os botões acima para registrar a primeira.</p>
+        <h3 class="text-lg font-semibold text-gray-900 mb-2">Nenhuma ocorrência registrada</h3>
+        <p class="text-sm text-gray-500 mb-6 max-w-md mx-auto">
+            Comece registrando a primeira ocorrência do sistema.
+        </p>
+        <div class="flex flex-wrap items-center justify-center gap-3">
+            <a href="{% url 'ocorrencias:venda' %}"
+               class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                Registrar Venda
+            </a>
+            <a href="{% url 'ocorrencias:morte' %}"
+               class="inline-flex items-center gap-2 px-6 py-3 border-2 border-gray-300 text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition-all">
+                Registrar Morte
+            </a>
+        </div>
         {% endif %}
     </div>
     {% endif %}

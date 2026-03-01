@@ -7,7 +7,7 @@
     
     <!-- Header -->
     <div>
-        <h1 class="text-3xl font-bold text-gray-900">📊 Relatórios Gerenciais</h1>
+        <h1 class="text-3xl font-bold text-gray-900">Relatórios Gerenciais</h1>
         <p class="mt-2 text-gray-600">Gere relatórios detalhados de movimentações, estoque e análise de dados</p>
     </div>
     
@@ -20,7 +20,9 @@
                 <div class="flex items-start justify-between mb-4">
                     <div>
                         <h3 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                            <span class="text-2xl">🏡</span>
+                            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                            </svg>
                             Relatório por Fazenda
                         </h3>
                         <p class="text-sm text-gray-500 mt-1">
@@ -31,7 +33,7 @@
                 
                 <!-- Lista de Informações -->
                 <div class="bg-blue-50 rounded-lg p-4 mb-5">
-                    <p class="text-sm font-medium text-blue-900 mb-2">📋 O relatório inclui:</p>
+                    <p class="text-sm font-medium text-blue-900 mb-2">O relatório inclui:</p>
                     <ul class="text-xs text-blue-800 space-y-1 ml-4">
                         <li>• Estoque inicial do período</li>
                         <li>• Todas as ocorrências (mortes, vendas, abates, doações)</li>
@@ -82,9 +84,9 @@
                         </label>
                         <select name="category" 
                                 class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm">
-                            <option value="">📊 Todas as categorias</option>
+                            <option value="">Todas as categorias</option>
                             {% for category in categories %}
-                            <option value="{{ category.id }}">🐄 {{ category.name }}</option>
+                            <option value="{{ category.id }}">{{ category.name }}</option>
                             {% endfor %}
                         </select>
                         <p class="mt-1 text-xs text-gray-500">Deixe vazio para ver todas as categorias no relatório</p>
@@ -108,7 +110,9 @@
                 <div class="flex items-start justify-between mb-4">
                     <div>
                         <h3 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                            <span class="text-2xl">📈</span>
+                            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                            </svg>
                             Fazendas Reunidas
                         </h3>
                         <p class="text-sm text-gray-500 mt-1">
@@ -119,7 +123,7 @@
                 
                 <!-- Lista de Informações -->
                 <div class="bg-purple-50 rounded-lg p-4 mb-5">
-                    <p class="text-sm font-medium text-purple-900 mb-2">📋 O relatório inclui:</p>
+                    <p class="text-sm font-medium text-purple-900 mb-2">O relatório inclui:</p>
                     <ul class="text-xs text-purple-800 space-y-1 ml-4">
                         <li>• <strong>Visão consolidada</strong> somando todas as fazendas</li>
                         <li>• Estoque inicial e final totalizados</li>
@@ -144,20 +148,25 @@
                                     <input type="checkbox" id="select-all-farms" 
                                            class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                                            onclick="toggleAllFarms(this)">
-                                    <span class="ml-2 text-sm font-semibold text-gray-900">✨ Selecionar Todas</span>
+                                    <span class="ml-2 text-sm font-semibold text-gray-900">Selecionar Todas</span>
                                 </label>
                                 <hr class="my-2">
                                 {% for farm in farms %}
                                 <label class="flex items-center p-2 hover:bg-white rounded cursor-pointer transition-colors farm-checkbox">
                                     <input type="checkbox" name="farms" value="{{ farm.id }}" 
                                            class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 farm-item">
-                                    <span class="ml-2 text-sm text-gray-700">🏡 {{ farm.name }}</span>
+                                    <span class="ml-2 text-sm text-gray-700">{{ farm.name }}</span>
                                 </label>
                                 {% endfor %}
                             </div>
                         </div>
                         <p class="mt-2 text-xs text-gray-500">
-                            💡 Se nenhuma fazenda for selecionada, o relatório incluirá <strong>todas as fazendas</strong> automaticamente
+                            <span class="inline-flex items-center gap-1">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                Se nenhuma fazenda for selecionada, o relatório incluirá <strong>todas as fazendas</strong> automaticamente
+                            </span>
                         </p>
                     </div>
                     
@@ -185,9 +194,9 @@
                         </label>
                         <select name="category" 
                                 class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
-                            <option value="">📊 Todas as categorias</option>
+                            <option value="">Todas as categorias</option>
                             {% for category in categories %}
-                            <option value="{{ category.id }}">🐄 {{ category.name }}</option>
+                            <option value="{{ category.id }}">{{ category.name }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -214,7 +223,7 @@
                 </svg>
             </div>
             <div class="ml-4">
-                <h4 class="text-sm font-semibold text-gray-900">💡 Dicas para usar os relatórios</h4>
+                <h4 class="text-sm font-semibold text-gray-900">Dicas para usar os relatórios</h4>
                 <div class="mt-2 text-sm text-gray-700 space-y-1">
                     <p>• <strong>Relatório por Fazenda:</strong> Use para análise detalhada de uma propriedade específica</p>
                     <p>• <strong>Fazendas Reunidas:</strong> Use para visão geral do negócio e comparação entre fazendas</p>

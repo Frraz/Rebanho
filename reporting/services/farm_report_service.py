@@ -152,8 +152,10 @@ class FarmReportService:
 
             if op == OperationType.NASCIMENTO.value:
                 entries['nascimento'][cat] = entries['nascimento'].get(cat, 0) + qty
-            elif op == OperationType.DESMAME.value:
+            elif op == OperationType.DESMAME_IN.value:
                 entries['desmame'][cat] = entries['desmame'].get(cat, 0) + qty
+            elif op == OperationType.DESMAME_OUT.value:
+                entries['desmame'][cat] = entries['desmame'].get(cat, 0) - qty
             elif op == OperationType.COMPRA.value:
                 entries['compra'][cat] = entries['compra'].get(cat, 0) + qty
             elif op == OperationType.SALDO.value:

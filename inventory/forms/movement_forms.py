@@ -5,6 +5,11 @@ HTMX URLs centralizadas em /htmx/:
   /htmx/categorias-saida/   → categorias com saldo > 0
   /htmx/categorias-entrada/ → todas as categorias
   /htmx/saldo-atual/        → badge de saldo para o campo quantity
+  /htmx/saldo-desmame/      → saldos de B. Macho e B. Fêmea (novo)
+
+NOVIDADE v2:
+  - DesmameForm redesenhado com campos separados para machos e fêmeas
+  - Validação de saldo no formulário
 """
 from django import forms
 from django.core.exceptions import ValidationError
@@ -40,12 +45,10 @@ class MovementBaseForm(forms.Form):
         label='Fazenda',
         widget=forms.Select(attrs={
             'class': _SELECT_CSS,
-            # Atualiza o select de categoria ao mudar a fazenda
             'hx-get':     '/htmx/categorias-saida/',
             'hx-target':  '#id_animal_category',
             'hx-trigger': 'change',
             'hx-include': '[name="animal_category"]',
-            # Também atualiza o badge de saldo
             'hx-swap':    'innerHTML',
         })
     )
@@ -56,7 +59,6 @@ class MovementBaseForm(forms.Form):
         widget=forms.Select(attrs={
             'class': _SELECT_CSS,
             'id':    'id_animal_category',
-            # Atualiza o badge de saldo ao mudar a categoria
             'hx-get':     '/htmx/saldo-atual/',
             'hx-target':  '#saldo-badge',
             'hx-trigger': 'change',
@@ -120,10 +122,6 @@ class NascimentoForm(MovementBaseForm):
     hx_categoria_endpoint = 'categorias-entrada'
 
 
-class DesmameForm(MovementBaseForm):
-    hx_categoria_endpoint = 'categorias-entrada'
-
-
 class SaldoForm(MovementBaseForm):
     hx_categoria_endpoint = 'categorias-entrada'
 
@@ -184,9 +182,6 @@ class MudancaCategoriaForm(MovementBaseForm):
     """
     animal_category (origem) → categorias com saldo > 0
     target_category (destino) → todas MENOS a origem
-
-    O campo target_category usa hx-get com exclude_category para
-    excluir a categoria origem do select destino dinamicamente.
     """
     hx_categoria_endpoint = 'categorias-saida'
 
@@ -202,15 +197,12 @@ class MudancaCategoriaForm(MovementBaseForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # animal_category: ao mudar, atualiza target_category excluindo a origem
         self.fields['animal_category'].widget.attrs.update({
             'hx-get':     '/htmx/categorias-entrada/',
             'hx-target':  '#id_target_category',
             'hx-trigger': 'change',
             'hx-vals':    'js:{"exclude_category": this.value}',
         })
-        # Remove o hx-saldo do animal_category (já foi definido no base, sobrescreve)
-        # Para mudança de categoria, o saldo fica no campo origem normalmente
 
     def clean(self):
         cleaned_data    = super().clean()
@@ -218,4 +210,96 @@ class MudancaCategoriaForm(MovementBaseForm):
         target_category = cleaned_data.get('target_category')
         if category and target_category and category == target_category:
             raise ValidationError('A categoria de origem e destino não podem ser iguais.')
+        return cleaned_data
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# DESMAME — Formulário específico com campos separados para machos e fêmeas
+# ══════════════════════════════════════════════════════════════════════════════
+
+class DesmameForm(forms.Form):
+    """
+    Formulário de Desmame.
+
+    NÃO herda de MovementBaseForm porque tem UX completamente diferente:
+    - Não tem seletor de categoria (categorias são fixas por regra de negócio)
+    - Tem dois campos de quantidade (machos e fêmeas)
+    - HTMX busca saldos de B. Macho e B. Fêmea automaticamente ao selecionar fazenda
+
+    Fluxo HTMX:
+    1. Usuário seleciona fazenda
+    2. HTMX dispara GET para /htmx/saldo-desmame/?farm_id=XXX
+    3. Resposta atualiza badges de saldo para B. Macho e B. Fêmea
+    """
+
+    farm = forms.ModelChoiceField(
+        queryset=Farm.objects.filter(is_active=True),
+        label='Fazenda',
+        widget=forms.Select(attrs={
+            'class': _SELECT_CSS,
+            # Ao mudar a fazenda, atualiza os saldos disponíveis
+            'hx-get':     '/htmx/saldo-desmame/',
+            'hx-target':  '#desmame-saldos',
+            'hx-trigger': 'change',
+            'hx-swap':    'innerHTML',
+        })
+    )
+
+    quantity_males = forms.IntegerField(
+        min_value=0,
+        initial=0,
+        label='B. Macho → Bois - 2A.',
+        widget=forms.NumberInput(attrs={
+            'class': _INPUT_CSS,
+            'placeholder': '0',
+            'id': 'id_quantity_males',
+            'min': '0',
+        }),
+        help_text='Quantidade de bezerros machos a desmamar'
+    )
+
+    quantity_females = forms.IntegerField(
+        min_value=0,
+        initial=0,
+        label='B. Fêmea → Nov. - 2A.',
+        widget=forms.NumberInput(attrs={
+            'class': _INPUT_CSS,
+            'placeholder': '0',
+            'id': 'id_quantity_females',
+            'min': '0',
+        }),
+        help_text='Quantidade de bezerras fêmeas a desmamar'
+    )
+
+    timestamp = forms.DateTimeField(
+        label='Data/Hora',
+        widget=forms.DateTimeInput(attrs={
+            'class': _INPUT_CSS,
+            'type':  'datetime-local',
+        }),
+        required=False,
+        help_text='Deixe em branco para usar a data/hora atual'
+    )
+
+    observacao = forms.CharField(
+        label='Observação',
+        required=False,
+        widget=forms.Textarea(attrs={
+            'class':       _INPUT_CSS,
+            'rows':        3,
+            'placeholder': 'Observações adicionais (opcional)',
+        })
+    )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        qty_males = cleaned_data.get('quantity_males', 0) or 0
+        qty_females = cleaned_data.get('quantity_females', 0) or 0
+
+        if qty_males == 0 and qty_females == 0:
+            raise ValidationError(
+                'Informe a quantidade de pelo menos uma categoria '
+                '(B. Macho ou B. Fêmea) para realizar o desmame.'
+            )
+
         return cleaned_data

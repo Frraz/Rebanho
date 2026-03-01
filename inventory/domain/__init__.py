@@ -14,6 +14,7 @@ from .exceptions import (
     InvalidQuantityError,
     InvalidOperationError,
     BusinessRuleViolation,
+    WeaningCategoryNotFoundError,
 )
 from .validators import (
     validate_positive_quantity,
@@ -21,13 +22,14 @@ from .validators import (
     validate_operation_requirements,
     validate_manejo_parameters,
     validate_category_change_parameters,
+    validate_weaning_parameters,
 )
 
 __all__ = [
     # Value Objects
     'MovementType',
     'OperationType',
-    
+
     # Exceptions
     'DomainException',
     'InsufficientStockError',
@@ -36,11 +38,13 @@ __all__ = [
     'InvalidQuantityError',
     'InvalidOperationError',
     'BusinessRuleViolation',
-    
+    'WeaningCategoryNotFoundError',
+
     # Validators
     'validate_positive_quantity',
     'validate_sufficient_stock',
     'validate_operation_requirements',
     'validate_manejo_parameters',
     'validate_category_change_parameters',
+    'validate_weaning_parameters',
 ]

@@ -1,87 +1,268 @@
 {# 
     Modal de confirmação reutilizável com Alpine.js
     
-    Uso no template pai:
+    Uso básico:
     {% include 'shared/confirm_modal.html' with
-        modal_id="deletar-fazenda"
-        titulo="Desativar Fazenda"
-        mensagem="Tem certeza que deseja desativar esta fazenda?"
-        action_url=fazenda.get_delete_url
-        btn_label="Sim, desativar"
-        btn_color="red"
+        modal_id="delete-farm"
+        title="Excluir Fazenda"
+        message="Tem certeza que deseja excluir esta fazenda? Esta ação não pode ser desfeita."
+        action_url=farm.get_delete_url
+        confirm_text="Sim, excluir"
+        cancel_text="Cancelar"
+        type="danger"
     %}
     
+    Tipos disponíveis:
+    - danger (vermelho) - para exclusões e ações destrutivas
+    - warning (amarelo) - para avisos importantes
+    - info (azul) - para informações
+    - success (verde) - para confirmações positivas
+    
     Trigger do botão:
-    <button @click="$dispatch('open-modal', {id: 'deletar-fazenda'})">Desativar</button>
+    <button @click="$dispatch('open-modal', {id: 'delete-farm'})">
+        Excluir
+    </button>
+    
+    Ou com HTMX:
+    <button hx-get="{{ action_url }}"
+            hx-target="#modal-container"
+            hx-swap="innerHTML">
+        Excluir
+    </button>
 #}
 
-<div x-data="{ open: false }"
+<div x-data="{ 
+        open: false,
+        submitting: false,
+        handleSubmit() {
+            this.submitting = true;
+            this.$refs.confirmForm.submit();
+        }
+     }"
      @open-modal.window="open = ($event.detail.id === '{{ modal_id }}')"
-     @keydown.escape.window="open = false"
+     @keydown.escape.window="if (open && !submitting) open = false"
      x-show="open"
      x-cloak
      class="fixed inset-0 z-50 overflow-y-auto"
-     role="dialog" aria-modal="true">
+     role="dialog" 
+     aria-modal="true"
+     aria-labelledby="modal-{{ modal_id }}-title">
 
-    <!-- Overlay -->
-    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+    <!-- Overlay com backdrop blur -->
+    <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm transition-opacity"
          x-show="open"
-         x-transition:enter="ease-out duration-200"
+         x-transition:enter="ease-out duration-300"
          x-transition:enter-start="opacity-0"
          x-transition:enter-end="opacity-100"
-         x-transition:leave="ease-in duration-150"
+         x-transition:leave="ease-in duration-200"
          x-transition:leave-start="opacity-100"
          x-transition:leave-end="opacity-0"
-         @click="open = false">
+         @click="if (!submitting) open = false"
+         aria-hidden="true">
     </div>
 
-    <!-- Modal -->
-    <div class="flex min-h-full items-center justify-center p-4">
-        <div class="relative bg-white rounded-xl shadow-xl w-full max-w-md p-6"
+    <!-- Modal Container -->
+    <div class="flex min-h-full items-center justify-center p-4 sm:p-6">
+        <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg transform transition-all"
              x-show="open"
-             x-transition:enter="ease-out duration-200"
-             x-transition:enter-start="opacity-0 scale-95"
-             x-transition:enter-end="opacity-100 scale-100"
-             x-transition:leave="ease-in duration-150"
-             x-transition:leave-start="opacity-100 scale-100"
-             x-transition:leave-end="opacity-0 scale-95"
+             x-transition:enter="ease-out duration-300"
+             x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+             x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+             x-transition:leave="ease-in duration-200"
+             x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+             x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
              @click.stop>
 
-            <!-- Ícone -->
-            <div class="flex items-center justify-center w-12 h-12 rounded-full mx-auto mb-4
-                {% if btn_color == 'red' %}bg-red-100{% else %}bg-yellow-100{% endif %}">
-                {% if btn_color == 'red' %}
-                <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            <!-- Close button (opcional) -->
+            {% if show_close_button|default:True %}
+            <button @click="if (!submitting) open = false"
+                    class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+                    :disabled="submitting"
+                    :class="{ 'opacity-50 cursor-not-allowed': submitting }">
+                <span class="sr-only">Fechar</span>
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                 </svg>
-                {% else %}
-                <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
+            </button>
+            {% endif %}
+
+            <div class="p-6 sm:p-8">
+                
+                <!-- Ícone -->
+                <div class="flex items-center justify-center w-16 h-16 rounded-2xl mx-auto mb-5
+                    {% if type == 'danger' or btn_color == 'red' %}
+                        bg-red-100
+                    {% elif type == 'warning' or btn_color == 'yellow' %}
+                        bg-yellow-100
+                    {% elif type == 'success' or btn_color == 'green' %}
+                        bg-green-100
+                    {% elif type == 'info' or btn_color == 'blue' %}
+                        bg-blue-100
+                    {% else %}
+                        bg-gray-100
+                    {% endif %}">
+                    
+                    {% if custom_icon %}
+                        {{ custom_icon|safe }}
+                    {% elif type == 'danger' or btn_color == 'red' %}
+                        <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                        </svg>
+                    {% elif type == 'warning' or btn_color == 'yellow' %}
+                        <svg class="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                        </svg>
+                    {% elif type == 'success' or btn_color == 'green' %}
+                        <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    {% elif type == 'info' or btn_color == 'blue' %}
+                        <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    {% else %}
+                        <svg class="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    {% endif %}
+                </div>
+
+                <!-- Título -->
+                <h3 id="modal-{{ modal_id }}-title" 
+                    class="text-xl font-bold text-gray-900 text-center mb-3">
+                    {{ title|default:titulo }}
+                </h3>
+
+                <!-- Mensagem -->
+                <div class="text-center mb-6">
+                    <p class="text-sm text-gray-600 leading-relaxed">
+                        {{ message|default:mensagem }}
+                    </p>
+                    
+                    {% if warning_text %}
+                    <div class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <p class="text-xs text-yellow-800 font-medium">
+                            {{ warning_text }}
+                        </p>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Detalhes adicionais (opcional) -->
+                {% if details %}
+                <div class="mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                    <dl class="space-y-2 text-sm">
+                        {% for detail in details %}
+                        <div class="flex justify-between">
+                            <dt class="text-gray-600">{{ detail.label }}:</dt>
+                            <dd class="font-semibold text-gray-900">{{ detail.value }}</dd>
+                        </div>
+                        {% endfor %}
+                    </dl>
+                </div>
                 {% endif %}
-            </div>
 
-            <!-- Conteúdo -->
-            <h3 class="text-lg font-semibold text-gray-900 text-center mb-2">{{ titulo }}</h3>
-            <p class="text-sm text-gray-500 text-center mb-6">{{ mensagem }}</p>
+                <!-- Checkbox de confirmação (opcional) -->
+                {% if require_confirmation_checkbox %}
+                <div class="mb-6" x-data="{ confirmed: false }">
+                    <label class="flex items-start gap-3 p-4 border-2 border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50 transition-colors"
+                           :class="{ 'border-green-500 bg-green-50': confirmed }">
+                        <input type="checkbox" 
+                               x-model="confirmed"
+                               class="w-5 h-5 text-green-600 border-gray-300 rounded focus:ring-2 focus:ring-green-500 mt-0.5">
+                        <span class="text-sm text-gray-700 select-none">
+                            {{ confirmation_checkbox_text|default:"Eu entendo as consequências desta ação" }}
+                        </span>
+                    </label>
+                </div>
+                {% endif %}
 
-            <!-- Ações -->
-            <div class="flex gap-3">
-                <button @click="open = false"
-                    class="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-                    Cancelar
-                </button>
-                <form method="post" action="{{ action_url }}" class="flex-1">
-                    {% csrf_token %}
-                    <button type="submit"
-                        class="w-full px-4 py-2.5 rounded-lg text-sm font-medium text-white transition-colors
-                            {% if btn_color == 'red' %}bg-red-600 hover:bg-red-700
-                            {% else %}bg-yellow-500 hover:bg-yellow-600{% endif %}">
-                        {{ btn_label|default:"Confirmar" }}
+                <!-- Ações -->
+                <div class="flex flex-col-reverse sm:flex-row gap-3">
+                    
+                    <!-- Botão Cancelar -->
+                    <button @click="if (!submitting) open = false"
+                            type="button"
+                            :disabled="submitting"
+                            class="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3 border-2 border-gray-300 rounded-xl text-sm font-semibold text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                        <span>{{ cancel_text|default:"Cancelar" }}</span>
                     </button>
-                </form>
+
+                    <!-- Botão Confirmar -->
+                    {% if action_url %}
+                    <form method="post" 
+                          action="{{ action_url }}" 
+                          class="flex-1"
+                          x-ref="confirmForm"
+                          @submit.prevent="handleSubmit()">
+                        {% csrf_token %}
+                        
+                        {% if method and method != 'POST' %}
+                        <input type="hidden" name="_method" value="{{ method }}">
+                        {% endif %}
+                        
+                        {% if extra_fields %}
+                            {% for field_name, field_value in extra_fields.items %}
+                            <input type="hidden" name="{{ field_name }}" value="{{ field_value }}">
+                            {% endfor %}
+                        {% endif %}
+
+                        <button type="submit"
+                                :disabled="submitting {% if require_confirmation_checkbox %}|| !confirmed{% endif %}"
+                                class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold text-white shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed
+                                    {% if type == 'danger' or btn_color == 'red' %}
+                                        bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 shadow-red-500/50
+                                    {% elif type == 'warning' or btn_color == 'yellow' %}
+                                        bg-gradient-to-r from-yellow-500 to-yellow-400 hover:from-yellow-600 hover:to-yellow-500 shadow-yellow-500/50
+                                    {% elif type == 'success' or btn_color == 'green' %}
+                                        bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 shadow-green-500/50
+                                    {% elif type == 'info' or btn_color == 'blue' %}
+                                        bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 shadow-blue-500/50
+                                    {% else %}
+                                        bg-gradient-to-r from-gray-600 to-gray-500 hover:from-gray-700 hover:to-gray-600 shadow-gray-500/50
+                                    {% endif %}">
+                            
+                            <!-- Ícone padrão -->
+                            <svg class="w-5 h-5" x-show="!submitting" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            
+                            <!-- Loading spinner -->
+                            <svg class="w-5 h-5 animate-spin" x-show="submitting" x-cloak fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            
+                            <span x-text="submitting ? '{{ submitting_text|default:"Processando..." }}' : '{{ confirm_text|default:btn_label|default:"Confirmar" }}'"></span>
+                        </button>
+                    </form>
+                    {% else %}
+                    {# Botão de confirmação sem formulário - para callbacks customizados #}
+                    <button @click="$dispatch('modal-confirmed', {id: '{{ modal_id }}'}); open = false"
+                            type="button"
+                            :disabled="submitting {% if require_confirmation_checkbox %}|| !confirmed{% endif %}"
+                            class="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold text-white shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed
+                                {% if type == 'danger' or btn_color == 'red' %}
+                                    bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600
+                                {% elif type == 'warning' or btn_color == 'yellow' %}
+                                    bg-gradient-to-r from-yellow-500 to-yellow-400 hover:from-yellow-600 hover:to-yellow-500
+                                {% elif type == 'success' or btn_color == 'green' %}
+                                    bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600
+                                {% elif type == 'info' or btn_color == 'blue' %}
+                                    bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600
+                                {% else %}
+                                    bg-gradient-to-r from-gray-600 to-gray-500 hover:from-gray-700 hover:to-gray-600
+                                {% endif %}">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        <span>{{ confirm_text|default:btn_label|default:"Confirmar" }}</span>
+                    </button>
+                    {% endif %}
+                </div>
             </div>
         </div>
     </div>

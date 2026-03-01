@@ -108,7 +108,7 @@ services:
     image: rebanho_web:latest
     container_name: rebanho_web
     <<: *default-restart
-    env_file: .env.prod
+    env_file: .env
     volumes:
       - static_volume:/app/staticfiles
       - media_volume:/app/media
@@ -133,7 +133,9 @@ services:
         python manage.py wait_for_db &&
         echo '==> Rodando migrations...' &&
         python manage.py migrate --noinput &&
-        echo '==> Coletando estáticos...' &&
+        echo '==> Seed categorias do sistema...' &&
+        python manage.py seed_system_categories &&
+        echo '==> Coletando estaticos...' &&
         python manage.py collectstatic --noinput --clear &&
         echo '==> Iniciando Gunicorn...' &&
         exec gunicorn config.wsgi:application --config /app/gunicorn.conf.py
@@ -154,7 +156,7 @@ services:
     image: rebanho_web:latest
     container_name: rebanho_celery
     <<: *default-restart
-    env_file: .env.prod
+    env_file: .env
     depends_on:
       db:
         condition: service_healthy

@@ -1,40 +1,55 @@
-# Core Django
+# =============================================================================
+# Core
+# =============================================================================
 Django>=4.2,<5.0
-psycopg2-binary>=2.9.9  # PostgreSQL adapter
+psycopg2-binary>=2.9.9          # PostgreSQL adapter
+python-decouple>=3.8            # Gerenciamento de variáveis de ambiente
+gunicorn>=21.2.0                # WSGI server
 
-# HTMX e Frontend
+# =============================================================================
+# Frontend
+# =============================================================================
 django-htmx>=1.17.0
 
-# Redis e Cache
+# =============================================================================
+# Arquivos Estáticos
+# =============================================================================
+whitenoise>=6.6.0
+
+# =============================================================================
+# Cache e Filas
+# =============================================================================
 redis>=5.0.0
 django-redis>=5.4.0
+celery[redis]>=5.3.4            # Inclui suporte a Redis automaticamente
 
-# Celery (Tarefas Assíncronas)
-celery>=5.3.4
-celery[redis]>=5.3.4
-
+# =============================================================================
 # Geração de PDF
+# =============================================================================
 weasyprint>=60.0
 
-# Ambiente e Configuração
-python-decouple>=3.8  # Gerenciamento de variáveis de ambiente
-
+# =============================================================================
 # Desenvolvimento
-django-extensions>=3.2.3  # Utilitários de desenvolvimento
-ipython>=8.17.0  # Shell interativo melhorado
+# =============================================================================
+django-extensions>=3.2.3        # Utilitários de desenvolvimento
+ipython>=8.17.0                 # Shell interativo melhorado
 
+# =============================================================================
 # Testes
+# =============================================================================
 pytest>=7.4
 pytest-django>=4.7
 pytest-cov>=4.1
-factory-boy>=3.3.0  # Fixtures para testes
+factory-boy>=3.3.0              # Fixtures para testes
 
-# Code Quality
+# =============================================================================
+# Qualidade de Código
+# =============================================================================
 flake8>=6.1.0
 black>=23.11.0
 isort>=5.12.0
 
-# Produção (opcional, descomentar quando necessário)
-gunicorn>=21.2.0  # WSGI server
-# whitenoise>=6.6.0  # Servir arquivos estáticos
-# sentry-sdk>=1.38.0  # Monitoramento de erros
+# =============================================================================
+# Monitoramento (opcional)
+# =============================================================================
+# sentry-sdk>=1.38.0            # Monitoramento de erros

@@ -1,52 +1,239 @@
 {% extends 'base/base.html' %}
+{% load static %}
+{% load form_tags %}
 
-{% block title %}{{ title }} - Sistema de Gestão{% endblock %}
+{% block title %}{{ form_title }} — Sistema de Gestão{% endblock %}
+
+{% block extra_head %}
+<style>
+    /* Custom styles para campos de formulário */
+    input[type="text"],
+    input[type="email"],
+    input[type="number"],
+    input[type="password"],
+    input[type="tel"],
+    input[type="url"],
+    input[type="date"],
+    input[type="time"],
+    input[type="datetime-local"],
+    textarea,
+    select {
+        @apply block w-full px-4 py-3 border border-gray-300 rounded-xl text-sm placeholder-gray-400 
+               focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent 
+               transition-all duration-200;
+    }
+
+    input[type="checkbox"] {
+        @apply w-5 h-5 text-green-600 border-gray-300 rounded focus:ring-2 focus:ring-green-500;
+    }
+
+    input[type="radio"] {
+        @apply w-5 h-5 text-green-600 border-gray-300 focus:ring-2 focus:ring-green-500;
+    }
+
+    input.error,
+    textarea.error,
+    select.error {
+        @apply border-red-300 focus:ring-red-500 focus:border-red-500;
+    }
+
+    input.success,
+    textarea.success,
+    select.success {
+        @apply border-green-300 focus:ring-green-500 focus:border-green-500;
+    }
+
+    input:disabled,
+    textarea:disabled,
+    select:disabled {
+        @apply bg-gray-50 text-gray-500 cursor-not-allowed;
+    }
+
+    input[type="file"] {
+        @apply block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 
+               file:rounded-lg file:border-0 file:text-sm file:font-semibold 
+               file:bg-green-50 file:text-green-700 hover:file:bg-green-100 
+               file:cursor-pointer cursor-pointer;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="max-w-2xl mx-auto">
-    <div class="bg-white shadow sm:rounded-lg">
-        <div class="px-4 py-5 sm:p-6">
-            <h3 class="text-lg leading-6 font-medium text-gray-900">
-                {{ title }}
-            </h3>
-            
-            <form method="post" class="mt-5 space-y-6">
-                {% csrf_token %}
-                
-                {% if form.non_field_errors %}
-                <div class="rounded-md bg-red-50 p-4">
-                    <div class="text-sm text-red-700">
-                        {{ form.non_field_errors }}
+<div class="max-w-4xl mx-auto space-y-6">
+
+    <!-- ══════════════════════════════════════════════════════════
+         HEADER
+    ══════════════════════════════════════════════════════════ -->
+    <div class="flex items-center justify-between">
+        <div class="flex items-center gap-4">
+            {% if show_back_button %}
+            <a href="{{ cancel_url|default:request.META.HTTP_REFERER }}" 
+               class="inline-flex items-center justify-center w-10 h-10 rounded-xl border border-gray-300 text-gray-600 hover:bg-gray-50 transition-all"
+               title="Voltar">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                </svg>
+            </a>
+            {% endif %}
+
+            <div>
+                <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">
+                    {{ form_title }}
+                </h1>
+                {% if form_description %}
+                <p class="mt-1 text-sm text-gray-600">{{ form_description }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if form_badge %}
+        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-{{ form_badge_color|default:'blue' }}-100 text-{{ form_badge_color|default:'blue' }}-800">
+            {{ form_badge }}
+        </span>
+        {% endif %}
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════
+         FORM
+    ══════════════════════════════════════════════════════════ -->
+    <form method="post" 
+          enctype="{% if form.is_multipart %}multipart/form-data{% else %}application/x-www-form-urlencoded{% endif %}"
+          class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
+          x-data="formHandler()">
+
+        {% csrf_token %}
+
+        <!-- Non-field errors -->
+        {% if form.non_field_errors %}
+        <div class="mx-6 mt-6">
+            <div class="rounded-xl bg-red-50 border border-red-200 p-4">
+                <div class="flex items-start gap-3">
+                    <svg class="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                    </svg>
+                    <div class="flex-1">
+                        <h3 class="text-sm font-semibold text-red-800 mb-1">Erro ao salvar</h3>
+                        <div class="text-sm text-red-700">
+                            {{ form.non_field_errors }}
+                        </div>
                     </div>
                 </div>
-                {% endif %}
-                
-                {% for field in form %}
-                <div>
-                    <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                        {{ field.label }}
-                        {% if field.field.required %}<span class="text-red-500">*</span>{% endif %}
-                    </label>
-                    {{ field }}
-                    {% if field.help_text %}
-                    <p class="mt-1 text-sm text-gray-500">{{ field.help_text }}</p>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Form sections -->
+        <div class="p-6 space-y-8">
+
+            {% if form_sections %}
+                {# Formulário com seções #}
+                {% for section in form_sections %}
+                <div class="space-y-6">
+                    {% if section.title %}
+                    <div class="flex items-center gap-3 pb-3 border-b border-gray-200">
+                        {% if section.icon %}
+                        <div class="w-10 h-10 rounded-xl bg-{{ section.color|default:'gray' }}-100 flex items-center justify-center">
+                            {{ section.icon|safe }}
+                        </div>
+                        {% endif %}
+                        <div>
+                            <h2 class="text-lg font-semibold text-gray-900">{{ section.title }}</h2>
+                            {% if section.description %}
+                            <p class="text-sm text-gray-600">{{ section.description }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
                     {% endif %}
-                    {% if field.errors %}
-                    <p class="mt-1 text-sm text-red-600">{{ field.errors.0 }}</p>
-                    {% endif %}
+
+                    <div class="grid grid-cols-1 {% if section.columns == 2 %}md:grid-cols-2{% elif section.columns == 3 %}md:grid-cols-3{% endif %} gap-6">
+                        {% for field_name in section.fields %}
+                            {% with field=form|getattribute:field_name %}
+                                {% include 'shared/form_field.html' with field=field %}
+                            {% endwith %}
+                        {% endfor %}
+                    </div>
                 </div>
                 {% endfor %}
-                
-                <div class="flex justify-end space-x-3">
-                    <a href="{{ request.META.HTTP_REFERER }}" class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+            {% else %}
+                {# Formulário sem seções - todos os campos em grid #}
+                <div class="grid grid-cols-1 {% if form_columns == 2 %}md:grid-cols-2{% elif form_columns == 3 %}md:grid-cols-3{% endif %} gap-6">
+                    {% for field in form %}
+                        {% include 'shared/form_field.html' with field=field %}
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+        </div>
+
+        <!-- Form footer / Actions -->
+        <div class="px-6 py-4 bg-gray-50 border-t border-gray-100">
+            <div class="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-4">
+
+                <div class="text-sm text-gray-500">
+                    {% if form_help_text %}
+                    {{ form_help_text }}
+                    {% else %}
+                    <span class="text-red-500">*</span> Campos obrigatórios
+                    {% endif %}
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <a href="{{ cancel_url|default:request.META.HTTP_REFERER }}" 
+                       class="inline-flex items-center gap-2 px-5 py-3 border-2 border-gray-300 rounded-xl text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-400 transition-all">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
                         Cancelar
                     </a>
-                    <button type="submit" class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700">
-                        {{ button_text|default:"Salvar" }}
+
+                    <button type="submit" 
+                            class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+                            :disabled="submitting"
+                            x-bind:class="{ 'opacity-50 cursor-not-allowed': submitting }">
+                        <svg class="w-5 h-5" x-show="!submitting" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        <svg class="w-5 h-5 animate-spin" x-show="submitting" x-cloak fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span x-text="submitting ? 'Salvando...' : '{{ submit_button_text|default:"Salvar" }}'"></span>
                     </button>
                 </div>
-            </form>
+            </div>
         </div>
-    </div>
+    </form>
+
+    <!-- ══════════════════════════════════════════════════════════
+         CUSTOM CONTENT (Opcional)
+    ══════════════════════════════════════════════════════════ -->
+    {% block form_extra_content %}{% endblock %}
+
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function formHandler() {
+    return {
+        submitting: false,
+
+        init() {
+            this.$el.addEventListener('submit', () => {
+                this.submitting = true;
+            });
+
+            if (typeof initMasks === 'function') {
+                initMasks();
+            }
+        }
+    }
+}
+
+document.addEventListener('alpine:init', () => {
+    // Configurações adicionais do Alpine se necessário
+});
+</script>
+
+{% block form_extra_js %}{% endblock %}
 {% endblock %}

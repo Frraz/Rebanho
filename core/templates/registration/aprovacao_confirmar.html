@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -5,12 +6,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Aprovação de Cadastro — Gestão de Rebanhos</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    </style>
 </head>
 <body class="bg-gradient-to-br from-green-50 to-gray-100 min-h-screen flex items-center justify-center px-4 py-10">
 <div class="w-full max-w-md">
 
     <div class="text-center mb-8">
-        <div class="text-5xl mb-3">🐄</div>
+        <!-- Logo -->
+        <div class="flex justify-center mb-4">
+            <div class="w-16 h-16 bg-white rounded-2xl p-3 shadow-lg">
+                <img src="{% static 'img/logo-rebanho.png' %}" alt="Logo" class="w-full h-full object-contain rounded-xl">
+            </div>
+        </div>
         <h1 class="text-xl font-bold text-gray-800">Gestão de Rebanhos</h1>
     </div>
 
@@ -44,14 +54,20 @@
                 {% csrf_token %}
 
                 <button type="submit" name="acao" value="aprovar"
-                    class="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl transition-colors text-sm">
-                    ✅ Aprovar Acesso
+                    class="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl transition-colors text-sm flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    Aprovar Acesso
                 </button>
 
                 <button type="submit" name="acao" value="rejeitar"
                     onclick="return confirm('Tem certeza que deseja REJEITAR este cadastro? O usuário será removido do sistema.')"
-                    class="w-full py-3 bg-white hover:bg-red-50 text-red-600 font-bold rounded-xl border-2 border-red-200 hover:border-red-400 transition-colors text-sm">
-                    ❌ Rejeitar Cadastro
+                    class="w-full py-3 bg-white hover:bg-red-50 text-red-600 font-bold rounded-xl border-2 border-red-200 hover:border-red-400 transition-colors text-sm flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                    </svg>
+                    Rejeitar Cadastro
                 </button>
             </form>
 
