@@ -15,6 +15,13 @@ concurrency:
   group: deploy-production
   cancel-in-progress: true
 
+env:
+  PROJECT_DIR: /var/www/docker-instances/Rebanho
+  STATICFILES_DIR: /var/www/docker-instances/Rebanho/staticfiles
+  # uid:gid do usuário 'django' dentro do container (confirme com: docker compose run --rm web id)
+  CONTAINER_UID: "100"
+  CONTAINER_GID: "101"
+
 jobs:
   deploy:
     name: 🚀 Deploy para VPS
@@ -33,6 +40,9 @@ jobs:
           echo "Commit      : ${{ github.sha }}"
           echo "Autor       : ${{ github.actor }}"
           echo "Mensagem    : ${{ github.event.head_commit.message }}"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "Motivo      : ${{ github.event.inputs.reason }}"
+          fi
 
       - name: 🔄 Atualizar código e rebuild na VPS
         uses: appleboy/ssh-action@v1.0.3
@@ -45,24 +55,34 @@ jobs:
           script_stop: true
           script: |
             set -euo pipefail
-            PROJECT_DIR="/var/www/docker-instances/Rebanho"
+
+            PROJECT_DIR="${{ env.PROJECT_DIR }}"
+            STATICFILES_DIR="${{ env.STATICFILES_DIR }}"
+            CONTAINER_UID="${{ env.CONTAINER_UID }}"
+            CONTAINER_GID="${{ env.CONTAINER_GID }}"
+
             cd "$PROJECT_DIR"
 
-            echo "[1/5] Atualizando codigo..."
+            echo "[1/6] Atualizando codigo..."
             git fetch origin main
             git reset --hard origin/main
             echo "Commit: $(git log -1 --oneline)"
 
-            echo "[2/5] Rebuild da imagem web..."
+            echo "[2/6] Corrigindo permissoes de staticfiles..."
+            # Garante que o usuario 'django' do container pode escrever (uid=100 gid=101)
+            sudo chown -R "${CONTAINER_UID}:${CONTAINER_GID}" "$STATICFILES_DIR"
+            echo "Permissoes aplicadas: ${CONTAINER_UID}:${CONTAINER_GID} em $STATICFILES_DIR"
+
+            echo "[3/6] Rebuild da imagem web..."
             docker compose build web 2>&1
 
-            echo "[3/5] Aplicando novo container web..."
-            docker compose --env-file .env.prod up -d --no-deps web
+            echo "[4/6] Aplicando novo container web..."
+            docker compose --env-file .env.prod up -d --no-deps --remove-orphans web
 
-            echo "[4/5] Reiniciando Celery..."
+            echo "[5/6] Reiniciando Celery..."
             docker compose restart celery
 
-            echo "[5/5] Limpando imagens antigas..."
+            echo "[6/6] Limpando imagens antigas..."
             docker image prune -f
 
             echo "Deploy concluido: $(git log -1 --oneline)"
@@ -74,20 +94,31 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
           timeout: 30s
-          command_timeout: 3m
+          command_timeout: 5m
           script_stop: true
           script: |
             set -euo pipefail
-            PROJECT_DIR="/var/www/docker-instances/Rebanho"
 
-            echo "Aguardando 30s para o container estabilizar..."
-            sleep 30
+            PROJECT_DIR="${{ env.PROJECT_DIR }}"
+            COMPOSE="docker compose -f $PROJECT_DIR/docker-compose.yml"
+
+            echo "Aguardando container estabilizar..."
+            sleep 15
+
+            # Detecta crash loop antes de testar HTTP
+            STATE=$(docker inspect --format='{{.State.Status}}' rebanho_web 2>/dev/null || echo "not_found")
+            if [ "$STATE" = "exited" ] || [ "$STATE" = "dead" ]; then
+              echo "ERRO — Container encerrou inesperadamente (state=$STATE)"
+              echo "Logs do container:"
+              $COMPOSE logs --tail=80 web
+              exit 1
+            fi
 
             echo "Status dos containers:"
-            docker compose -f "$PROJECT_DIR/docker-compose.yml" ps
+            $COMPOSE ps
 
             echo "Testando HTTP na porta 8080..."
-            RETRIES=5
+            RETRIES=8
             COUNT=0
             HTTP_OK=0
 
@@ -95,21 +126,21 @@ jobs:
               CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 http://127.0.0.1:8080/login/ 2>/dev/null || echo "000")
               echo "  Tentativa $((COUNT+1))/$RETRIES — HTTP $CODE"
 
-              if [ "$CODE" = "200" ] || [ "$CODE" = "302" ]; then
+              if [ "$CODE" = "200" ] || [ "$CODE" = "301" ] || [ "$CODE" = "302" ]; then
                 HTTP_OK=1
                 break
               fi
 
               COUNT=$((COUNT + 1))
-              sleep 5
+              [ $COUNT -lt $RETRIES ] && sleep 10
             done
 
             if [ $HTTP_OK -eq 1 ]; then
               echo "OK — aplicacao respondendo HTTP $CODE"
             else
               echo "FALHOU — aplicacao nao respondeu apos $RETRIES tentativas"
-              echo "Ultimos logs do container web:"
-              docker compose -f "$PROJECT_DIR/docker-compose.yml" logs --tail=50 web
+              echo "Logs do container web:"
+              $COMPOSE logs --tail=80 web
               exit 1
             fi
 
