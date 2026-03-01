@@ -17,6 +17,7 @@ IMPORTANTE — select_for_update() + PostgreSQL:
 - FarmStockBalance não tem FKs nullable, select_related seguro ali
 """
 import logging
+from django.core.cache import cache
 from django.db import transaction
 from django.core.exceptions import ValidationError
 
@@ -98,14 +99,15 @@ class OccurrenceService:
 
         # ── 5. Capturar dados antes de alterar
         farm_name = balance.farm.name
+        farm_id = str(balance.farm_id)
         category_name = balance.animal_category.name
         quantity = movement.quantity
-        balance_before = balance.current_quantity       # ← campo correto
+        balance_before = balance.current_quantity
 
         # ── 6. Estornar o saldo (ocorrência era SAÍDA → somamos de volta)
-        balance.current_quantity += quantity            # ← campo correto
-        balance.save(update_fields=['current_quantity'])  # ← campo correto
-        balance_after = balance.current_quantity        # ← campo correto
+        balance.current_quantity += quantity
+        balance.save(update_fields=['current_quantity'])
+        balance_after = balance.current_quantity
 
         # ── 7. Registrar o cancelamento (evento separado, auditável)
         AnimalMovementCancellation.objects.create(
@@ -117,6 +119,13 @@ class OccurrenceService:
             notes=notes,
         )
 
+        # ── 8. Invalidar cache da fazenda
+        # farm_detail_view usa cache de 5min. Sem isso, o saldo
+        # só seria atualizado na tela após o cache expirar naturalmente.
+        cache.delete(f'farm_summary_{farm_id}')
+        cache.delete(f'farm_history_{farm_id}')
+        cache.delete('farms_list')
+
         logger.warning(
             f"[CANCELAMENTO] Ocorrência {movement_id} estornada. "
             f"Fazenda: {farm_name} | Categoria: {category_name} | "
@@ -127,6 +136,7 @@ class OccurrenceService:
 
         return {
             'farm': farm_name,
+            'farm_id': farm_id,
             'category': category_name,
             'operation_type': movement.operation_type,
             'operation_display': movement.get_operation_type_display(),

@@ -1,57 +1,28 @@
 """
 Operations Ocorrências Views - Morte, Abate, Venda, Doação.
-
-Este módulo gerencia todas as ocorrências (saídas definitivas) do sistema:
-- Listagem com filtros avançados e paginação
-- Morte (com tipo de morte obrigatório)
-- Abate (para consumo)
-- Venda (com cliente e valor)
-- Doação (com cliente)
-
-Melhorias implementadas:
-- Login obrigatório em todas as views
-- Filtros: tipo, fazenda, período, busca livre
-- Paginação otimizada
-- Logging completo de operações
-- Tratamento robusto de erros
-- Mensagens profissionais sem emojis
-- Validações de negócio
-- Transações atômicas
-
-Observações:
-- Todas as ocorrências são SAÍDAS definitivas
-- Modelo correto: AnimalMovement (não AnimalOccurrence)
-- Filtros via farm_stock_balance__farm_id
-- Morte requer death_reason obrigatório
-- Venda e Doação requerem client obrigatório
 """
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.views.decorators.http import require_http_methods
+from django.views.decorators.http import require_http_methods, require_POST
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Q, Count, Sum
+from django.http import HttpResponse
 from django.urls import reverse
 from django.utils import timezone
-from decimal import Decimal
-from typing import List, Dict, Optional
+from django.core.exceptions import ValidationError
 import logging
 
 from operations.forms import MorteForm, AbateForm, VendaForm, DoacaoForm
+from operations.services.occurrence_service import OccurrenceService
 from inventory.services import MovementService
 from inventory.domain import OperationType
 from inventory.models import AnimalMovement
 from farms.models import Farm
 
-from django.http import HttpResponse
-from django.views.decorators.http import require_POST   # já existe no arquivo
-from operations.services.occurrence_service import OccurrenceService
-from django.core.exceptions import ValidationError
-
 logger = logging.getLogger(__name__)
 
-# Tipos de operação classificados como "ocorrências" (sempre saídas)
 OCCURRENCE_TYPES = [
     OperationType.MORTE.value,
     OperationType.ABATE.value,
@@ -59,7 +30,6 @@ OCCURRENCE_TYPES = [
     OperationType.DOACAO.value,
 ]
 
-# Labels para tipos de ocorrência (sem emojis)
 OCCURRENCE_LABELS = {
     OperationType.MORTE.value: 'Morte',
     OperationType.ABATE.value: 'Abate',
@@ -73,21 +43,12 @@ OCCURRENCE_LABELS = {
 # ══════════════════════════════════════════════════════════════════════════════
 
 def _build_filters_context(request) -> dict:
-    """
-    Extrai e valida filtros da requisição.
-    
-    Args:
-        request: HttpRequest
-        
-    Returns:
-        Dicionário com filtros validados
-    """
     search = request.GET.get('q', '').strip()
     tipo = request.GET.get('tipo', '').strip()
     farm_id = request.GET.get('farm', '').strip()
     mes_str = request.GET.get('mes', '').strip()
     ano_str = request.GET.get('ano', '').strip()
-    
+
     return {
         'search': search,
         'tipo': tipo,
@@ -99,28 +60,18 @@ def _build_filters_context(request) -> dict:
 
 
 def _apply_occurrence_filters(queryset, filters: dict):
-    """
-    Aplica filtros ao queryset de ocorrências.
-    
-    Args:
-        queryset: QuerySet base
-        filters: Dicionário de filtros
-        
-    Returns:
-        QuerySet filtrado
-    """
     if filters['tipo'] and filters['tipo'] in OCCURRENCE_TYPES:
         queryset = queryset.filter(operation_type=filters['tipo'])
-    
+
     if filters['farm_id']:
         queryset = queryset.filter(farm_stock_balance__farm_id=filters['farm_id'])
-    
+
     if filters['mes'] and filters['mes'].isdigit():
         queryset = queryset.filter(timestamp__month=int(filters['mes']))
-    
+
     if filters['ano'] and filters['ano'].isdigit():
         queryset = queryset.filter(timestamp__year=int(filters['ano']))
-    
+
     if filters['search']:
         queryset = queryset.filter(
             Q(farm_stock_balance__farm__name__icontains=filters['search']) |
@@ -129,7 +80,7 @@ def _apply_occurrence_filters(queryset, filters: dict):
             Q(death_reason__name__icontains=filters['search']) |
             Q(metadata__observacao__icontains=filters['search'])
         )
-    
+
     return queryset
 
 
@@ -140,27 +91,13 @@ def _apply_occurrence_filters(queryset, filters: dict):
 @login_required
 @require_http_methods(["GET"])
 def occurrence_list_view(request):
-    """
-    Lista de ocorrências com filtros avançados e paginação.
-    
-    Exibe apenas operações classificadas como ocorrências (saídas definitivas).
-    
-    Filtros disponíveis:
-        q (str): Busca livre (fazenda, categoria, cliente, tipo de morte, observação)
-        tipo (str): Tipo de ocorrência (MORTE, ABATE, VENDA, DOACAO)
-        farm (uuid): Filtrar por fazenda
-        mes (int): Filtrar por mês (1-12)
-        ano (int): Filtrar por ano
-        page (int): Número da página
-        
-    Returns:
-        Template renderizado com lista paginada de ocorrências
-    """
     try:
-        # Extrair filtros
         filters = _build_filters_context(request)
-        
-        # Query base: apenas ocorrências
+
+        # ── CORREÇÃO: prefetch_related('cancellation') é obrigatório para que
+        # movement.cancellation_id funcione no template e a linha apareça
+        # como cancelada. Sem isso, o ORM não carrega o relacionamento OneToOne
+        # e cancellation_id é sempre None.
         queryset = (
             AnimalMovement.objects
             .filter(operation_type__in=OCCURRENCE_TYPES)
@@ -171,24 +108,25 @@ def occurrence_list_view(request):
                 'death_reason',
                 'created_by',
             )
+            .prefetch_related(
+                'cancellation',
+                'cancellation__cancelled_by',
+            )
             .order_by('-timestamp', '-created_at')
         )
-        
-        # Aplicar filtros
+
         queryset = _apply_occurrence_filters(queryset, filters)
-        
-        # Paginação
-        paginator = Paginator(queryset, 20)  # 20 por página
+
+        paginator = Paginator(queryset, 20)
         page_number = request.GET.get('page', 1)
-        
+
         try:
             page_obj = paginator.page(page_number)
         except PageNotAnInteger:
             page_obj = paginator.page(1)
         except EmptyPage:
             page_obj = paginator.page(paginator.num_pages)
-        
-        # Dados para filtros
+
         ano_atual = timezone.now().year
         anos = list(range(ano_atual, ano_atual - 6, -1))
         meses = [
@@ -197,21 +135,16 @@ def occurrence_list_view(request):
             ('7', 'Julho'), ('8', 'Agosto'), ('9', 'Setembro'),
             ('10', 'Outubro'), ('11', 'Novembro'), ('12', 'Dezembro'),
         ]
-        
-        # Tipos para select (formato para template)
-        tipos_select = [
-            (tipo, OCCURRENCE_LABELS[tipo])
-            for tipo in OCCURRENCE_TYPES
-        ]
-        
-        # Estatísticas rápidas (se não houver filtros)
+
+        tipos_select = [(tipo, OCCURRENCE_LABELS[tipo]) for tipo in OCCURRENCE_TYPES]
+
         stats = None
         if not filters['has_filters']:
             stats = queryset.aggregate(
                 total_ocorrencias=Count('id'),
                 total_quantidade=Sum('quantity')
             )
-        
+
         context = {
             'page_obj': page_obj,
             'paginator': paginator,
@@ -229,20 +162,17 @@ def occurrence_list_view(request):
             'meses': meses,
             'stats': stats,
         }
-        
+
         logger.info(
             f"Listagem de ocorrências acessada por {request.user.username}. "
             f"Total: {paginator.count}, Filtros: {filters['has_filters']}"
         )
-        
+
         return render(request, 'operations/occurrence_list.html', context)
-        
+
     except Exception as e:
         logger.error(f"Erro na listagem de ocorrências: {str(e)}", exc_info=True)
-        messages.error(
-            request,
-            'Erro ao carregar ocorrências. Por favor, tente novamente.'
-        )
+        messages.error(request, 'Erro ao carregar ocorrências. Por favor, tente novamente.')
         return render(request, 'operations/occurrence_list.html', {
             'page_obj': None,
             'total_count': 0,
@@ -256,38 +186,15 @@ def occurrence_list_view(request):
 @login_required
 @require_http_methods(["GET", "POST"])
 def morte_create_view(request):
-    """
-    Registra morte de animais.
-    
-    Campos obrigatórios:
-    - farm: Fazenda onde ocorreu a morte
-    - animal_category: Categoria do animal
-    - quantity: Quantidade de animais
-    - death_reason: Motivo da morte
-    
-    Campos opcionais:
-    - peso: Peso médio dos animais
-    - observacao: Observações adicionais
-    - timestamp: Data/hora da morte (padrão: agora)
-    
-    Returns:
-        - GET: Formulário vazio
-        - POST: Redireciona para lista ou exibe erros
-    """
     if request.method == 'POST':
         form = MorteForm(request.POST)
-        
+
         if form.is_valid():
             try:
-                # Preparar metadata
-                metadata = {
-                    'observacao': form.cleaned_data.get('observacao', ''),
-                }
-                
+                metadata = {'observacao': form.cleaned_data.get('observacao', '')}
                 if form.cleaned_data.get('peso'):
                     metadata['peso'] = str(form.cleaned_data['peso'])
-                
-                # Executar ocorrência
+
                 movement = MovementService.execute_saida(
                     farm_id=str(form.cleaned_data['farm'].id),
                     animal_category_id=str(form.cleaned_data['animal_category'].id),
@@ -299,17 +206,13 @@ def morte_create_view(request):
                     metadata=metadata,
                     ip_address=request.META.get('REMOTE_ADDR'),
                 )
-                
-                # Log de sucesso
+
                 logger.warning(
                     f"Morte registrada por {request.user.username}. "
                     f"Fazenda: {movement.farm_stock_balance.farm.name}, "
-                    f"Categoria: {movement.farm_stock_balance.animal_category.name}, "
-                    f"Quantidade: {movement.quantity}, "
-                    f"Motivo: {movement.death_reason.name}"
+                    f"Quantidade: {movement.quantity}, Motivo: {movement.death_reason.name}"
                 )
-                
-                # Mensagem de sucesso
+
                 messages.success(
                     request,
                     f'Morte registrada com sucesso. '
@@ -317,28 +220,17 @@ def morte_create_view(request):
                     f'em {movement.farm_stock_balance.farm.name}. '
                     f'Motivo: {movement.death_reason.name}.'
                 )
-                
                 return redirect('ocorrencias:list')
-                
+
             except Exception as e:
-                logger.error(
-                    f"Erro ao registrar morte: {str(e)}. "
-                    f"Usuário: {request.user.username}",
-                    exc_info=True
-                )
-                messages.error(
-                    request,
-                    f'Erro ao registrar morte: {str(e)}'
-                )
+                logger.error(f"Erro ao registrar morte: {str(e)}. Usuário: {request.user.username}", exc_info=True)
+                messages.error(request, f'Erro ao registrar morte: {str(e)}')
         else:
-            logger.warning(
-                f"Validação falhou ao registrar morte. "
-                f"Usuário: {request.user.username}, Erros: {form.errors}"
-            )
+            logger.warning(f"Validação falhou ao registrar morte. Usuário: {request.user.username}, Erros: {form.errors}")
     else:
         form = MorteForm()
-    
-    context = {
+
+    return render(request, 'shared/generic_form.html', {
         'form': form,
         'form_title': 'Registrar Morte',
         'form_description': 'Registre a morte de animais',
@@ -347,9 +239,7 @@ def morte_create_view(request):
         'show_back_button': True,
         'form_badge': 'Ocorrência',
         'form_badge_color': 'red',
-    }
-    
-    return render(request, 'shared/generic_form.html', context)
+    })
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -359,31 +249,15 @@ def morte_create_view(request):
 @login_required
 @require_http_methods(["GET", "POST"])
 def abate_create_view(request):
-    """
-    Registra abate de animais.
-    
-    Campos opcionais:
-    - peso: Peso médio dos animais abatidos
-    - observacao: Observações adicionais
-    
-    Returns:
-        - GET: Formulário vazio
-        - POST: Redireciona para lista ou exibe erros
-    """
     if request.method == 'POST':
         form = AbateForm(request.POST)
-        
+
         if form.is_valid():
             try:
-                # Preparar metadata
-                metadata = {
-                    'observacao': form.cleaned_data.get('observacao', ''),
-                }
-                
+                metadata = {'observacao': form.cleaned_data.get('observacao', '')}
                 if form.cleaned_data.get('peso'):
                     metadata['peso'] = str(form.cleaned_data['peso'])
-                
-                # Executar ocorrência
+
                 movement = MovementService.execute_saida(
                     farm_id=str(form.cleaned_data['farm'].id),
                     animal_category_id=str(form.cleaned_data['animal_category'].id),
@@ -394,38 +268,25 @@ def abate_create_view(request):
                     metadata=metadata,
                     ip_address=request.META.get('REMOTE_ADDR'),
                 )
-                
-                logger.info(
-                    f"Abate registrado por {request.user.username}. "
-                    f"Fazenda: {movement.farm_stock_balance.farm.name}, "
-                    f"Quantidade: {movement.quantity}"
-                )
-                
+
+                logger.info(f"Abate registrado por {request.user.username}. Quantidade: {movement.quantity}")
                 messages.success(
                     request,
                     f'Abate registrado com sucesso. '
                     f'{movement.quantity} {movement.farm_stock_balance.animal_category.name} '
                     f'em {movement.farm_stock_balance.farm.name}.'
                 )
-                
                 return redirect('ocorrencias:list')
-                
+
             except Exception as e:
-                logger.error(
-                    f"Erro ao registrar abate: {str(e)}. "
-                    f"Usuário: {request.user.username}",
-                    exc_info=True
-                )
+                logger.error(f"Erro ao registrar abate: {str(e)}. Usuário: {request.user.username}", exc_info=True)
                 messages.error(request, f'Erro ao registrar abate: {str(e)}')
         else:
-            logger.warning(
-                f"Validação falhou ao registrar abate. "
-                f"Usuário: {request.user.username}"
-            )
+            logger.warning(f"Validação falhou ao registrar abate. Usuário: {request.user.username}")
     else:
         form = AbateForm()
-    
-    context = {
+
+    return render(request, 'shared/generic_form.html', {
         'form': form,
         'form_title': 'Registrar Abate',
         'form_description': 'Registre o abate de animais',
@@ -434,9 +295,7 @@ def abate_create_view(request):
         'show_back_button': True,
         'form_badge': 'Ocorrência',
         'form_badge_color': 'orange',
-    }
-    
-    return render(request, 'shared/generic_form.html', context)
+    })
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -446,38 +305,17 @@ def abate_create_view(request):
 @login_required
 @require_http_methods(["GET", "POST"])
 def venda_create_view(request):
-    """
-    Registra venda de animais.
-    
-    Campos obrigatórios:
-    - client: Cliente comprador
-    
-    Campos opcionais:
-    - peso: Peso total vendido
-    - preco_total: Valor total da venda
-    - observacao: Observações adicionais
-    
-    Returns:
-        - GET: Formulário vazio
-        - POST: Redireciona para lista ou exibe erros
-    """
     if request.method == 'POST':
         form = VendaForm(request.POST)
-        
+
         if form.is_valid():
             try:
-                # Preparar metadata
-                metadata = {
-                    'observacao': form.cleaned_data.get('observacao', ''),
-                }
-                
+                metadata = {'observacao': form.cleaned_data.get('observacao', '')}
                 if form.cleaned_data.get('peso'):
                     metadata['peso'] = str(form.cleaned_data['peso'])
-                
                 if form.cleaned_data.get('preco_total'):
                     metadata['preco_total'] = str(form.cleaned_data['preco_total'])
-                
-                # Executar ocorrência
+
                 movement = MovementService.execute_saida(
                     farm_id=str(form.cleaned_data['farm'].id),
                     animal_category_id=str(form.cleaned_data['animal_category'].id),
@@ -489,40 +327,28 @@ def venda_create_view(request):
                     metadata=metadata,
                     ip_address=request.META.get('REMOTE_ADDR'),
                 )
-                
+
                 logger.info(
                     f"Venda registrada por {request.user.username}. "
-                    f"Fazenda: {movement.farm_stock_balance.farm.name}, "
-                    f"Cliente: {movement.client.name}, "
-                    f"Quantidade: {movement.quantity}, "
-                    f"Valor: {metadata.get('preco_total', 'N/A')}"
+                    f"Cliente: {movement.client.name}, Quantidade: {movement.quantity}"
                 )
-                
                 messages.success(
                     request,
                     f'Venda registrada com sucesso! '
                     f'{movement.quantity} {movement.farm_stock_balance.animal_category.name} '
                     f'vendidos para {movement.client.name}.'
                 )
-                
                 return redirect('ocorrencias:list')
-                
+
             except Exception as e:
-                logger.error(
-                    f"Erro ao registrar venda: {str(e)}. "
-                    f"Usuário: {request.user.username}",
-                    exc_info=True
-                )
+                logger.error(f"Erro ao registrar venda: {str(e)}. Usuário: {request.user.username}", exc_info=True)
                 messages.error(request, f'Erro ao registrar venda: {str(e)}')
         else:
-            logger.warning(
-                f"Validação falhou ao registrar venda. "
-                f"Usuário: {request.user.username}"
-            )
+            logger.warning(f"Validação falhou ao registrar venda. Usuário: {request.user.username}")
     else:
         form = VendaForm()
-    
-    context = {
+
+    return render(request, 'shared/generic_form.html', {
         'form': form,
         'form_title': 'Registrar Venda',
         'form_description': 'Registre a venda de animais',
@@ -531,9 +357,7 @@ def venda_create_view(request):
         'show_back_button': True,
         'form_badge': 'Ocorrência',
         'form_badge_color': 'green',
-    }
-    
-    return render(request, 'shared/generic_form.html', context)
+    })
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -543,34 +367,15 @@ def venda_create_view(request):
 @login_required
 @require_http_methods(["GET", "POST"])
 def doacao_create_view(request):
-    """
-    Registra doação de animais.
-    
-    Campos obrigatórios:
-    - client: Cliente/instituição beneficiada
-    
-    Campos opcionais:
-    - peso: Peso total doado
-    - observacao: Observações adicionais
-    
-    Returns:
-        - GET: Formulário vazio
-        - POST: Redireciona para lista ou exibe erros
-    """
     if request.method == 'POST':
         form = DoacaoForm(request.POST)
-        
+
         if form.is_valid():
             try:
-                # Preparar metadata
-                metadata = {
-                    'observacao': form.cleaned_data.get('observacao', ''),
-                }
-                
+                metadata = {'observacao': form.cleaned_data.get('observacao', '')}
                 if form.cleaned_data.get('peso'):
                     metadata['peso'] = str(form.cleaned_data['peso'])
-                
-                # Executar ocorrência
+
                 movement = MovementService.execute_saida(
                     farm_id=str(form.cleaned_data['farm'].id),
                     animal_category_id=str(form.cleaned_data['animal_category'].id),
@@ -582,39 +387,28 @@ def doacao_create_view(request):
                     metadata=metadata,
                     ip_address=request.META.get('REMOTE_ADDR'),
                 )
-                
+
                 logger.info(
                     f"Doação registrada por {request.user.username}. "
-                    f"Fazenda: {movement.farm_stock_balance.farm.name}, "
-                    f"Beneficiado: {movement.client.name}, "
-                    f"Quantidade: {movement.quantity}"
+                    f"Beneficiado: {movement.client.name}, Quantidade: {movement.quantity}"
                 )
-                
                 messages.success(
                     request,
                     f'Doação registrada com sucesso! '
                     f'{movement.quantity} {movement.farm_stock_balance.animal_category.name} '
                     f'doados para {movement.client.name}.'
                 )
-                
                 return redirect('ocorrencias:list')
-                
+
             except Exception as e:
-                logger.error(
-                    f"Erro ao registrar doação: {str(e)}. "
-                    f"Usuário: {request.user.username}",
-                    exc_info=True
-                )
+                logger.error(f"Erro ao registrar doação: {str(e)}. Usuário: {request.user.username}", exc_info=True)
                 messages.error(request, f'Erro ao registrar doação: {str(e)}')
         else:
-            logger.warning(
-                f"Validação falhou ao registrar doação. "
-                f"Usuário: {request.user.username}"
-            )
+            logger.warning(f"Validação falhou ao registrar doação. Usuário: {request.user.username}")
     else:
         form = DoacaoForm()
-    
-    context = {
+
+    return render(request, 'shared/generic_form.html', {
         'form': form,
         'form_title': 'Registrar Doação',
         'form_description': 'Registre a doação de animais',
@@ -623,9 +417,7 @@ def doacao_create_view(request):
         'show_back_button': True,
         'form_badge': 'Ocorrência',
         'form_badge_color': 'blue',
-    }
-    
-    return render(request, 'shared/generic_form.html', context)
+    })
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -638,34 +430,19 @@ def occurrence_cancel_view(request, pk):
     """
     Cancela (estorna) uma ocorrência, devolvendo o saldo ao estoque.
 
-    Design:
-    - Apenas POST (protege contra cancelamentos por bots/crawlers via GET)
+    - Apenas POST: protege contra cancelamentos via GET (bots/crawlers)
     - CSRF verificado automaticamente pelo Django middleware
-    - Lógica de negócio delegada ao OccurrenceService (não na view)
+    - Lógica delegada ao OccurrenceService
     - Resposta dual: HTML parcial para HTMX, redirect para requests normais
-
-    Segurança:
-    - @login_required: autenticação obrigatória
-    - @require_http_methods(["POST"]): bloqueia GET, PUT, DELETE
-    - get_object_or_404: não revela se o UUID existe (404 genérico)
-    - select_for_update() no service: anti race condition
-
-    Args:
-        pk: UUID do AnimalMovement a cancelar
-
-    Returns:
-        HTMX: <tr> substituta com confirmação visual (200) ou erro (400)
-        Normal: redirect para ocorrencias:list com messages
     """
-    from django.http import HttpResponse
-    from operations.services.occurrence_service import OccurrenceService
-
     movement = get_object_or_404(
-        AnimalMovement.objects.select_related(
+        AnimalMovement.objects
+        .select_related(
             'farm_stock_balance__farm',
             'farm_stock_balance__animal_category',
-            'cancellation',          # prefetch do cancelamento se existir
-        ).prefetch_related(
+        )
+        .prefetch_related(
+            'cancellation',
             'cancellation__cancelled_by',
         ),
         pk=pk,
@@ -673,8 +450,9 @@ def occurrence_cancel_view(request, pk):
 
     is_htmx = request.headers.get('HX-Request') == 'true'
 
-    # ── Verificação rápida antes de entrar no service (evita hit desnecessário no DB)
-    if hasattr(movement, 'cancellation'):
+    # Verificação rápida antes de chamar o service
+    # Usamos try/except para evitar RelatedObjectDoesNotExist
+    try:
         c = movement.cancellation
         error_msg = (
             f"Esta ocorrência já foi cancelada em "
@@ -682,14 +460,12 @@ def occurrence_cancel_view(request, pk):
             f"por {c.cancelled_by.username}."
         )
         if is_htmx:
-            return HttpResponse(
-                _render_already_cancelled_row(movement, c),
-                status=200,   # 200 para HTMX não tratar como erro e fazer swap
-            )
+            return HttpResponse(_render_already_cancelled_row(movement, c), status=200)
         messages.warning(request, error_msg)
         return redirect('ocorrencias:list')
+    except Exception:
+        pass  # ainda não cancelada — prosseguir
 
-    # ── Executar cancelamento via service
     try:
         result = OccurrenceService.cancel_occurrence(
             movement_id=str(pk),
@@ -704,10 +480,7 @@ def occurrence_cancel_view(request, pk):
         )
 
         if is_htmx:
-            return HttpResponse(
-                _render_cancelled_row(result),
-                status=200,
-            )
+            return HttpResponse(_render_cancelled_row(result), status=200)
 
         messages.success(
             request,
@@ -718,17 +491,16 @@ def occurrence_cancel_view(request, pk):
 
     except ValidationError as e:
         error_msg = e.message if hasattr(e, 'message') else str(e)
-
         logger.warning(
             f"Tentativa de cancelamento inválida. "
             f"Usuário: {request.user.username} | Movement: {pk} | Erro: {error_msg}"
         )
-
         if is_htmx:
             return HttpResponse(
+                f'<tr><td colspan="8" class="px-6 py-4 text-center">'
                 f'<span class="text-red-600 text-xs font-medium px-3 py-2 '
-                f'bg-red-50 rounded-lg inline-block">{error_msg}</span>',
-                status=400,
+                f'bg-red-50 rounded-lg inline-block">{error_msg}</span></td></tr>',
+                status=200,
             )
         messages.error(request, error_msg)
 
@@ -740,10 +512,11 @@ def occurrence_cancel_view(request, pk):
         )
         if is_htmx:
             return HttpResponse(
+                '<tr><td colspan="8" class="px-6 py-4 text-center">'
                 '<span class="text-red-600 text-xs font-medium px-3 py-2 '
                 'bg-red-50 rounded-lg inline-block">'
-                'Erro interno. Tente novamente.</span>',
-                status=500,
+                'Erro interno. Tente novamente.</span></td></tr>',
+                status=200,
             )
         messages.error(request, "Erro interno ao cancelar. Tente novamente.")
 
@@ -753,14 +526,13 @@ def occurrence_cancel_view(request, pk):
 # ── Helpers de renderização HTML para respostas HTMX ─────────────────────────
 
 def _render_cancelled_row(result: dict) -> str:
-    """Retorna a <tr> de confirmação após cancelamento bem-sucedido."""
+    """<tr> de confirmação após cancelamento bem-sucedido."""
     qty = result['quantity_restored']
     category = result['category']
     farm = result['farm']
     op = result['operation_display']
 
-    return f"""
-    <tr class="bg-amber-50 transition-all duration-500">
+    return f"""<tr class="bg-amber-50 transition-all duration-500">
         <td colspan="8" class="px-6 py-4">
             <div class="flex items-center justify-center gap-3 text-sm">
                 <div class="flex-shrink-0 w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center">
@@ -778,14 +550,12 @@ def _render_cancelled_row(result: dict) -> str:
                 </div>
             </div>
         </td>
-    </tr>
-    """
+    </tr>"""
 
 
 def _render_already_cancelled_row(movement, cancellation) -> str:
-    """Retorna a <tr> informando que já foi cancelada (para HTMX)."""
-    return f"""
-    <tr class="bg-gray-50 opacity-60">
+    """<tr> informando que a ocorrência já foi cancelada (para HTMX)."""
+    return f"""<tr class="bg-gray-50 opacity-60">
         <td colspan="8" class="px-6 py-4">
             <div class="flex items-center justify-center gap-2 text-sm text-gray-500">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -796,5 +566,4 @@ def _render_already_cancelled_row(movement, cancellation) -> str:
                 por {cancellation.cancelled_by.username}
             </div>
         </td>
-    </tr>
-    """
+    </tr>"""
