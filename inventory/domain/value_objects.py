@@ -41,7 +41,7 @@ OPERATION_TYPE_LABELS = {
     "COMPRA":               "Compra",
     "MANEJO_IN":            "Manejo (Entrada)",
     "MUDANCA_CATEGORIA_IN": "Mud. Categoria (Entrada)",
-    "DESMAME_IN":           "Desmame (Entrada)",
+    "DESMAME_IN":           "Mud. Categoria (Entrada)",
     "SALDO":                "Ajuste de Saldo",
     # Saídas
     "MORTE":                "Morte",
