@@ -295,17 +295,17 @@
                         <th class="border px-2 py-1 text-left">Animais</th>
                         <th class="border px-2 py-1 text-center">Qtd</th>
                         <th class="border px-2 py-1 text-left">Motivo/Obs</th>
-
                     </tr>
                 </thead>
                 <tbody>
                     {% for abate in report.detalhamento.abates %}
                     <tr class="hover:bg-gray-50">
                         <td class="border px-2 py-1">{{ abate.categoria }}</td>
-                        <td class="border px-2 py-1">{{ abate.observacao|default:"-" }}</td>
-                        <td class="border px-2 py-1 text-center">{{ abate.peso }}</td>
                         <td class="border px-2 py-1 text-center font-semibold text-gray-700">{{ abate.quantidade }}</td>
+                        <td class="border px-2 py-1">{{ abate.observacao|default:"-" }}</td>
                     </tr>
+                    {% empty %}
+                    <tr><td colspan="3" class="border px-2 py-2 text-center text-gray-400 italic">Nenhum abate</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
