@@ -157,6 +157,9 @@ class StockQueryService:
             'created_by',
             'client',
             'death_reason'
+        ).prefetch_related(          # ← adicionar
+            'cancellation',
+            'cancellation__cancelled_by',
         )
         
         # Aplicar filtros
