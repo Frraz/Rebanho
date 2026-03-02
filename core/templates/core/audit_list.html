@@ -5,9 +5,7 @@
 {% block content %}
 <div class="space-y-6">
 
-    {# ══════════════════════════════════════════════════════════════
-       CABEÇALHO
-    ══════════════════════════════════════════════════════════════ #}
+    {# Cabeçalho #}
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div class="flex items-center gap-4">
             <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center shadow-lg flex-shrink-0">
@@ -28,7 +26,6 @@
             </div>
         </div>
 
-        {# Pill de status geral #}
         {% if filtros_ativos %}
         <div class="flex-shrink-0">
             <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
@@ -41,13 +38,10 @@
         {% endif %}
     </div>
 
-    {# ══════════════════════════════════════════════════════════════
-       PAINEL DE FILTROS — colapsável em mobile via Alpine
-    ══════════════════════════════════════════════════════════════ #}
+    {# Painel de filtros #}
     <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden"
          x-data="{ open: {% if filtros_ativos %}true{% else %}false{% endif %} }">
 
-        {# Cabeçalho clicável #}
         <button @click="open = !open" type="button"
                 class="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50 transition-colors">
             <div class="flex items-center gap-2.5">
@@ -69,12 +63,10 @@
             </svg>
         </button>
 
-        {# Corpo colapsável #}
         <div x-show="open" x-collapse x-cloak>
             <div class="px-5 pb-5 border-t border-gray-100">
                 <form method="get" class="space-y-4 pt-4">
 
-                    {# Busca textual #}
                     <div class="relative">
                         <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                             <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -86,7 +78,6 @@
                                placeholder="Fazenda, categoria, usuário, cliente, motivo...">
                     </div>
 
-                    {# Selects — 2 colunas em mobile, 5 em desktop #}
                     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
 
                         <div class="col-span-1">
@@ -143,7 +134,6 @@
 
                     </div>
 
-                    {# Ações #}
                     <div class="flex flex-wrap items-center gap-3 pt-1">
                         <button type="submit"
                                 class="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl shadow-sm hover:shadow transition-all">
@@ -172,25 +162,20 @@
         </div>
     </div>
 
-    {# ══════════════════════════════════════════════════════════════
-       CONTEÚDO PRINCIPAL
-    ══════════════════════════════════════════════════════════════ #}
+    {# Conteudo principal #}
     {% if movements %}
 
-    {# ── MOBILE: cards empilhados (visível até md) ── #}
+    {# Mobile: cards empilhados #}
     <div class="flex flex-col gap-3 md:hidden">
         {% for m in movements %}
         <div class="bg-white rounded-2xl border {% if m.cancellation %}border-gray-200 opacity-70{% else %}border-gray-200 hover:border-indigo-200 hover:shadow-sm{% endif %} transition-all overflow-hidden">
 
-            {# Topo do card: data + status + operação #}
             <div class="flex items-center justify-between px-4 pt-4 pb-3 border-b border-gray-100 {% if m.cancellation %}bg-gray-50{% endif %}">
                 <div class="flex items-center gap-2.5">
-                    {# Data #}
                     <div class="text-center bg-gray-100 rounded-lg px-2.5 py-1.5 flex-shrink-0">
                         <div class="text-xs font-bold text-gray-700 leading-none">{{ m.obj.timestamp|date:"d/m" }}</div>
                         <div class="text-xs text-gray-400 leading-none mt-0.5">{{ m.obj.timestamp|date:"Y" }}</div>
                     </div>
-                    {# Operação #}
                     {% if m.cancellation %}
                     <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-gray-100 text-gray-400 line-through">
                         {{ m.label }}
@@ -203,15 +188,13 @@
                 </div>
 
                 <div class="flex items-center gap-2">
-                    {# Quantidade #}
                     <span class="text-base font-extrabold
                         {% if m.cancellation %}text-gray-300
                         {% elif m.is_saida %}text-red-500
                         {% else %}text-green-600{% endif %}
                         {% if m.cancellation %}line-through{% endif %}">
-                        {% if m.is_saida %}−{% else %}+{% endif %}{{ m.obj.quantity }}
+                        {% if m.is_saida %}&minus;{% else %}+{% endif %}{{ m.obj.quantity }}
                     </span>
-                    {# Status pill #}
                     {% if m.cancellation %}
                     <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-700 border border-amber-200">
                         Estornada
@@ -224,10 +207,7 @@
                 </div>
             </div>
 
-            {# Corpo do card: informações principais #}
             <div class="px-4 py-3 space-y-2">
-
-                {# Fazenda + Categoria #}
                 <div class="grid grid-cols-2 gap-2">
                     <div>
                         <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Fazenda</p>
@@ -243,7 +223,6 @@
                     </div>
                 </div>
 
-                {# Usuário + Detalhe #}
                 <div class="grid grid-cols-2 gap-2">
                     <div>
                         <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Usuário</p>
@@ -263,12 +242,11 @@
                             {% elif m.obj.death_reason %}{{ m.obj.death_reason.name }}
                             {% elif m.obj.metadata.observacao %}{{ m.obj.metadata.observacao|truncatechars:25 }}
                             {% elif m.obj.related_movement %}{{ m.obj.related_movement.farm_stock_balance.farm.name }}
-                            {% else %}—{% endif %}
+                            {% else %}&mdash;{% endif %}
                         </p>
                     </div>
                 </div>
 
-                {# Se estornada: mostrar info do estorno #}
                 {% if m.cancellation %}
                 <div class="flex items-center gap-1.5 pt-1 mt-1 border-t border-dashed border-amber-200 text-xs text-amber-600">
                     <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -280,9 +258,8 @@
                 {% endif %}
             </div>
 
-            {# Rodapé do card: horário + link #}
             <div class="flex items-center justify-between px-4 py-2.5 bg-gray-50 border-t border-gray-100">
-                <span class="text-xs text-gray-400">{{ m.obj.timestamp|date:"H:i" }} · {{ m.obj.timestamp|date:"d/m/Y" }}</span>
+                <span class="text-xs text-gray-400">{{ m.obj.timestamp|date:"H:i" }} &middot; {{ m.obj.timestamp|date:"d/m/Y" }}</span>
                 <a href="{% url 'core:audit_detail' m.obj.id %}"
                    class="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition-colors">
                     Detalhes
@@ -295,7 +272,7 @@
         {% endfor %}
     </div>
 
-    {# ── DESKTOP: tabela (visível a partir de md) ── #}
+    {# Desktop: tabela #}
     <div class="hidden md:block bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
         <div class="overflow-x-auto">
             <table class="min-w-full">
@@ -316,7 +293,6 @@
                     {% for m in movements %}
                     <tr class="group {% if m.cancellation %}bg-gray-50/60{% else %}hover:bg-indigo-50/30{% endif %} transition-colors duration-150">
 
-                        {# Data/Hora #}
                         <td class="px-5 py-3.5 whitespace-nowrap">
                             <div class="text-sm font-semibold {% if m.cancellation %}text-gray-400 line-through{% else %}text-gray-900{% endif %}">
                                 {{ m.obj.timestamp|date:"d/m/Y" }}
@@ -324,7 +300,6 @@
                             <div class="text-xs text-gray-400 mt-0.5">{{ m.obj.timestamp|date:"H:i" }}</div>
                         </td>
 
-                        {# Usuário #}
                         <td class="px-5 py-3.5 whitespace-nowrap">
                             <div class="flex items-center gap-2.5">
                                 <div class="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0 ring-1 ring-indigo-200">
@@ -336,21 +311,18 @@
                             </div>
                         </td>
 
-                        {# Fazenda #}
                         <td class="px-5 py-3.5 whitespace-nowrap">
                             <span class="text-sm {% if m.cancellation %}text-gray-400{% else %}text-gray-700{% endif %}">
                                 {{ m.obj.farm_stock_balance.farm.name }}
                             </span>
                         </td>
 
-                        {# Categoria #}
                         <td class="px-5 py-3.5 whitespace-nowrap">
                             <span class="text-sm {% if m.cancellation %}text-gray-400{% else %}text-gray-700{% endif %}">
                                 {{ m.obj.farm_stock_balance.animal_category.name }}
                             </span>
                         </td>
 
-                        {# Operação #}
                         <td class="px-5 py-3.5 whitespace-nowrap">
                             {% if m.cancellation %}
                             <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-gray-100 text-gray-400 line-through">
@@ -363,28 +335,25 @@
                             {% endif %}
                         </td>
 
-                        {# Quantidade #}
                         <td class="px-5 py-3.5 text-center whitespace-nowrap">
                             <span class="text-sm font-extrabold
                                 {% if m.cancellation %}text-gray-300 line-through
                                 {% elif m.is_saida %}text-red-600
                                 {% else %}text-green-600{% endif %}">
-                                {% if m.is_saida %}−{% else %}+{% endif %}{{ m.obj.quantity }}
+                                {% if m.is_saida %}&minus;{% else %}+{% endif %}{{ m.obj.quantity }}
                             </span>
                         </td>
 
-                        {# Detalhe #}
                         <td class="px-5 py-3.5 max-w-[200px]">
                             <span class="text-sm {% if m.cancellation %}text-gray-400{% else %}text-gray-500{% endif %} truncate block">
                                 {% if m.obj.client %}{{ m.obj.client.name }}
                                 {% elif m.obj.death_reason %}{{ m.obj.death_reason.name }}
                                 {% elif m.obj.metadata.observacao %}{{ m.obj.metadata.observacao|truncatechars:35 }}
                                 {% elif m.obj.related_movement %}{{ m.obj.related_movement.farm_stock_balance.farm.name }}
-                                {% else %}<span class="text-gray-300">—</span>{% endif %}
+                                {% else %}<span class="text-gray-300">&mdash;</span>{% endif %}
                             </span>
                         </td>
 
-                        {# Status #}
                         <td class="px-5 py-3.5 whitespace-nowrap">
                             {% if m.cancellation %}
                             <div class="space-y-1">
@@ -397,7 +366,7 @@
                                 </span>
                                 <div class="text-xs text-gray-400 pl-0.5">
                                     {{ m.cancellation.cancelled_at|date:"d/m/Y H:i" }}
-                                    <span class="text-gray-300">·</span>
+                                    <span class="text-gray-300">&middot;</span>
                                     {{ m.cancellation.cancelled_by.username }}
                                 </div>
                             </div>
@@ -411,7 +380,6 @@
                             {% endif %}
                         </td>
 
-                        {# Link #}
                         <td class="px-5 py-3.5 text-center">
                             <a href="{% url 'core:audit_detail' m.obj.id %}"
                                class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 border border-transparent hover:border-indigo-200 transition-all"
@@ -429,16 +397,15 @@
             </table>
         </div>
 
-        {# Rodapé da tabela com contagem #}
         <div class="px-5 py-3 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
             <span class="text-xs text-gray-400">
-                Exibindo {{ page_obj.start_index }}–{{ page_obj.end_index }} de {{ page_obj.paginator.count }} registro{{ page_obj.paginator.count|pluralize }}
+                Exibindo {{ page_obj.start_index }}&ndash;{{ page_obj.end_index }} de {{ page_obj.paginator.count }} registro{{ page_obj.paginator.count|pluralize }}
             </span>
             <span class="text-xs text-gray-400">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
         </div>
     </div>
 
-    {# ── PAGINAÇÃO — compartilhada entre mobile e desktop ── #}
+    {# Paginacao #}
     {% if page_obj.has_other_pages %}
     <div class="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white rounded-2xl border border-gray-200 px-5 py-4 shadow-sm">
         <div class="text-sm text-gray-500 order-2 sm:order-1">
@@ -446,12 +413,11 @@
             de <span class="font-semibold text-gray-800">{{ page_obj.paginator.num_pages }}</span>
         </div>
         <nav class="flex items-center gap-1 order-1 sm:order-2" aria-label="Paginação">
-            {# Primeira #}
             {% if page_obj.has_previous %}
             <a href="?page=1{% if search_term %}&q={{ search_term }}{% endif %}{% if selected_user %}&user={{ selected_user }}{% endif %}{% if selected_op %}&operation={{ selected_op }}{% endif %}{% if selected_farm %}&farm={{ selected_farm }}{% endif %}{% if selected_month %}&month={{ selected_month }}{% endif %}{% if selected_year %}&year={{ selected_year }}{% endif %}"
                class="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-300 text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-all text-xs font-medium"
                title="Primeira página">
-                «
+                &laquo;
             </a>
             <a href="?page={{ page_obj.previous_page_number }}{% if search_term %}&q={{ search_term }}{% endif %}{% if selected_user %}&user={{ selected_user }}{% endif %}{% if selected_op %}&operation={{ selected_op }}{% endif %}{% if selected_farm %}&farm={{ selected_farm }}{% endif %}{% if selected_month %}&month={{ selected_month }}{% endif %}{% if selected_year %}&year={{ selected_year }}{% endif %}"
                class="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-300 text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-all">
@@ -460,7 +426,7 @@
                 </svg>
             </a>
             {% else %}
-            <span class="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 text-gray-300 cursor-default text-xs">«</span>
+            <span class="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 text-gray-300 cursor-default text-xs">&laquo;</span>
             <span class="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 text-gray-300 cursor-default">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
@@ -468,7 +434,6 @@
             </span>
             {% endif %}
 
-            {# Página atual #}
             <span class="inline-flex items-center justify-center min-w-[2.25rem] h-9 px-3 rounded-lg bg-indigo-600 text-white text-sm font-bold shadow-sm">
                 {{ page_obj.number }}
             </span>
@@ -483,7 +448,7 @@
             <a href="?page={{ page_obj.paginator.num_pages }}{% if search_term %}&q={{ search_term }}{% endif %}{% if selected_user %}&user={{ selected_user }}{% endif %}{% if selected_op %}&operation={{ selected_op }}{% endif %}{% if selected_farm %}&farm={{ selected_farm }}{% endif %}{% if selected_month %}&month={{ selected_month }}{% endif %}{% if selected_year %}&year={{ selected_year }}{% endif %}"
                class="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-300 text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-all text-xs font-medium"
                title="Última página">
-                »
+                &raquo;
             </a>
             {% else %}
             <span class="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 text-gray-300 cursor-default">
@@ -491,15 +456,13 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                 </svg>
             </span>
-            <span class="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 text-gray-300 cursor-default text-xs">»</span>
+            <span class="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 text-gray-300 cursor-default text-xs">&raquo;</span>
             {% endif %}
         </nav>
     </div>
     {% endif %}
 
-    {# ══════════════════════════════════════════════════════════════
-       ESTADO VAZIO
-    ══════════════════════════════════════════════════════════════ #}
+    {# Estado vazio #}
     {% else %}
     <div class="text-center py-20 bg-white rounded-2xl border border-gray-200">
         <div class="inline-flex items-center justify-center w-16 h-16 bg-indigo-50 rounded-2xl mb-5">
