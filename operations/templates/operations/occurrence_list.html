@@ -259,12 +259,6 @@
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                             {{ movement.created_by.username|default:"Sistema" }}
                         </td>
-
-                        {# ══════════════════════════════════════════════════════════════════
-                        COLUNA DE AÇÃO — Editar + Cancelar
-                        Cancelada: ícone desabilitado (sem ações disponíveis)
-                        Ativa:     botão azul (editar) + botão vermelho (cancelar c/ modal)
-                        ══════════════════════════════════════════════════════════════════ #}
                         <td class="px-6 py-4 whitespace-nowrap text-center">
                             {% if movement.cancellation %}
 
