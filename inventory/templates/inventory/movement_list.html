@@ -28,7 +28,6 @@
             </div>
         </div>
 
-        <!-- Botões de ação -->
         <div class="flex flex-wrap gap-2">
             <a href="{% url 'movimentacoes:nascimento' %}"
                class="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white text-sm font-semibold rounded-xl shadow-md hover:shadow-lg transition-all">
@@ -62,9 +61,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                     </svg>
                 </button>
-                <div x-show="open"
-                     @click.away="open = false"
-                     x-cloak
+                <div x-show="open" @click.away="open = false" x-cloak
                      class="absolute right-0 mt-2 w-56 rounded-xl shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
                     <div class="py-2">
                         <a href="{% url 'movimentacoes:desmame' %}"
@@ -95,7 +92,7 @@
     </div>
 
     <!-- ══════════════════════════════════════════════════════════════════════
-         FILTROS AVANÇADOS
+         FILTROS
     ══════════════════════════════════════════════════════════════════════ -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
         <form method="get" action="" class="space-y-4">
@@ -105,41 +102,32 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                     </svg>
                 </div>
-                <input type="search"
-                       name="q"
-                       value="{{ search_term }}"
+                <input type="search" name="q" value="{{ search_term }}"
                        placeholder="Buscar por fazenda, categoria, usuário ou observação..."
                        class="block w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all">
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1.5">Fazenda</label>
-                    <select name="farm"
-                            class="block w-full border border-gray-300 rounded-xl py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                    <select name="farm" class="block w-full border border-gray-300 rounded-xl py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
                         <option value="">Todas as fazendas</option>
                         {% for farm in farms %}
-                        <option value="{{ farm.id }}" {% if farm.id|stringformat:"s" == farm_filtro %}selected{% endif %}>
-                            {{ farm.name }}
-                        </option>
+                        <option value="{{ farm.id }}" {% if farm.id|stringformat:"s" == farm_filtro %}selected{% endif %}>{{ farm.name }}</option>
                         {% endfor %}
                     </select>
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1.5">Tipo de Operação</label>
-                    <select name="tipo"
-                            class="block w-full border border-gray-300 rounded-xl py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                    <select name="tipo" class="block w-full border border-gray-300 rounded-xl py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
                         <option value="">Todos os tipos</option>
                         {% for tipo in tipos_disponiveis %}
-                        <option value="{{ tipo }}" {% if tipo == tipo_filtro %}selected{% endif %}>
-                            {{ operation_labels|default_if_none:tipo }}
-                        </option>
+                        <option value="{{ tipo }}" {% if tipo == tipo_filtro %}selected{% endif %}>{{ operation_labels|default_if_none:tipo }}</option>
                         {% endfor %}
                     </select>
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1.5">Mês</label>
-                    <select name="mes"
-                            class="block w-full border border-gray-300 rounded-xl py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                    <select name="mes" class="block w-full border border-gray-300 rounded-xl py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
                         <option value="">Todos os meses</option>
                         {% for val, label in meses %}
                         <option value="{{ val }}" {% if val == mes_filtro %}selected{% endif %}>{{ label }}</option>
@@ -148,8 +136,7 @@
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1.5">Ano</label>
-                    <select name="ano"
-                            class="block w-full border border-gray-300 rounded-xl py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                    <select name="ano" class="block w-full border border-gray-300 rounded-xl py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
                         <option value="">Todos os anos</option>
                         {% for ano in anos %}
                         <option value="{{ ano }}" {% if ano|stringformat:"s" == ano_filtro %}selected{% endif %}>{{ ano }}</option>
@@ -163,7 +150,7 @@
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                     </svg>
-                    <span>Filtrar</span>
+                    Filtrar
                 </button>
                 {% if filtros_ativos %}
                 <a href="{% url 'movimentacoes:list' %}"
@@ -171,7 +158,7 @@
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                     </svg>
-                    <span>Limpar Filtros</span>
+                    Limpar Filtros
                 </a>
                 <span class="text-sm text-gray-600">
                     <span class="font-semibold text-gray-900">{{ total_count }}</span>
@@ -183,7 +170,7 @@
     </div>
 
     <!-- ══════════════════════════════════════════════════════════════════════
-         TABELA DE MOVIMENTAÇÕES
+         TABELA
     ══════════════════════════════════════════════════════════════════════ -->
     {% if page_obj %}
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -191,91 +178,51 @@
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Data/Hora</th>
-                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Fazenda</th>
-                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Categoria</th>
-                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Operação</th>
-                        <th scope="col" class="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Quantidade</th>
-                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Usuário</th>
-                        <th scope="col" class="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Ações</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Data/Hora</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Fazenda</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Categoria</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Operação</th>
+                        <th class="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Qtd.</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Usuário</th>
+                        <th class="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Ação</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-100">
                     {% for movement in page_obj %}
 
-                    {# ── Verificar se está cancelada ── #}
-                    {% with is_cancelled=movement.cancellation_id %}
+                    <tr id="movement-row-{{ movement.id }}"
+                        class="{% if movement.cancellation %}bg-gray-50 opacity-60{% else %}hover:bg-gray-50{% endif %} transition-colors">
 
-                    {% if is_cancelled %}
-                    {# ═══════════════════════════════════════════ #}
-                    {# LINHA CANCELADA — riscada e opaca           #}
-                    {# ═══════════════════════════════════════════ #}
-                    <tr id="movement-row-{{ movement.pk }}" class="bg-gray-50 opacity-60">
+                        <!-- Data/Hora -->
                         <td class="px-6 py-4 whitespace-nowrap text-sm">
                             <div class="flex flex-col">
-                                <span class="font-medium text-gray-400 line-through">{{ movement.timestamp|date:"d/m/Y" }}</span>
-                                <span class="text-xs text-gray-400">{{ movement.timestamp|date:"H:i" }}</span>
-                            </div>
-                        </td>
-                        <td class="px-6 py-4 text-sm font-medium text-gray-400 line-through">
-                            {{ movement.farm_stock_balance.farm.name }}
-                        </td>
-                        <td class="px-6 py-4 text-sm text-gray-400 line-through">
-                            {{ movement.farm_stock_balance.animal_category.name }}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="flex items-center gap-2">
-                                <span class="inline-flex items-center px-3 py-1 rounded-lg text-xs font-semibold bg-gray-100 text-gray-400 line-through">
-                                    {{ movement.get_operation_type_display }}
+                                <span class="font-medium {% if movement.cancellation %}text-gray-400 line-through{% else %}text-gray-900{% endif %}">
+                                    {{ movement.timestamp|date:"d/m/Y" }}
                                 </span>
-                                <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold bg-amber-100 text-amber-700 border border-amber-200">
-                                    Cancelada
-                                </span>
-                            </div>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-center">
-                            <span class="text-sm font-bold text-gray-400 line-through">
-                                {% if movement.movement_type == 'ENTRADA' %}+{% else %}−{% endif %}{{ movement.quantity }}
-                            </span>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
-                            {{ movement.created_by.username|default:"Sistema" }}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-center">
-                            <span class="inline-flex items-center gap-1 text-xs text-gray-400 italic">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
-                                </svg>
-                                Cancelada
-                            </span>
-                            {% if movement.cancellation %}
-                            <p class="text-xs text-gray-400 mt-0.5">
-                                {{ movement.cancellation.cancelled_at|date:"d/m H:i" }}
-                                · {{ movement.cancellation.cancelled_by.username }}
-                            </p>
-                            {% endif %}
-                        </td>
-                    </tr>
-
-                    {% else %}
-                    {# ═══════════════════════════════════════════ #}
-                    {# LINHA NORMAL — com botão de cancelar        #}
-                    {# ═══════════════════════════════════════════ #}
-                    <tr id="movement-row-{{ movement.pk }}" class="hover:bg-gray-50 transition-colors">
-                        <td class="px-6 py-4 whitespace-nowrap text-sm">
-                            <div class="flex flex-col">
-                                <span class="font-medium text-gray-900">{{ movement.timestamp|date:"d/m/Y" }}</span>
                                 <span class="text-xs text-gray-500">{{ movement.timestamp|date:"H:i" }}</span>
                             </div>
                         </td>
-                        <td class="px-6 py-4 text-sm font-medium text-gray-900">
+
+                        <!-- Fazenda -->
+                        <td class="px-6 py-4 text-sm font-medium {% if movement.cancellation %}text-gray-400{% else %}text-gray-900{% endif %}">
                             {{ movement.farm_stock_balance.farm.name }}
                         </td>
-                        <td class="px-6 py-4 text-sm text-gray-700">
+
+                        <!-- Categoria -->
+                        <td class="px-6 py-4 text-sm {% if movement.cancellation %}text-gray-400{% else %}text-gray-700{% endif %}">
                             {{ movement.farm_stock_balance.animal_category.name }}
                         </td>
+
+                        <!-- Operação -->
                         <td class="px-6 py-4 whitespace-nowrap">
-                            {% if movement.movement_type == 'ENTRADA' %}
+                            {% if movement.cancellation %}
+                                <span class="inline-flex items-center px-3 py-1 rounded-lg text-xs font-semibold bg-gray-100 text-gray-400 line-through">
+                                    {{ movement.get_operation_type_display }}
+                                </span>
+                                <span class="ml-1 inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold bg-amber-100 text-amber-700 border border-amber-200">
+                                    Cancelada
+                                </span>
+                            {% elif movement.movement_type == 'ENTRADA' %}
                             <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-green-100 text-green-800">
                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12"/>
@@ -291,59 +238,179 @@
                             </span>
                             {% endif %}
                         </td>
+
+                        <!-- Quantidade -->
                         <td class="px-6 py-4 whitespace-nowrap text-center">
                             <span class="text-sm font-bold
-                                {% if movement.movement_type == 'ENTRADA' %}text-green-600{% else %}text-orange-600{% endif %}">
+                                {% if movement.cancellation %}text-gray-400 line-through
+                                {% elif movement.movement_type == 'ENTRADA' %}text-green-600
+                                {% else %}text-orange-600{% endif %}">
                                 {% if movement.movement_type == 'ENTRADA' %}+{% else %}−{% endif %}{{ movement.quantity }}
                             </span>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                            {{ movement.created_by.username|default:"Sistema" }}
+
+                        <!-- Usuário -->
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                            {% if movement.cancellation %}
+                                <span class="text-xs text-amber-600 italic">
+                                    Estornado em {{ movement.cancellation.cancelled_at|date:"d/m/Y H:i" }}
+                                    por {{ movement.cancellation.cancelled_by.username }}
+                                </span>
+                            {% else %}
+                                <span class="text-gray-600">{{ movement.created_by.username|default:"Sistema" }}</span>
+                            {% endif %}
                         </td>
 
-                        {# ── Botão de Cancelar ── #}
+                        <!-- Ação -->
                         <td class="px-6 py-4 whitespace-nowrap text-center">
-                            <div x-data="{ confirm: false }">
-                                {# Botão inicial #}
-                                <button
-                                    x-show="!confirm"
-                                    @click="confirm = true"
-                                    type="button"
-                                    title="Estornar movimentação"
-                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 hover:border-amber-300 transition-all">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+                            {% if movement.cancellation %}
+                            {# Ícone desabilitado para movimentações já canceladas #}
+                            <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-gray-100 text-gray-300 cursor-default"
+                                  title="Cancelada em {{ movement.cancellation.cancelled_at|date:'d/m/Y' }}">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                          d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
+                                </svg>
+                            </span>
+                            {% else %}
+                            {# Modal de confirmação — idêntico ao das ocorrências #}
+                            <div x-data="{
+                                open: false,
+                                loading: false,
+                                farm: '{{ movement.farm_stock_balance.farm.name|escapejs }}',
+                                category: '{{ movement.farm_stock_balance.animal_category.name|escapejs }}',
+                                qty: {{ movement.quantity }},
+                                opType: '{{ movement.get_operation_type_display|escapejs }}',
+                                isEntrada: {{ movement.movement_type|yesno:'true,false'|default:'false' }}
+                            }">
+                                {# Botão de estornar #}
+                                <button @click="open = true"
+                                        type="button"
+                                        title="Estornar esta movimentação"
+                                        class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-600 hover:text-amber-800 border border-amber-200 hover:border-amber-300 transition-all focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-1">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                              d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
                                     </svg>
-                                    Estornar
                                 </button>
 
-                                {# Confirmação inline #}
-                                <div x-show="confirm" x-cloak class="flex items-center justify-center gap-1.5">
-                                    <span class="text-xs text-gray-600 font-medium">Confirmar?</span>
-                                    <form method="post"
-                                          action="{% url 'movimentacoes:cancelar' movement.pk %}"
-                                          hx-post="{% url 'movimentacoes:cancelar' movement.pk %}"
-                                          hx-target="#movement-row-{{ movement.pk }}"
-                                          hx-swap="outerHTML"
-                                          @htmx:before-request="confirm = false">
-                                        {% csrf_token %}
-                                        <button type="submit"
-                                                class="inline-flex items-center px-2.5 py-1 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors">
-                                            Sim
-                                        </button>
-                                    </form>
-                                    <button @click="confirm = false"
-                                            type="button"
-                                            class="inline-flex items-center px-2.5 py-1 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
-                                        Não
-                                    </button>
+                                {# Modal com backdrop blur — idêntico ao das ocorrências #}
+                                <div x-show="open"
+                                     x-cloak
+                                     @keydown.escape.window="if(!loading) open = false"
+                                     class="fixed inset-0 z-50 flex items-center justify-center p-4"
+                                     style="display:none">
+
+                                    {# Backdrop #}
+                                    <div class="absolute inset-0 bg-black/50 backdrop-blur-sm"
+                                         @click="if(!loading) open = false"
+                                         x-transition:enter="transition ease-out duration-200"
+                                         x-transition:enter-start="opacity-0"
+                                         x-transition:enter-end="opacity-100"
+                                         x-transition:leave="transition ease-in duration-150"
+                                         x-transition:leave-start="opacity-100"
+                                         x-transition:leave-end="opacity-0">
+                                    </div>
+
+                                    {# Card do modal #}
+                                    <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 z-10"
+                                         x-transition:enter="transition ease-out duration-200"
+                                         x-transition:enter-start="opacity-0 scale-95"
+                                         x-transition:enter-end="opacity-100 scale-100"
+                                         x-transition:leave="transition ease-in duration-150"
+                                         x-transition:leave-start="opacity-100 scale-100"
+                                         x-transition:leave-end="opacity-0 scale-95">
+
+                                        {# Cabeçalho #}
+                                        <div class="flex items-start gap-4 mb-5">
+                                            <div class="flex-shrink-0 w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center">
+                                                <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                                </svg>
+                                            </div>
+                                            <div>
+                                                <h3 class="text-lg font-bold text-gray-900">Estornar Movimentação?</h3>
+                                                <p class="mt-1 text-sm text-gray-500">Esta ação irá reverter a operação e ajustar o saldo do estoque.</p>
+                                            </div>
+                                        </div>
+
+                                        {# Resumo da operação #}
+                                        <div class="bg-gray-50 rounded-xl p-4 mb-5 space-y-2 text-sm">
+                                            <div class="flex justify-between">
+                                                <span class="text-gray-500">Operação</span>
+                                                <span class="font-semibold text-gray-900" x-text="opType"></span>
+                                            </div>
+                                            <div class="flex justify-between">
+                                                <span class="text-gray-500">Fazenda</span>
+                                                <span class="font-semibold text-gray-900" x-text="farm"></span>
+                                            </div>
+                                            <div class="flex justify-between">
+                                                <span class="text-gray-500">Categoria</span>
+                                                <span class="font-semibold text-gray-900" x-text="category"></span>
+                                            </div>
+                                            <div class="flex justify-between border-t border-gray-200 pt-2 mt-2">
+                                                <span class="text-gray-500">Efeito no saldo</span>
+                                                {# ENTRADA estornada → saldo diminui; SAÍDA estornada → saldo aumenta #}
+                                                <span class="font-bold text-base"
+                                                      :class="'{{ movement.movement_type }}' === 'ENTRADA' ? 'text-red-600' : 'text-green-700'"
+                                                      x-text="'{{ movement.movement_type }}' === 'ENTRADA' ? '-' + qty + ' animal(is)' : '+' + qty + ' animal(is)'">
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        {# Aviso de auditoria #}
+                                        <div class="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-5">
+                                            <svg class="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                            </svg>
+                                            <p class="text-xs text-amber-700">
+                                                O registro original será mantido no histórico para auditoria,<br>
+                                                marcado como cancelado com data e responsável.
+                                            </p>
+                                        </div>
+
+                                        {# Botões #}
+                                        <div class="flex gap-3">
+                                            <button @click="open = false"
+                                                    type="button"
+                                                    :disabled="loading"
+                                                    class="flex-1 px-4 py-2.5 border-2 border-gray-300 text-gray-700 text-sm font-semibold rounded-xl hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                                                Não, manter
+                                            </button>
+
+                                            <button type="button"
+                                                    :disabled="loading"
+                                                    hx-post="{% url 'movimentacoes:cancelar' movement.id %}"
+                                                    hx-target="#movement-row-{{ movement.id }}"
+                                                    hx-swap="outerHTML"
+                                                    hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                                                    @click="loading = true; open = false; htmx.trigger($el, 'htmx:trigger')"
+                                                    class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-600 hover:bg-amber-700 disabled:bg-amber-400 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-1">
+                                                <template x-if="loading">
+                                                    <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                                                    </svg>
+                                                </template>
+                                                <template x-if="!loading">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                              d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+                                                    </svg>
+                                                </template>
+                                                <span x-text="loading ? 'Estornando...' : 'Sim, estornar'"></span>
+                                            </button>
+                                        </div>
+
+                                    </div>
                                 </div>
                             </div>
+                            {% endif %}
                         </td>
                     </tr>
-                    {% endif %}
 
-                    {% endwith %}
                     {% endfor %}
                 </tbody>
             </table>
@@ -390,9 +457,7 @@
     {% endif %}
 
     {% else %}
-    <!-- ══════════════════════════════════════════════════════════════════════
-         EMPTY STATE
-    ══════════════════════════════════════════════════════════════════════ -->
+    <!-- EMPTY STATE -->
     <div class="bg-white rounded-2xl border border-gray-200 text-center py-16 px-6">
         <div class="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gray-100 mb-6">
             <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -401,21 +466,14 @@
         </div>
         {% if filtros_ativos %}
         <h3 class="text-lg font-semibold text-gray-900 mb-2">Nenhuma movimentação encontrada</h3>
-        <p class="text-sm text-gray-500 mb-6 max-w-md mx-auto">
-            Não encontramos movimentações com os filtros aplicados. Tente remover alguns filtros.
-        </p>
+        <p class="text-sm text-gray-500 mb-6 max-w-md mx-auto">Não encontramos movimentações com os filtros aplicados. Tente remover alguns filtros.</p>
         <a href="{% url 'movimentacoes:list' %}"
            class="inline-flex items-center gap-2 px-6 py-3 border-2 border-gray-300 text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition-all">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-            </svg>
             Limpar filtros
         </a>
         {% else %}
         <h3 class="text-lg font-semibold text-gray-900 mb-2">Nenhuma movimentação registrada</h3>
-        <p class="text-sm text-gray-500 mb-6 max-w-md mx-auto">
-            Comece registrando sua primeira movimentação de estoque.
-        </p>
+        <p class="text-sm text-gray-500 mb-6 max-w-md mx-auto">Comece registrando sua primeira movimentação de estoque.</p>
         <div class="flex flex-wrap items-center justify-center gap-3">
             <a href="{% url 'movimentacoes:nascimento' %}"
                class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all">

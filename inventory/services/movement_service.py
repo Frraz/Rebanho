@@ -293,6 +293,18 @@ class MovementService:
         - O ledger permanece imutável: cria AnimalMovementCancellation como evento
         - Uma movimentação só pode ser cancelada uma vez (constraint OneToOne)
 
+        ATENÇÃO — Por que NÃO usamos select_for_update() no fetch inicial:
+        O PostgreSQL proíbe FOR UPDATE no lado nullable de um outer join.
+        select_related() com FKs opcionais (related_movement, cancellation)
+        gera LEFT OUTER JOINs, causando o erro:
+          "FOR UPDATE cannot be applied to the nullable side of an outer join"
+
+        Solução: separar em duas etapas:
+          Etapa 1 — fetch sem lock (com select_related/prefetch_related) para
+                    ler os dados e verificar se já está cancelado.
+          Etapa 2 — lock pessimista APENAS no FarmStockBalance (query simples,
+                    sem joins nullable), onde o lock é realmente necessário.
+
         Args:
             movement_id: UUID da movimentação a cancelar
             cancelled_by: Usuário que está realizando o cancelamento
@@ -309,21 +321,24 @@ class MovementService:
         from inventory.models import AnimalMovementCancellation
         from django.db.models import F
 
-        # 1. BUSCAR MOVIMENTO PRINCIPAL COM LOCK
+        # ── ETAPA 1: Fetch SEM lock ───────────────────────────────────────────
+        # select_related e prefetch_related geram LEFT OUTER JOINs em relações
+        # opcionais — incompatível com select_for_update() no PostgreSQL.
+        # Por isso buscamos os dados aqui sem lock, apenas para leitura.
         movement = (
             AnimalMovement.objects
             .select_related(
                 'farm_stock_balance__farm',
                 'farm_stock_balance__animal_category',
-                'related_movement__farm_stock_balance__farm',
-                'related_movement__farm_stock_balance__animal_category',
             )
-            .prefetch_related('cancellation')
-            .select_for_update()
+            .prefetch_related(
+                'cancellation',
+                'cancellation__cancelled_by',
+            )
             .get(pk=movement_id)
         )
 
-        # 2. VERIFICAR SE JÁ CANCELADO
+        # Verificar se o movimento principal já foi cancelado
         try:
             c = movement.cancellation
             raise ValidationError(
@@ -334,23 +349,21 @@ class MovementService:
         except AnimalMovementCancellation.DoesNotExist:
             pass
 
-        # 3. MONTAR LISTA DE MOVIMENTOS A CANCELAR
-        #    Operações compostas têm related_movement (MANEJO, MUDANÇA_CATEGORIA, DESMAME)
-        movements_to_cancel = [movement]
-
+        # Para operações compostas (Manejo, Mudança de Categoria, Desmame),
+        # buscar e verificar o lado relacionado também sem lock.
+        related_movement = None
         if movement.related_movement_id:
-            related = (
+            related_movement = (
                 AnimalMovement.objects
                 .select_related(
                     'farm_stock_balance__farm',
                     'farm_stock_balance__animal_category',
                 )
-                .prefetch_related('cancellation')
-                .select_for_update()
+                .prefetch_related('cancellation', 'cancellation__cancelled_by')
                 .get(pk=movement.related_movement_id)
             )
             try:
-                rc = related.cancellation
+                rc = related_movement.cancellation
                 raise ValidationError(
                     f"O movimento relacionado desta operação já foi cancelado em "
                     f"{rc.cancelled_at.strftime('%d/%m/%Y às %H:%M')} "
@@ -358,9 +371,14 @@ class MovementService:
                 )
             except AnimalMovementCancellation.DoesNotExist:
                 pass
-            movements_to_cancel.append(related)
 
-        # 4. PROCESSAR CADA MOVIMENTO
+        # ── ETAPA 2: Lock + atualização de saldo ─────────────────────────────
+        # select_for_update() aqui é seguro: FarmStockBalance não tem FKs
+        # opcionais, portanto não gera LEFT OUTER JOINs.
+        movements_to_cancel = [movement]
+        if related_movement:
+            movements_to_cancel.append(related_movement)
+
         cancellations_created = []
 
         for mov in movements_to_cancel:
@@ -371,7 +389,7 @@ class MovementService:
             balance_before = stock_balance.current_quantity
 
             if mov.movement_type == 'ENTRADA':
-                # Estorno de ENTRADA → diminui saldo
+                # Estorno de ENTRADA → saldo diminui
                 if balance_before < mov.quantity:
                     raise InsufficientStockError(
                         farm_name=stock_balance.farm.name,
@@ -381,10 +399,9 @@ class MovementService:
                     )
                 new_quantity = balance_before - mov.quantity
             else:
-                # Estorno de SAÍDA → devolve ao saldo
+                # Estorno de SAÍDA → saldo aumenta (animais voltam)
                 new_quantity = balance_before + mov.quantity
 
-            # Atualizar saldo com versioning otimista
             updated_rows = FarmStockBalance.objects.filter(
                 id=stock_balance.id,
                 version=stock_balance.version,
@@ -397,7 +414,6 @@ class MovementService:
             if updated_rows == 0:
                 raise ConcurrencyError("Saldo de estoque")
 
-            # Criar registro de cancelamento (imutável, append-only)
             cancellation = AnimalMovementCancellation.objects.create(
                 movement=mov,
                 cancelled_by=cancelled_by,
@@ -408,7 +424,6 @@ class MovementService:
             )
             cancellations_created.append(cancellation)
 
-        # 5. RETORNAR DADOS PARA A INTERFACE
         main_cancellation = cancellations_created[0]
         return {
             'movement_id': str(movement.id),
