@@ -6,21 +6,19 @@ Este módulo gerencia todas as movimentações de estoque:
 - Nascimento, Desmame, Compra, Ajuste de Saldo
 - Manejo (transferência entre fazendas)
 - Mudança de categoria
-
-Observações:
-- Ocorrências (MORTE, ABATE, VENDA, DOAÇÃO) têm listagem separada
-- Todas as movimentações são registradas em AnimalMovement
-- Services garantem atomicidade e consistência
+- Cancelamento/estorno de movimentações
 """
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.views.decorators.http import require_http_methods
+from django.views.decorators.http import require_http_methods, require_POST
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Q, Count, Sum
+from django.http import HttpResponse
 from django.urls import reverse
 from django.utils import timezone
+from django.core.exceptions import ValidationError
 from decimal import Decimal
 from typing import Tuple, Optional
 import logging
@@ -56,6 +54,17 @@ OPERATION_TYPE_LABELS = {
     OperationType.MANEJO_OUT.value: 'Manejo (Saída)',
     OperationType.MUDANCA_CATEGORIA_IN.value: 'Mudança Categoria (+)',
     OperationType.MUDANCA_CATEGORIA_OUT.value: 'Mudança Categoria (-)',
+}
+
+# Operações compostas: ao cancelar o lado OUT, também cancela o IN (e vice-versa)
+# A lógica está no MovementService via related_movement
+COMPOSITE_OPERATIONS = {
+    OperationType.MANEJO_IN.value,
+    OperationType.MANEJO_OUT.value,
+    OperationType.MUDANCA_CATEGORIA_IN.value,
+    OperationType.MUDANCA_CATEGORIA_OUT.value,
+    OperationType.DESMAME_IN.value,
+    OperationType.DESMAME_OUT.value,
 }
 
 
@@ -121,6 +130,11 @@ def movement_list_view(request):
                 'farm_stock_balance__farm',
                 'farm_stock_balance__animal_category',
                 'created_by',
+            )
+            # ── OBRIGATÓRIO: carrega cancellation para exibir status no template
+            .prefetch_related(
+                'cancellation',
+                'cancellation__cancelled_by',
             )
             .order_by('-timestamp', '-created_at')
         )
@@ -260,16 +274,6 @@ def nascimento_create_view(request):
 @login_required
 @require_http_methods(["GET", "POST"])
 def desmame_create_view(request):
-    """
-    Registra desmame de animais com automação de mudança de categoria.
-
-    O formulário DesmameForm tem campos separados:
-    - quantity_males: B. Macho → Bois - 2A.
-    - quantity_females: B. Fêmea → Nov. - 2A.
-
-    A operação é executada via TransferService.execute_desmame(),
-    que cria DESMAME_OUT + DESMAME_IN atomicamente para cada par.
-    """
     if request.method == 'POST':
         form = DesmameForm(request.POST)
 
@@ -288,7 +292,6 @@ def desmame_create_view(request):
                     ip_address=request.META.get('REMOTE_ADDR'),
                 )
 
-                # Montar mensagem de sucesso
                 partes = []
                 if qty_males > 0:
                     partes.append(f'{qty_males} B. Macho para Bois - 2A.')
@@ -591,3 +594,160 @@ def mudanca_categoria_create_view(request):
     }
 
     return render(request, 'shared/generic_form.html', context)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# CANCELAMENTO DE MOVIMENTAÇÃO (ESTORNO)
+# ══════════════════════════════════════════════════════════════════════════════
+
+@login_required
+@require_http_methods(["POST"])
+def movement_cancel_view(request, pk):
+    """
+    Cancela (estorna) uma movimentação, revertendo seu efeito no saldo.
+
+    - Apenas POST: protege contra cancelamentos via GET (bots/crawlers)
+    - CSRF verificado automaticamente pelo Django middleware
+    - Lógica delegada ao MovementService.cancel_movement()
+    - Resposta dual: HTML parcial para HTMX, redirect para requests normais
+    - Operações compostas (Manejo, Mudança Categoria, Desmame) cancelam
+      os dois lados atomicamente
+    """
+    from inventory.models import AnimalMovementCancellation
+
+    movement = get_object_or_404(
+        AnimalMovement.objects
+        .select_related(
+            'farm_stock_balance__farm',
+            'farm_stock_balance__animal_category',
+        )
+        .prefetch_related(
+            'cancellation',
+            'cancellation__cancelled_by',
+        ),
+        pk=pk,
+    )
+
+    is_htmx = request.headers.get('HX-Request') == 'true'
+
+    # Verificação rápida: já cancelada?
+    try:
+        c = movement.cancellation
+        error_msg = (
+            f"Esta movimentação já foi cancelada em "
+            f"{c.cancelled_at.strftime('%d/%m/%Y às %H:%M')} "
+            f"por {c.cancelled_by.username}."
+        )
+        if is_htmx:
+            return HttpResponse(
+                _render_already_cancelled_row(movement, c),
+                status=200,
+            )
+        messages.warning(request, error_msg)
+        return redirect('movimentacoes:list')
+    except AnimalMovementCancellation.DoesNotExist:
+        pass
+
+    try:
+        result = MovementService.cancel_movement(
+            movement_id=str(pk),
+            cancelled_by=request.user,
+            notes=request.POST.get('notes', ''),
+        )
+
+        logger.info(
+            f"Cancelamento de movimentação por {request.user.username}. "
+            f"Movement: {pk} | {result['operation_display']} | "
+            f"Saldo: {result['balance_before']} → {result['balance_after']}"
+        )
+
+        if is_htmx:
+            return HttpResponse(_render_cancelled_row(result), status=200)
+
+        composite_msg = ' (operação composta — ambos os lados cancelados)' if result.get('is_composite') else ''
+        messages.success(
+            request,
+            f"Movimentação estornada com sucesso.{composite_msg} "
+            f"{result['quantity_restored']} animal(is) de "
+            f"{result['category']} em {result['farm']} "
+            f"tiveram o saldo revertido."
+        )
+
+    except ValidationError as e:
+        error_msg = e.message if hasattr(e, 'message') else str(e)
+        logger.warning(
+            f"Cancelamento inválido. "
+            f"Usuário: {request.user.username} | Movement: {pk} | Erro: {error_msg}"
+        )
+        if is_htmx:
+            return HttpResponse(
+                f'<tr><td colspan="7" class="px-6 py-4 text-center">'
+                f'<span class="text-red-600 text-xs font-medium px-3 py-2 '
+                f'bg-red-50 rounded-lg inline-block">{error_msg}</span></td></tr>',
+                status=200,
+            )
+        messages.error(request, error_msg)
+
+    except Exception as e:
+        logger.error(
+            f"Erro inesperado no cancelamento de movimentação. "
+            f"Usuário: {request.user.username} | Movement: {pk}",
+            exc_info=True,
+        )
+        if is_htmx:
+            return HttpResponse(
+                '<tr><td colspan="7" class="px-6 py-4 text-center">'
+                '<span class="text-red-600 text-xs font-medium px-3 py-2 '
+                'bg-red-50 rounded-lg inline-block">'
+                'Erro interno. Tente novamente.</span></td></tr>',
+                status=200,
+            )
+        messages.error(request, "Erro interno ao cancelar. Tente novamente.")
+
+    return redirect('movimentacoes:list')
+
+
+# ── Helpers de renderização HTML para respostas HTMX ─────────────────────────
+
+def _render_cancelled_row(result: dict) -> str:
+    """<tr> de confirmação após cancelamento bem-sucedido."""
+    qty = result['quantity_restored']
+    category = result['category']
+    farm = result['farm']
+    op = result['operation_display']
+    composite = ' (operação composta)' if result.get('is_composite') else ''
+
+    return f"""<tr class="bg-amber-50 transition-all duration-500">
+        <td colspan="7" class="px-6 py-4">
+            <div class="flex items-center justify-center gap-3 text-sm">
+                <div class="flex-shrink-0 w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center">
+                    <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+                <div class="text-amber-800">
+                    <span class="font-semibold">{op}</span> cancelada{composite} —
+                    saldo de <span class="font-semibold">{category}</span>
+                    em <span class="font-semibold">{farm}</span> revertido
+                    (<span class="font-semibold text-amber-700">{qty} animal(is)</span>)
+                </div>
+            </div>
+        </td>
+    </tr>"""
+
+
+def _render_already_cancelled_row(movement, cancellation) -> str:
+    """<tr> informando que a movimentação já foi cancelada (para HTMX)."""
+    return f"""<tr class="bg-gray-50 opacity-60">
+        <td colspan="7" class="px-6 py-4">
+            <div class="flex items-center justify-center gap-2 text-sm text-gray-500">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                Já cancelada em {cancellation.cancelled_at.strftime('%d/%m/%Y às %H:%M')}
+                por {cancellation.cancelled_by.username}
+            </div>
+        </td>
+    </tr>"""

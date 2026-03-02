@@ -10,30 +10,26 @@
     ══════════════════════════════════════════════════════════════════════ -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div class="flex items-center gap-4">
-            <!-- Ícone do módulo -->
             <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center shadow-lg flex-shrink-0">
                 <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
                 </svg>
             </div>
-            
-            <!-- Título e descrição -->
             <div>
                 <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Movimentações de Estoque</h1>
                 <p class="mt-1 text-sm text-gray-600">
                     Histórico de entradas e transferências
                     {% if total_count %}
                     <span class="text-gray-400">•</span>
-                    <span class="font-medium text-gray-900">{{ total_count }}</span> 
+                    <span class="font-medium text-gray-900">{{ total_count }}</span>
                     registro{{ total_count|pluralize }}
                     {% endif %}
                 </p>
             </div>
         </div>
-        
+
         <!-- Botões de ação -->
         <div class="flex flex-wrap gap-2">
-            <!-- Nascimento -->
             <a href="{% url 'movimentacoes:nascimento' %}"
                class="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white text-sm font-semibold rounded-xl shadow-md hover:shadow-lg transition-all">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -41,8 +37,6 @@
                 </svg>
                 <span class="hidden sm:inline">Nascimento</span>
             </a>
-            
-            <!-- Compra -->
             <a href="{% url 'movimentacoes:compra' %}"
                class="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white text-sm font-semibold rounded-xl shadow-md hover:shadow-lg transition-all">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -50,8 +44,6 @@
                 </svg>
                 <span class="hidden sm:inline">Compra</span>
             </a>
-            
-            <!-- Manejo -->
             <a href="{% url 'movimentacoes:manejo' %}"
                class="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 text-white text-sm font-semibold rounded-xl shadow-md hover:shadow-lg transition-all">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -59,8 +51,6 @@
                 </svg>
                 <span class="hidden sm:inline">Manejo</span>
             </a>
-            
-            <!-- Menu dropdown para outras operações -->
             <div class="relative" x-data="{ open: false }">
                 <button @click="open = !open"
                         class="inline-flex items-center gap-2 px-4 py-2.5 border-2 border-gray-300 text-gray-700 text-sm font-semibold rounded-xl hover:bg-gray-50 hover:border-gray-400 transition-all">
@@ -72,9 +62,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                     </svg>
                 </button>
-                
-                <!-- Dropdown -->
-                <div x-show="open" 
+                <div x-show="open"
                      @click.away="open = false"
                      x-cloak
                      class="absolute right-0 mt-2 w-56 rounded-xl shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
@@ -111,25 +99,19 @@
     ══════════════════════════════════════════════════════════════════════ -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
         <form method="get" action="" class="space-y-4">
-            
-            <!-- Linha 1: Busca -->
             <div class="relative">
                 <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                     <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                     </svg>
                 </div>
-                <input type="search" 
-                       name="q" 
+                <input type="search"
+                       name="q"
                        value="{{ search_term }}"
                        placeholder="Buscar por fazenda, categoria, usuário ou observação..."
                        class="block w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all">
             </div>
-            
-            <!-- Linha 2: Filtros -->
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                
-                <!-- Fazenda -->
                 <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1.5">Fazenda</label>
                     <select name="farm"
@@ -142,8 +124,6 @@
                         {% endfor %}
                     </select>
                 </div>
-
-                <!-- Tipo de Operação -->
                 <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1.5">Tipo de Operação</label>
                     <select name="tipo"
@@ -156,8 +136,6 @@
                         {% endfor %}
                     </select>
                 </div>
-
-                <!-- Mês -->
                 <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1.5">Mês</label>
                     <select name="mes"
@@ -168,8 +146,6 @@
                         {% endfor %}
                     </select>
                 </div>
-
-                <!-- Ano -->
                 <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1.5">Ano</label>
                     <select name="ano"
@@ -180,10 +156,7 @@
                         {% endfor %}
                     </select>
                 </div>
-                
             </div>
-
-            <!-- Botões de ação -->
             <div class="flex flex-wrap items-center gap-3 pt-3 border-t border-gray-100">
                 <button type="submit"
                         class="inline-flex items-center gap-2 px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold rounded-xl transition-all shadow-sm hover:shadow">
@@ -192,7 +165,6 @@
                     </svg>
                     <span>Filtrar</span>
                 </button>
-                
                 {% if filtros_ativos %}
                 <a href="{% url 'movimentacoes:list' %}"
                    class="inline-flex items-center gap-2 px-6 py-2.5 border-2 border-gray-300 text-gray-600 text-sm font-medium rounded-xl hover:bg-gray-50 hover:border-gray-400 transition-all">
@@ -201,9 +173,8 @@
                     </svg>
                     <span>Limpar Filtros</span>
                 </a>
-                
                 <span class="text-sm text-gray-600">
-                    <span class="font-semibold text-gray-900">{{ total_count }}</span> 
+                    <span class="font-semibold text-gray-900">{{ total_count }}</span>
                     resultado{{ total_count|pluralize }} encontrado{{ total_count|pluralize }}
                 </span>
                 {% endif %}
@@ -220,49 +191,89 @@
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                            Data/Hora
-                        </th>
-                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                            Fazenda
-                        </th>
-                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                            Categoria
-                        </th>
-                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                            Operação
-                        </th>
-                        <th scope="col" class="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                            Quantidade
-                        </th>
-                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                            Usuário
-                        </th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Data/Hora</th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Fazenda</th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Categoria</th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Operação</th>
+                        <th scope="col" class="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Quantidade</th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Usuário</th>
+                        <th scope="col" class="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Ações</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-100">
                     {% for movement in page_obj %}
-                    <tr class="hover:bg-gray-50 transition-colors">
-                        
-                        <!-- Data/Hora -->
+
+                    {# ── Verificar se está cancelada ── #}
+                    {% with is_cancelled=movement.cancellation_id %}
+
+                    {% if is_cancelled %}
+                    {# ═══════════════════════════════════════════ #}
+                    {# LINHA CANCELADA — riscada e opaca           #}
+                    {# ═══════════════════════════════════════════ #}
+                    <tr id="movement-row-{{ movement.pk }}" class="bg-gray-50 opacity-60">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                            <div class="flex flex-col">
+                                <span class="font-medium text-gray-400 line-through">{{ movement.timestamp|date:"d/m/Y" }}</span>
+                                <span class="text-xs text-gray-400">{{ movement.timestamp|date:"H:i" }}</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 text-sm font-medium text-gray-400 line-through">
+                            {{ movement.farm_stock_balance.farm.name }}
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-400 line-through">
+                            {{ movement.farm_stock_balance.animal_category.name }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center gap-2">
+                                <span class="inline-flex items-center px-3 py-1 rounded-lg text-xs font-semibold bg-gray-100 text-gray-400 line-through">
+                                    {{ movement.get_operation_type_display }}
+                                </span>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold bg-amber-100 text-amber-700 border border-amber-200">
+                                    Cancelada
+                                </span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-center">
+                            <span class="text-sm font-bold text-gray-400 line-through">
+                                {% if movement.movement_type == 'ENTRADA' %}+{% else %}−{% endif %}{{ movement.quantity }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
+                            {{ movement.created_by.username|default:"Sistema" }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-center">
+                            <span class="inline-flex items-center gap-1 text-xs text-gray-400 italic">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
+                                </svg>
+                                Cancelada
+                            </span>
+                            {% if movement.cancellation %}
+                            <p class="text-xs text-gray-400 mt-0.5">
+                                {{ movement.cancellation.cancelled_at|date:"d/m H:i" }}
+                                · {{ movement.cancellation.cancelled_by.username }}
+                            </p>
+                            {% endif %}
+                        </td>
+                    </tr>
+
+                    {% else %}
+                    {# ═══════════════════════════════════════════ #}
+                    {# LINHA NORMAL — com botão de cancelar        #}
+                    {# ═══════════════════════════════════════════ #}
+                    <tr id="movement-row-{{ movement.pk }}" class="hover:bg-gray-50 transition-colors">
                         <td class="px-6 py-4 whitespace-nowrap text-sm">
                             <div class="flex flex-col">
                                 <span class="font-medium text-gray-900">{{ movement.timestamp|date:"d/m/Y" }}</span>
                                 <span class="text-xs text-gray-500">{{ movement.timestamp|date:"H:i" }}</span>
                             </div>
                         </td>
-
-                        <!-- Fazenda -->
                         <td class="px-6 py-4 text-sm font-medium text-gray-900">
                             {{ movement.farm_stock_balance.farm.name }}
                         </td>
-
-                        <!-- Categoria -->
                         <td class="px-6 py-4 text-sm text-gray-700">
                             {{ movement.farm_stock_balance.animal_category.name }}
                         </td>
-
-                        <!-- Operação -->
                         <td class="px-6 py-4 whitespace-nowrap">
                             {% if movement.movement_type == 'ENTRADA' %}
                             <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-green-100 text-green-800">
@@ -280,21 +291,59 @@
                             </span>
                             {% endif %}
                         </td>
-
-                        <!-- Quantidade -->
                         <td class="px-6 py-4 whitespace-nowrap text-center">
                             <span class="text-sm font-bold
                                 {% if movement.movement_type == 'ENTRADA' %}text-green-600{% else %}text-orange-600{% endif %}">
                                 {% if movement.movement_type == 'ENTRADA' %}+{% else %}−{% endif %}{{ movement.quantity }}
                             </span>
                         </td>
-
-                        <!-- Usuário -->
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                             {{ movement.created_by.username|default:"Sistema" }}
                         </td>
-                        
+
+                        {# ── Botão de Cancelar ── #}
+                        <td class="px-6 py-4 whitespace-nowrap text-center">
+                            <div x-data="{ confirm: false }">
+                                {# Botão inicial #}
+                                <button
+                                    x-show="!confirm"
+                                    @click="confirm = true"
+                                    type="button"
+                                    title="Estornar movimentação"
+                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 hover:border-amber-300 transition-all">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+                                    </svg>
+                                    Estornar
+                                </button>
+
+                                {# Confirmação inline #}
+                                <div x-show="confirm" x-cloak class="flex items-center justify-center gap-1.5">
+                                    <span class="text-xs text-gray-600 font-medium">Confirmar?</span>
+                                    <form method="post"
+                                          action="{% url 'movimentacoes:cancelar' movement.pk %}"
+                                          hx-post="{% url 'movimentacoes:cancelar' movement.pk %}"
+                                          hx-target="#movement-row-{{ movement.pk }}"
+                                          hx-swap="outerHTML"
+                                          @htmx:before-request="confirm = false">
+                                        {% csrf_token %}
+                                        <button type="submit"
+                                                class="inline-flex items-center px-2.5 py-1 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors">
+                                            Sim
+                                        </button>
+                                    </form>
+                                    <button @click="confirm = false"
+                                            type="button"
+                                            class="inline-flex items-center px-2.5 py-1 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
+                                        Não
+                                    </button>
+                                </div>
+                            </div>
+                        </td>
                     </tr>
+                    {% endif %}
+
+                    {% endwith %}
                     {% endfor %}
                 </tbody>
             </table>
@@ -307,22 +356,18 @@
     {% if is_paginated %}
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 px-6 py-4">
         <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
-            
-            <!-- Info de paginação -->
             <div class="text-sm text-gray-600">
-                Mostrando 
-                <span class="font-semibold text-gray-900">{{ page_obj.start_index }}</span> 
-                a 
-                <span class="font-semibold text-gray-900">{{ page_obj.end_index }}</span> 
-                de 
-                <span class="font-semibold text-gray-900">{{ page_obj.paginator.count }}</span> 
+                Mostrando
+                <span class="font-semibold text-gray-900">{{ page_obj.start_index }}</span>
+                a
+                <span class="font-semibold text-gray-900">{{ page_obj.end_index }}</span>
+                de
+                <span class="font-semibold text-gray-900">{{ page_obj.paginator.count }}</span>
                 movimentação{{ page_obj.paginator.count|pluralize:"ção,ções" }}
             </div>
-
-            <!-- Controles de paginação -->
             <nav class="flex items-center gap-2">
                 {% if page_obj.has_previous %}
-                <a href="?page={{ page_obj.previous_page_number }}{% if search_term %}&q={{ search_term }}{% endif %}{% if farm_filtro %}&farm={{ farm_filtro }}{% endif %}{% if tipo_filtro %}&tipo={{ tipo_filtro }}{% endif %}{% if mes_filtro %}&mes={{ mes_filtro }}{% endif %}{% if ano_filtro %}&ano={{ ano_filtro }}{% endif %}" 
+                <a href="?page={{ page_obj.previous_page_number }}{% if search_term %}&q={{ search_term }}{% endif %}{% if farm_filtro %}&farm={{ farm_filtro }}{% endif %}{% if tipo_filtro %}&tipo={{ tipo_filtro }}{% endif %}{% if mes_filtro %}&mes={{ mes_filtro }}{% endif %}{% if ano_filtro %}&ano={{ ano_filtro }}{% endif %}"
                    class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-all">
                     <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
@@ -330,9 +375,8 @@
                     Anterior
                 </a>
                 {% endif %}
-
                 {% if page_obj.has_next %}
-                <a href="?page={{ page_obj.next_page_number }}{% if search_term %}&q={{ search_term }}{% endif %}{% if farm_filtro %}&farm={{ farm_filtro }}{% endif %}{% if tipo_filtro %}&tipo={{ tipo_filtro }}{% endif %}{% if mes_filtro %}&mes={{ mes_filtro }}{% endif %}{% if ano_filtro %}&ano={{ ano_filtro }}{% endif %}" 
+                <a href="?page={{ page_obj.next_page_number }}{% if search_term %}&q={{ search_term }}{% endif %}{% if farm_filtro %}&farm={{ farm_filtro }}{% endif %}{% if tipo_filtro %}&tipo={{ tipo_filtro }}{% endif %}{% if mes_filtro %}&mes={{ mes_filtro }}{% endif %}{% if ano_filtro %}&ano={{ ano_filtro }}{% endif %}"
                    class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-all">
                     Próxima
                     <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -355,13 +399,12 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
             </svg>
         </div>
-        
         {% if filtros_ativos %}
         <h3 class="text-lg font-semibold text-gray-900 mb-2">Nenhuma movimentação encontrada</h3>
         <p class="text-sm text-gray-500 mb-6 max-w-md mx-auto">
             Não encontramos movimentações com os filtros aplicados. Tente remover alguns filtros.
         </p>
-        <a href="{% url 'movimentacoes:list' %}" 
+        <a href="{% url 'movimentacoes:list' %}"
            class="inline-flex items-center gap-2 px-6 py-3 border-2 border-gray-300 text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition-all">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
