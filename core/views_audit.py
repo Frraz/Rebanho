@@ -18,18 +18,19 @@ from farms.models import Farm
 User = get_user_model()
 
 OPERATION_LABELS = {
-    'MORTE':                 ('☠️ Morte',          'red'),
-    'ABATE':                 ('🔪 Abate',          'gray'),
-    'VENDA':                 ('💰 Venda',          'green'),
-    'DOACAO':                ('🎁 Doação',         'blue'),
-    'NASCIMENTO':            ('🐣 Nascimento',     'emerald'),
-    'DESMAME':               ('🍼 Desmame',        'teal'),
-    'COMPRA':                ('🛒 Compra',         'indigo'),
-    'SALDO':                 ('⚖️ Saldo',          'purple'),
-    'MANEJO_IN':             ('🚚 Manejo (+)',     'violet'),
-    'MANEJO_OUT':            ('🚚 Manejo (−)',     'orange'),
-    'MUDANCA_CATEGORIA_IN':  ('🔄 Mud. Cat. (+)', 'cyan'),
-    'MUDANCA_CATEGORIA_OUT': ('🔄 Mud. Cat. (−)', 'amber'),
+    'MORTE':                 ('Morte',              'red'),
+    'ABATE':                 ('Abate',              'gray'),
+    'VENDA':                 ('Venda',              'green'),
+    'DOACAO':                ('Doacao',             'blue'),
+    'NASCIMENTO':            ('Nascimento',         'emerald'),
+    'DESMAME_IN':            ('Desmame (+)',        'teal'),
+    'DESMAME_OUT':           ('Desmame (-)',        'teal'),
+    'COMPRA':                ('Compra',             'indigo'),
+    'SALDO':                 ('Ajuste de Saldo',    'purple'),
+    'MANEJO_IN':             ('Manejo (+)',         'violet'),
+    'MANEJO_OUT':            ('Manejo (-)',         'orange'),
+    'MUDANCA_CATEGORIA_IN':  ('Mud. Categoria (+)', 'cyan'),
+    'MUDANCA_CATEGORIA_OUT': ('Mud. Categoria (-)', 'amber'),
 }
 
 COLOR_CLASSES = {
@@ -55,11 +56,20 @@ def _pode_ver_auditoria(user):
 
 def _enrich(movement):
     label, color = OPERATION_LABELS.get(movement.operation_type, (movement.operation_type, 'gray'))
+
+    # Verificar cancelamento via atributo prefetchado
+    cancellation = None
+    try:
+        cancellation = movement.cancellation
+    except Exception:
+        pass
+
     return {
         'obj':         movement,
         'label':       label,
         'color_class': COLOR_CLASSES.get(color, 'bg-gray-100 text-gray-800'),
         'is_saida':    movement.movement_type == 'SAIDA',
+        'cancellation': cancellation,
     }
 
 
@@ -82,6 +92,11 @@ def audit_list_view(request):
             'farm_stock_balance__animal_category',
             'created_by', 'client', 'death_reason',
             'related_movement__farm_stock_balance__farm',
+        )
+        # Carrega cancelamento e quem cancelou para exibição na auditoria
+        .prefetch_related(
+            'cancellation',
+            'cancellation__cancelled_by',
         )
         .order_by('-timestamp', '-created_at')
     )
@@ -155,15 +170,26 @@ def audit_list_view(request):
 @user_passes_test(_pode_ver_auditoria, login_url='/')
 def audit_detail_view(request, pk):
     movement = get_object_or_404(
-        AnimalMovement.objects.select_related(
+        AnimalMovement.objects
+        .select_related(
             'farm_stock_balance__farm', 'farm_stock_balance__animal_category',
             'created_by', 'client', 'death_reason',
             'related_movement__farm_stock_balance__farm',
             'related_movement__farm_stock_balance__animal_category',
+        )
+        .prefetch_related(
+            'cancellation',
+            'cancellation__cancelled_by',
         ),
         pk=pk
     )
     label, color = OPERATION_LABELS.get(movement.operation_type, (movement.operation_type, 'gray'))
+
+    cancellation = None
+    try:
+        cancellation = movement.cancellation
+    except Exception:
+        pass
 
     meta_map = {
         'observacao': 'Observação', 'peso': 'Peso (kg)',
@@ -180,5 +206,6 @@ def audit_detail_view(request, pk):
         'color_class': COLOR_CLASSES.get(color, 'bg-gray-100 text-gray-800'),
         'meta_items':  meta_items,
         'is_saida':    movement.movement_type == 'SAIDA',
+        'cancellation': cancellation,
     }
     return render(request, 'core/audit_detail.html', context)
