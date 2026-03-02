@@ -154,26 +154,6 @@
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-100">
                     {% for movement in page_obj %}
-                    {# ─────────────────────────────────────────────────────────────
-                       CORREÇÃO CRÍTICA:
-                       movement.cancellation_id NÃO EXISTE — é relacionamento
-                       OneToOne reverso, não um campo FK com coluna _id.
-                       A forma correta de verificar é tentar acessar o objeto
-                       via try/except no Python, ou usar a variável injetada
-                       pelo prefetch_related que popula o cache interno do ORM.
-
-                       No template Django, a única forma confiável é tentar
-                       acessar movement.cancellation e capturar a exceção via
-                       filtro. Como Django templates não têm try/except,
-                       usamos a variável auxiliar `has_cancellation` que deve
-                       ser anotada na view, OU usamos o truque abaixo:
-
-                       movement.cancellation retorna o objeto OU lança
-                       RelatedObjectDoesNotExist. No template, o acesso a um
-                       atributo que lança exceção retorna string vazia "".
-                       Então: {% if movement.cancellation %} funciona corretamente
-                       quando prefetch_related('cancellation') está no queryset.
-                    ───────────────────────────────────────────────────────────── #}
                     <tr id="occurrence-row-{{ movement.id }}"
                         class="{% if movement.cancellation %}bg-gray-50 opacity-60{% else %}hover:bg-gray-50{% endif %} transition-colors">
 
