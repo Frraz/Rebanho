@@ -3,205 +3,370 @@
 {% block title %}Auditoria - Sistema de Gestão{% endblock %}
 
 {% block content %}
-<div class="space-y-5">
+<div class="space-y-6">
 
-    {# ── Cabeçalho ─────────────────────────────────────────────────── #}
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-            <div class="flex items-center gap-3 mb-1">
-                <div class="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center flex-shrink-0">
-                    <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                    </svg>
-                </div>
-                <h1 class="text-2xl font-bold text-gray-900">Painel de Auditoria</h1>
+    {# ══════════════════════════════════════════════════════════════
+       CABEÇALHO
+    ══════════════════════════════════════════════════════════════ #}
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center shadow-lg flex-shrink-0">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                </svg>
             </div>
-            <p class="mt-1 text-sm text-gray-500 ml-13">
-                Histórico completo de todas as operações do sistema
-                {% if total_count %}— <strong>{{ total_count }}</strong> registro{{ total_count|pluralize }}{% endif %}
-            </p>
+            <div>
+                <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">Painel de Auditoria</h1>
+                <p class="text-sm text-gray-500 mt-0.5">
+                    Histórico completo de todas as operações
+                    {% if total_count %}
+                    <span class="text-gray-400">·</span>
+                    <span class="font-semibold text-gray-700">{{ total_count }}</span> registro{{ total_count|pluralize }}
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+
+        {# Pill de status geral #}
+        {% if filtros_ativos %}
+        <div class="flex-shrink-0">
+            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z"/>
+                </svg>
+                Filtros ativos
+            </span>
+        </div>
+        {% endif %}
+    </div>
+
+    {# ══════════════════════════════════════════════════════════════
+       PAINEL DE FILTROS — colapsável em mobile via Alpine
+    ══════════════════════════════════════════════════════════════ #}
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden"
+         x-data="{ open: {% if filtros_ativos %}true{% else %}false{% endif %} }">
+
+        {# Cabeçalho clicável #}
+        <button @click="open = !open" type="button"
+                class="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50 transition-colors">
+            <div class="flex items-center gap-2.5">
+                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z"/>
+                </svg>
+                <span class="text-sm font-semibold text-gray-700">Filtros de busca</span>
+                {% if filtros_ativos %}
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-indigo-100 text-indigo-700">
+                    ativo
+                </span>
+                {% endif %}
+            </div>
+            <svg class="w-4 h-4 text-gray-400 transition-transform duration-200"
+                 :class="open ? 'rotate-180' : ''"
+                 fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+        </button>
+
+        {# Corpo colapsável #}
+        <div x-show="open" x-collapse x-cloak>
+            <div class="px-5 pb-5 border-t border-gray-100">
+                <form method="get" class="space-y-4 pt-4">
+
+                    {# Busca textual #}
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                            <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                            </svg>
+                        </div>
+                        <input type="search" name="q" value="{{ search_term }}"
+                               class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                               placeholder="Fazenda, categoria, usuário, cliente, motivo...">
+                    </div>
+
+                    {# Selects — 2 colunas em mobile, 5 em desktop #}
+                    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+
+                        <div class="col-span-1">
+                            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Usuário</label>
+                            <select name="user" class="w-full border border-gray-300 rounded-xl text-sm py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white">
+                                <option value="">Todos</option>
+                                {% for u in usuarios %}
+                                <option value="{{ u.id }}" {% if u.id|stringformat:"s" == selected_user %}selected{% endif %}>
+                                    {{ u.get_full_name|default:u.username }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-span-1">
+                            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Operação</label>
+                            <select name="operation" class="w-full border border-gray-300 rounded-xl text-sm py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white">
+                                <option value="">Todas</option>
+                                {% for op_key, op_val in operation_types.items %}
+                                <option value="{{ op_key }}" {% if op_key == selected_op %}selected{% endif %}>{{ op_val.0 }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-span-2 sm:col-span-1">
+                            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Fazenda</label>
+                            <select name="farm" class="w-full border border-gray-300 rounded-xl text-sm py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white">
+                                <option value="">Todas</option>
+                                {% for farm in farms %}
+                                <option value="{{ farm.id }}" {% if farm.id|stringformat:"s" == selected_farm %}selected{% endif %}>{{ farm.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-span-1">
+                            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Mês</label>
+                            <select name="month" class="w-full border border-gray-300 rounded-xl text-sm py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white">
+                                <option value="">Todos</option>
+                                {% for num, nome in months %}
+                                <option value="{{ num }}" {% if num|stringformat:"s" == selected_month %}selected{% endif %}>{{ nome }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-span-1">
+                            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Ano</label>
+                            <select name="year" class="w-full border border-gray-300 rounded-xl text-sm py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white">
+                                <option value="">Todos</option>
+                                {% for y in years %}
+                                <option value="{{ y }}" {% if y|stringformat:"s" == selected_year %}selected{% endif %}>{{ y }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                    </div>
+
+                    {# Ações #}
+                    <div class="flex flex-wrap items-center gap-3 pt-1">
+                        <button type="submit"
+                                class="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl shadow-sm hover:shadow transition-all">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                            </svg>
+                            Aplicar filtros
+                        </button>
+                        {% if filtros_ativos %}
+                        <a href="{% url 'core:audit_list' %}"
+                           class="inline-flex items-center gap-2 px-4 py-2.5 border-2 border-gray-300 text-gray-600 text-sm font-medium rounded-xl hover:bg-gray-50 hover:border-gray-400 transition-all">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                            Limpar
+                        </a>
+                        <span class="text-sm text-gray-500">
+                            <span class="font-semibold text-gray-800">{{ total_count }}</span>
+                            resultado{{ total_count|pluralize }}
+                        </span>
+                        {% endif %}
+                    </div>
+
+                </form>
+            </div>
         </div>
     </div>
 
-    {# ── Filtros ───────────────────────────────────────────────────── #}
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-        <form method="get" class="space-y-3">
+    {# ══════════════════════════════════════════════════════════════
+       CONTEÚDO PRINCIPAL
+    ══════════════════════════════════════════════════════════════ #}
+    {% if movements %}
 
-            <div class="relative">
-                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                    </svg>
+    {# ── MOBILE: cards empilhados (visível até md) ── #}
+    <div class="flex flex-col gap-3 md:hidden">
+        {% for m in movements %}
+        <div class="bg-white rounded-2xl border {% if m.cancellation %}border-gray-200 opacity-70{% else %}border-gray-200 hover:border-indigo-200 hover:shadow-sm{% endif %} transition-all overflow-hidden">
+
+            {# Topo do card: data + status + operação #}
+            <div class="flex items-center justify-between px-4 pt-4 pb-3 border-b border-gray-100 {% if m.cancellation %}bg-gray-50{% endif %}">
+                <div class="flex items-center gap-2.5">
+                    {# Data #}
+                    <div class="text-center bg-gray-100 rounded-lg px-2.5 py-1.5 flex-shrink-0">
+                        <div class="text-xs font-bold text-gray-700 leading-none">{{ m.obj.timestamp|date:"d/m" }}</div>
+                        <div class="text-xs text-gray-400 leading-none mt-0.5">{{ m.obj.timestamp|date:"Y" }}</div>
+                    </div>
+                    {# Operação #}
+                    {% if m.cancellation %}
+                    <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-gray-100 text-gray-400 line-through">
+                        {{ m.label }}
+                    </span>
+                    {% else %}
+                    <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold {{ m.color_class }}">
+                        {{ m.label }}
+                    </span>
+                    {% endif %}
                 </div>
-                <input type="search" name="q" value="{{ search_term }}"
-                    class="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500"
-                    placeholder="Buscar por fazenda, categoria, usuário, cliente, motivo...">
+
+                <div class="flex items-center gap-2">
+                    {# Quantidade #}
+                    <span class="text-base font-extrabold
+                        {% if m.cancellation %}text-gray-300
+                        {% elif m.is_saida %}text-red-500
+                        {% else %}text-green-600{% endif %}
+                        {% if m.cancellation %}line-through{% endif %}">
+                        {% if m.is_saida %}−{% else %}+{% endif %}{{ m.obj.quantity }}
+                    </span>
+                    {# Status pill #}
+                    {% if m.cancellation %}
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-700 border border-amber-200">
+                        Estornada
+                    </span>
+                    {% else %}
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-green-50 text-green-700 border border-green-200">
+                        Ativa
+                    </span>
+                    {% endif %}
+                </div>
             </div>
 
-            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            {# Corpo do card: informações principais #}
+            <div class="px-4 py-3 space-y-2">
 
-                <div>
-                    <label class="block text-xs font-medium text-gray-500 mb-1">Usuário</label>
-                    <select name="user" class="w-full border border-gray-300 rounded-lg text-sm py-2 px-3 focus:ring-2 focus:ring-green-500">
-                        <option value="">Todos</option>
-                        {% for u in usuarios %}
-                        <option value="{{ u.id }}" {% if u.id|stringformat:"s" == selected_user %}selected{% endif %}>
-                            {{ u.get_full_name|default:u.username }}
-                        </option>
-                        {% endfor %}
-                    </select>
+                {# Fazenda + Categoria #}
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Fazenda</p>
+                        <p class="text-sm font-medium {% if m.cancellation %}text-gray-400{% else %}text-gray-800{% endif %} truncate">
+                            {{ m.obj.farm_stock_balance.farm.name }}
+                        </p>
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Categoria</p>
+                        <p class="text-sm font-medium {% if m.cancellation %}text-gray-400{% else %}text-gray-800{% endif %} truncate">
+                            {{ m.obj.farm_stock_balance.animal_category.name }}
+                        </p>
+                    </div>
                 </div>
 
-                <div>
-                    <label class="block text-xs font-medium text-gray-500 mb-1">Operação</label>
-                    <select name="operation" class="w-full border border-gray-300 rounded-lg text-sm py-2 px-3 focus:ring-2 focus:ring-green-500">
-                        <option value="">Todas</option>
-                        {% for op_key, op_val in operation_types.items %}
-                        <option value="{{ op_key }}" {% if op_key == selected_op %}selected{% endif %}>
-                            {{ op_val.0 }}
-                        </option>
-                        {% endfor %}
-                    </select>
+                {# Usuário + Detalhe #}
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Usuário</p>
+                        <div class="flex items-center gap-1.5">
+                            <div class="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
+                                <span class="text-xs font-bold text-indigo-700">{{ m.obj.created_by.username|first|upper }}</span>
+                            </div>
+                            <span class="text-sm {% if m.cancellation %}text-gray-400{% else %}text-gray-700{% endif %} truncate">
+                                {{ m.obj.created_by.get_full_name|default:m.obj.created_by.username }}
+                            </span>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Detalhe</p>
+                        <p class="text-sm {% if m.cancellation %}text-gray-400{% else %}text-gray-600{% endif %} truncate">
+                            {% if m.obj.client %}{{ m.obj.client.name }}
+                            {% elif m.obj.death_reason %}{{ m.obj.death_reason.name }}
+                            {% elif m.obj.metadata.observacao %}{{ m.obj.metadata.observacao|truncatechars:25 }}
+                            {% elif m.obj.related_movement %}{{ m.obj.related_movement.farm_stock_balance.farm.name }}
+                            {% else %}—{% endif %}
+                        </p>
+                    </div>
                 </div>
 
-                <div>
-                    <label class="block text-xs font-medium text-gray-500 mb-1">Fazenda</label>
-                    <select name="farm" class="w-full border border-gray-300 rounded-lg text-sm py-2 px-3 focus:ring-2 focus:ring-green-500">
-                        <option value="">Todas</option>
-                        {% for farm in farms %}
-                        <option value="{{ farm.id }}" {% if farm.id|stringformat:"s" == selected_farm %}selected{% endif %}>
-                            {{ farm.name }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-medium text-gray-500 mb-1">Mês</label>
-                    <select name="month" class="w-full border border-gray-300 rounded-lg text-sm py-2 px-3 focus:ring-2 focus:ring-green-500">
-                        <option value="">Todos</option>
-                        {% for num, nome in months %}
-                        <option value="{{ num }}" {% if num|stringformat:"s" == selected_month %}selected{% endif %}>{{ nome }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-medium text-gray-500 mb-1">Ano</label>
-                    <select name="year" class="w-full border border-gray-300 rounded-lg text-sm py-2 px-3 focus:ring-2 focus:ring-green-500">
-                        <option value="">Todos</option>
-                        {% for y in years %}
-                        <option value="{{ y }}" {% if y|stringformat:"s" == selected_year %}selected{% endif %}>{{ y }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-            </div>
-
-            <div class="flex items-center gap-3">
-                <button type="submit"
-                    class="inline-flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                {# Se estornada: mostrar info do estorno #}
+                {% if m.cancellation %}
+                <div class="flex items-center gap-1.5 pt-1 mt-1 border-t border-dashed border-amber-200 text-xs text-amber-600">
+                    <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
                     </svg>
-                    Filtrar
-                </button>
-                {% if filtros_ativos %}
-                <a href="{% url 'core:audit_list' %}"
-                   class="inline-flex items-center gap-2 px-3 py-2 border border-gray-300 text-gray-600 text-sm rounded-lg hover:bg-gray-50 transition-colors">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
-                    Limpar
-                </a>
-                <span class="text-sm text-gray-500">{{ total_count }} resultado{{ total_count|pluralize }}</span>
+                    Estornada em {{ m.cancellation.cancelled_at|date:"d/m/Y H:i" }} por {{ m.cancellation.cancelled_by.username }}
+                </div>
                 {% endif %}
             </div>
 
-        </form>
+            {# Rodapé do card: horário + link #}
+            <div class="flex items-center justify-between px-4 py-2.5 bg-gray-50 border-t border-gray-100">
+                <span class="text-xs text-gray-400">{{ m.obj.timestamp|date:"H:i" }} · {{ m.obj.timestamp|date:"d/m/Y" }}</span>
+                <a href="{% url 'core:audit_detail' m.obj.id %}"
+                   class="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition-colors">
+                    Detalhes
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
+                </a>
+            </div>
+        </div>
+        {% endfor %}
     </div>
 
-    {# ── Tabela ────────────────────────────────────────────────────── #}
-    {% if movements %}
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+    {# ── DESKTOP: tabela (visível a partir de md) ── #}
+    <div class="hidden md:block bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Data/Hora</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Usuário</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Fazenda</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Categoria</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Operação</th>
-                        <th class="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Qtd</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Detalhe</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-                        <th class="px-4 py-3"></th>
+            <table class="min-w-full">
+                <thead>
+                    <tr class="bg-gray-50 border-b border-gray-200">
+                        <th class="px-5 py-3.5 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Data/Hora</th>
+                        <th class="px-5 py-3.5 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Usuário</th>
+                        <th class="px-5 py-3.5 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Fazenda</th>
+                        <th class="px-5 py-3.5 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Categoria</th>
+                        <th class="px-5 py-3.5 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Operação</th>
+                        <th class="px-5 py-3.5 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Qtd</th>
+                        <th class="px-5 py-3.5 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Detalhe</th>
+                        <th class="px-5 py-3.5 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
+                        <th class="px-5 py-3.5 w-16"></th>
                     </tr>
                 </thead>
-                <tbody class="bg-white divide-y divide-gray-100">
+                <tbody class="divide-y divide-gray-100">
                     {% for m in movements %}
-                    <tr class="{% if m.cancellation %}bg-gray-50 opacity-70{% else %}hover:bg-gray-50{% endif %} transition-colors">
+                    <tr class="group {% if m.cancellation %}bg-gray-50/60{% else %}hover:bg-indigo-50/30{% endif %} transition-colors duration-150">
 
                         {# Data/Hora #}
-                        <td class="px-4 py-3 whitespace-nowrap">
-                            <div class="text-sm font-medium {% if m.cancellation %}text-gray-400 line-through{% else %}text-gray-900{% endif %}">
+                        <td class="px-5 py-3.5 whitespace-nowrap">
+                            <div class="text-sm font-semibold {% if m.cancellation %}text-gray-400 line-through{% else %}text-gray-900{% endif %}">
                                 {{ m.obj.timestamp|date:"d/m/Y" }}
                             </div>
-                            <div class="text-xs text-gray-400">{{ m.obj.timestamp|date:"H:i" }}</div>
+                            <div class="text-xs text-gray-400 mt-0.5">{{ m.obj.timestamp|date:"H:i" }}</div>
                         </td>
 
                         {# Usuário #}
-                        <td class="px-4 py-3 whitespace-nowrap">
-                            <div class="flex items-center gap-2">
-                                <div class="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-                                    <span class="text-xs font-bold text-green-700">
-                                        {{ m.obj.created_by.username|first|upper }}
-                                    </span>
+                        <td class="px-5 py-3.5 whitespace-nowrap">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0 ring-1 ring-indigo-200">
+                                    <span class="text-xs font-bold text-indigo-700">{{ m.obj.created_by.username|first|upper }}</span>
                                 </div>
-                                <span class="text-sm {% if m.cancellation %}text-gray-400{% else %}text-gray-700{% endif %}">
+                                <span class="text-sm {% if m.cancellation %}text-gray-400{% else %}text-gray-700{% endif %} font-medium">
                                     {{ m.obj.created_by.get_full_name|default:m.obj.created_by.username }}
                                 </span>
                             </div>
                         </td>
 
                         {# Fazenda #}
-                        <td class="px-4 py-3 text-sm {% if m.cancellation %}text-gray-400{% else %}text-gray-700{% endif %} whitespace-nowrap">
-                            <div class="flex items-center gap-2">
-                                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
-                                </svg>
-                                <span>{{ m.obj.farm_stock_balance.farm.name }}</span>
-                            </div>
+                        <td class="px-5 py-3.5 whitespace-nowrap">
+                            <span class="text-sm {% if m.cancellation %}text-gray-400{% else %}text-gray-700{% endif %}">
+                                {{ m.obj.farm_stock_balance.farm.name }}
+                            </span>
                         </td>
 
                         {# Categoria #}
-                        <td class="px-4 py-3 text-sm {% if m.cancellation %}text-gray-400{% else %}text-gray-700{% endif %} whitespace-nowrap">
-                            <div class="flex items-center gap-2">
-                                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
-                                </svg>
-                                <span>{{ m.obj.farm_stock_balance.animal_category.name }}</span>
-                            </div>
+                        <td class="px-5 py-3.5 whitespace-nowrap">
+                            <span class="text-sm {% if m.cancellation %}text-gray-400{% else %}text-gray-700{% endif %}">
+                                {{ m.obj.farm_stock_balance.animal_category.name }}
+                            </span>
                         </td>
 
                         {# Operação #}
-                        <td class="px-4 py-3 whitespace-nowrap">
+                        <td class="px-5 py-3.5 whitespace-nowrap">
                             {% if m.cancellation %}
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-400 line-through">
-                                    {{ m.label }}
-                                </span>
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-gray-100 text-gray-400 line-through">
+                                {{ m.label }}
+                            </span>
                             {% else %}
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ m.color_class }}">
-                                    {{ m.label }}
-                                </span>
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold {{ m.color_class }}">
+                                {{ m.label }}
+                            </span>
                             {% endif %}
                         </td>
 
                         {# Quantidade #}
-                        <td class="px-4 py-3 text-center whitespace-nowrap">
-                            <span class="text-sm font-bold
-                                {% if m.cancellation %}text-gray-400 line-through
+                        <td class="px-5 py-3.5 text-center whitespace-nowrap">
+                            <span class="text-sm font-extrabold
+                                {% if m.cancellation %}text-gray-300 line-through
                                 {% elif m.is_saida %}text-red-600
                                 {% else %}text-green-600{% endif %}">
                                 {% if m.is_saida %}−{% else %}+{% endif %}{{ m.obj.quantity }}
@@ -209,68 +374,51 @@
                         </td>
 
                         {# Detalhe #}
-                        <td class="px-4 py-3 text-xs {% if m.cancellation %}text-gray-400{% else %}text-gray-500{% endif %} max-w-xs truncate">
-                            {% if m.obj.client %}
-                                <div class="flex items-center gap-1.5">
-                                    <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                                    </svg>
-                                    <span>{{ m.obj.client.name }}</span>
-                                </div>
-                            {% elif m.obj.death_reason %}
-                                <div class="flex items-center gap-1.5">
-                                    <svg class="w-3.5 h-3.5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                                    </svg>
-                                    <span>{{ m.obj.death_reason.name }}</span>
-                                </div>
-                            {% elif m.obj.metadata.observacao %}
-                                {{ m.obj.metadata.observacao|truncatechars:40 }}
-                            {% elif m.obj.related_movement %}
-                                <div class="flex items-center gap-1.5">
-                                    <svg class="w-3.5 h-3.5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
-                                    </svg>
-                                    <span>{{ m.obj.related_movement.farm_stock_balance.farm.name }}</span>
-                                </div>
-                            {% else %}
-                                —
-                            {% endif %}
+                        <td class="px-5 py-3.5 max-w-[200px]">
+                            <span class="text-sm {% if m.cancellation %}text-gray-400{% else %}text-gray-500{% endif %} truncate block">
+                                {% if m.obj.client %}{{ m.obj.client.name }}
+                                {% elif m.obj.death_reason %}{{ m.obj.death_reason.name }}
+                                {% elif m.obj.metadata.observacao %}{{ m.obj.metadata.observacao|truncatechars:35 }}
+                                {% elif m.obj.related_movement %}{{ m.obj.related_movement.farm_stock_balance.farm.name }}
+                                {% else %}<span class="text-gray-300">—</span>{% endif %}
+                            </span>
                         </td>
 
-                        {# Status — cancelamento #}
-                        <td class="px-4 py-3 whitespace-nowrap">
+                        {# Status #}
+                        <td class="px-5 py-3.5 whitespace-nowrap">
                             {% if m.cancellation %}
-                                <div class="flex flex-col gap-0.5">
-                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">
-                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                  d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
-                                        </svg>
-                                        Estornada
-                                    </span>
-                                    <span class="text-xs text-gray-400">
-                                        {{ m.cancellation.cancelled_at|date:"d/m/Y H:i" }}
-                                        · {{ m.cancellation.cancelled_by.username }}
-                                    </span>
-                                </div>
-                            {% else %}
-                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-green-50 text-green-700">
+                            <div class="space-y-1">
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200/80">
                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                              d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
                                     </svg>
-                                    Ativa
+                                    Estornada
                                 </span>
+                                <div class="text-xs text-gray-400 pl-0.5">
+                                    {{ m.cancellation.cancelled_at|date:"d/m/Y H:i" }}
+                                    <span class="text-gray-300">·</span>
+                                    {{ m.cancellation.cancelled_by.username }}
+                                </div>
+                            </div>
+                            {% else %}
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                </svg>
+                                Ativa
+                            </span>
                             {% endif %}
                         </td>
 
-                        {# Ação #}
-                        <td class="px-4 py-3 text-center">
+                        {# Link #}
+                        <td class="px-5 py-3.5 text-center">
                             <a href="{% url 'core:audit_detail' m.obj.id %}"
-                               class="inline-flex items-center gap-1 text-xs text-green-600 hover:text-green-800 hover:underline font-medium whitespace-nowrap">
-                                <span>Ver</span>
-                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                               class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 border border-transparent hover:border-indigo-200 transition-all"
+                               title="Ver detalhes">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                                 </svg>
                             </a>
                         </td>
@@ -280,30 +428,101 @@
                 </tbody>
             </table>
         </div>
+
+        {# Rodapé da tabela com contagem #}
+        <div class="px-5 py-3 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
+            <span class="text-xs text-gray-400">
+                Exibindo {{ page_obj.start_index }}–{{ page_obj.end_index }} de {{ page_obj.paginator.count }} registro{{ page_obj.paginator.count|pluralize }}
+            </span>
+            <span class="text-xs text-gray-400">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+        </div>
     </div>
 
-    {% include 'shared/pagination.html' %}
-
-    {% else %}
-    <div class="text-center py-16 bg-white rounded-xl border border-gray-200">
-        <div class="flex justify-center mb-4">
-            <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
-                <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+    {# ── PAGINAÇÃO — compartilhada entre mobile e desktop ── #}
+    {% if page_obj.has_other_pages %}
+    <div class="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white rounded-2xl border border-gray-200 px-5 py-4 shadow-sm">
+        <div class="text-sm text-gray-500 order-2 sm:order-1">
+            Página <span class="font-semibold text-gray-800">{{ page_obj.number }}</span>
+            de <span class="font-semibold text-gray-800">{{ page_obj.paginator.num_pages }}</span>
+        </div>
+        <nav class="flex items-center gap-1 order-1 sm:order-2" aria-label="Paginação">
+            {# Primeira #}
+            {% if page_obj.has_previous %}
+            <a href="?page=1{% if search_term %}&q={{ search_term }}{% endif %}{% if selected_user %}&user={{ selected_user }}{% endif %}{% if selected_op %}&operation={{ selected_op }}{% endif %}{% if selected_farm %}&farm={{ selected_farm }}{% endif %}{% if selected_month %}&month={{ selected_month }}{% endif %}{% if selected_year %}&year={{ selected_year }}{% endif %}"
+               class="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-300 text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-all text-xs font-medium"
+               title="Primeira página">
+                «
+            </a>
+            <a href="?page={{ page_obj.previous_page_number }}{% if search_term %}&q={{ search_term }}{% endif %}{% if selected_user %}&user={{ selected_user }}{% endif %}{% if selected_op %}&operation={{ selected_op }}{% endif %}{% if selected_farm %}&farm={{ selected_farm }}{% endif %}{% if selected_month %}&month={{ selected_month }}{% endif %}{% if selected_year %}&year={{ selected_year }}{% endif %}"
+               class="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-300 text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-all">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
                 </svg>
-            </div>
+            </a>
+            {% else %}
+            <span class="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 text-gray-300 cursor-default text-xs">«</span>
+            <span class="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 text-gray-300 cursor-default">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                </svg>
+            </span>
+            {% endif %}
+
+            {# Página atual #}
+            <span class="inline-flex items-center justify-center min-w-[2.25rem] h-9 px-3 rounded-lg bg-indigo-600 text-white text-sm font-bold shadow-sm">
+                {{ page_obj.number }}
+            </span>
+
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if search_term %}&q={{ search_term }}{% endif %}{% if selected_user %}&user={{ selected_user }}{% endif %}{% if selected_op %}&operation={{ selected_op }}{% endif %}{% if selected_farm %}&farm={{ selected_farm }}{% endif %}{% if selected_month %}&month={{ selected_month }}{% endif %}{% if selected_year %}&year={{ selected_year }}{% endif %}"
+               class="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-300 text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-all">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+            </a>
+            <a href="?page={{ page_obj.paginator.num_pages }}{% if search_term %}&q={{ search_term }}{% endif %}{% if selected_user %}&user={{ selected_user }}{% endif %}{% if selected_op %}&operation={{ selected_op }}{% endif %}{% if selected_farm %}&farm={{ selected_farm }}{% endif %}{% if selected_month %}&month={{ selected_month }}{% endif %}{% if selected_year %}&year={{ selected_year }}{% endif %}"
+               class="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-300 text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-all text-xs font-medium"
+               title="Última página">
+                »
+            </a>
+            {% else %}
+            <span class="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 text-gray-300 cursor-default">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+            </span>
+            <span class="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 text-gray-300 cursor-default text-xs">»</span>
+            {% endif %}
+        </nav>
+    </div>
+    {% endif %}
+
+    {# ══════════════════════════════════════════════════════════════
+       ESTADO VAZIO
+    ══════════════════════════════════════════════════════════════ #}
+    {% else %}
+    <div class="text-center py-20 bg-white rounded-2xl border border-gray-200">
+        <div class="inline-flex items-center justify-center w-16 h-16 bg-indigo-50 rounded-2xl mb-5">
+            <svg class="w-8 h-8 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {% if filtros_ativos %}
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                {% else %}
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                {% endif %}
+            </svg>
         </div>
         {% if filtros_ativos %}
-        <h3 class="text-base font-semibold text-gray-900 mb-1">Nenhum registro encontrado</h3>
-        <p class="text-sm text-gray-500 mb-4">Tente ajustar os filtros.</p>
-        <a href="{% url 'core:audit_list' %}" class="inline-flex items-center gap-1 text-sm text-green-600 hover:underline">
+        <h3 class="text-base font-bold text-gray-900 mb-1">Nenhum registro encontrado</h3>
+        <p class="text-sm text-gray-500 mb-5">Tente ajustar ou remover os filtros aplicados.</p>
+        <a href="{% url 'core:audit_list' %}"
+           class="inline-flex items-center gap-2 px-5 py-2.5 border-2 border-gray-300 text-gray-700 text-sm font-medium rounded-xl hover:bg-gray-50 transition-all">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
             </svg>
             Limpar filtros
         </a>
         {% else %}
-        <h3 class="text-base font-semibold text-gray-900 mb-1">Nenhuma operação registrada ainda</h3>
+        <h3 class="text-base font-bold text-gray-900 mb-1">Nenhuma operação registrada ainda</h3>
         <p class="text-sm text-gray-500">O histórico aparecerá aqui conforme operações forem realizadas.</p>
         {% endif %}
     </div>
