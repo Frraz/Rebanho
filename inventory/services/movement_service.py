@@ -450,3 +450,163 @@ class MovementService:
             'usuario': movement.created_by.username,
             'metadata': movement.metadata,
         }
+    
+    @staticmethod
+    @transaction.atomic
+    def edit_movement(movement_id: str, updated_by, data: dict) -> dict:
+        """
+        Edita campos de uma movimentação ativa (não cancelada).
+
+        REGRAS ESPECÍFICAS PARA MOVIMENTAÇÕES:
+        - Operações simples (NASCIMENTO, COMPRA, SALDO): todos os campos editáveis
+        - Operações compostas (MANEJO, DESMAME, MUDANCA_CATEGORIA):
+            → quantidade BLOQUEADA (dois lados desalinhados seria inconsistência grave)
+            → timestamp e metadata editáveis normalmente
+
+        DESIGN: usa QuerySet.update() de forma deliberada para bypassar
+        a proteção de ledger do model.save(). Este service é o único
+        ponto autorizado a realizar essa operação.
+
+        Args:
+            movement_id: UUID da movimentação
+            updated_by:  User que está editando
+            data: dict com campos editáveis:
+                quantity (int), timestamp (datetime), metadata (dict)
+
+        Returns:
+            dict com resultado para feedback na view
+
+        Raises:
+            ValidationError: movimento cancelado, saldo insuficiente,
+                            tentativa de editar qty em operação composta
+        """
+        from django.db.models import F
+        from inventory.models import AnimalMovementCancellation
+
+        # ── 1. Buscar movement SEM lock (FKs nullable)
+        try:
+            movement = (
+                AnimalMovement.objects
+                .select_related('farm_stock_balance__farm', 'farm_stock_balance__animal_category')
+                .get(id=movement_id)
+            )
+        except AnimalMovement.DoesNotExist:
+            raise ValidationError("Movimentação não encontrada.")
+
+        # ── 2. Bloquear edição de movimentos cancelados
+        if AnimalMovementCancellation.objects.filter(movement_id=movement_id).exists():
+            raise ValidationError("Movimentações canceladas não podem ser editadas.")
+
+        # ── 3. Bloquear edição de quantidade em operações compostas
+        COMPOSITE_TYPES = {
+            OperationType.MANEJO_IN.value,
+            OperationType.MANEJO_OUT.value,
+            OperationType.MUDANCA_CATEGORIA_IN.value,
+            OperationType.MUDANCA_CATEGORIA_OUT.value,
+            OperationType.DESMAME_IN.value,
+            OperationType.DESMAME_OUT.value,
+        }
+
+        new_quantity = data.get('quantity')
+        is_composite = movement.operation_type in COMPOSITE_TYPES
+        quantity_changed = new_quantity is not None and new_quantity != movement.quantity
+
+        if quantity_changed and is_composite:
+            raise ValidationError(
+                "Não é possível editar a quantidade de operações compostas "
+                "(Manejo, Desmame, Mudança de Categoria). "
+                "Para corrigir, cancele a operação e registre novamente."
+            )
+
+        update_fields = {}
+        balance_result = None
+
+        # ── 4. Delta de quantidade (apenas operações simples)
+        if quantity_changed:
+            if new_quantity <= 0:
+                raise ValidationError("Quantidade deve ser maior que zero.")
+
+            balance = (
+                FarmStockBalance.objects
+                .select_related('farm', 'animal_category')
+                .select_for_update(nowait=False)
+                .get(id=movement.farm_stock_balance_id)
+            )
+
+            balance_before = balance.current_quantity
+
+            if movement.movement_type == MovementType.ENTRADA.value:
+                # Era ENTRADA: delta positivo → saldo aumenta mais; negativo → reduz
+                delta = new_quantity - movement.quantity
+                new_balance = balance.current_quantity + delta
+                if new_balance < 0:
+                    raise ValidationError(
+                        f"Não é possível reduzir esta entrada: "
+                        f"o saldo atual ({balance.current_quantity}) ficaria negativo."
+                    )
+            else:
+                # Era SAÍDA: delta positivo → precisamos retirar mais do saldo
+                delta = new_quantity - movement.quantity
+                if delta > 0 and balance.current_quantity < delta:
+                    raise ValidationError(
+                        f"Saldo insuficiente para aumentar a saída. "
+                        f"Disponível: {balance.current_quantity}, delta: {delta}."
+                    )
+                new_balance = balance.current_quantity - delta
+
+            updated_rows = FarmStockBalance.objects.filter(
+                id=balance.id,
+                version=balance.version,
+            ).update(
+                current_quantity=new_balance,
+                version=F('version') + 1,
+                updated_at=timezone.now(),
+            )
+
+            if updated_rows == 0:
+                raise ConcurrencyError("Saldo de estoque")
+
+            update_fields['quantity'] = new_quantity
+            balance_result = {'before': balance_before, 'after': new_balance}
+
+        # ── 5. Campos sem impacto no saldo
+        if 'timestamp' in data and data['timestamp']:
+            update_fields['timestamp'] = data['timestamp']
+
+        # ── 6. Merge de metadata + auditoria
+        if 'metadata' in data or update_fields:
+            current_meta = movement.metadata or {}
+            if 'metadata' in data:
+                current_meta.update({k: v for k, v in data['metadata'].items() if v is not None})
+            current_meta['_edited_by'] = updated_by.username
+            current_meta['_edited_at'] = timezone.now().isoformat()
+            current_meta['_qty_before_edit'] = movement.quantity
+            update_fields['metadata'] = current_meta
+
+        # ── 7. Aplicar update — bypass INTENCIONAL do model.save()
+        if update_fields:
+            AnimalMovement.objects.filter(id=movement_id).update(**update_fields)
+
+        from django.core.cache import cache
+        farm_id = str(movement.farm_stock_balance.farm_id)
+        cache.delete(f'farm_summary_{farm_id}')
+        cache.delete(f'farm_history_{farm_id}')
+        cache.delete('farms_list')
+
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(
+            f"[EDIÇÃO] Movimentação {movement_id} editada por {updated_by.username}. "
+            f"Campos: {list(update_fields.keys())} | "
+            f"Qty: {movement.quantity} → {update_fields.get('quantity', movement.quantity)}"
+        )
+
+        return {
+            'farm': movement.farm_stock_balance.farm.name,
+            'category': movement.farm_stock_balance.animal_category.name,
+            'operation_display': movement.get_operation_type_display(),
+            'is_composite': is_composite,
+            'quantity_before': movement.quantity,
+            'quantity_after': update_fields.get('quantity', movement.quantity),
+            'balance': balance_result,
+        }

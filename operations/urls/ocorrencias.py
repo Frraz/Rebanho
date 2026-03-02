@@ -1,5 +1,5 @@
 """
-operations/urls/ocorrencias.py — arquivo COMPLETO atualizado.
+operations/urls/ocorrencias.py
 """
 
 from django.urls import path
@@ -36,6 +36,13 @@ urlpatterns = [
         'doacao/',
         ocorrencias.doacao_create_view,
         name='doacao'
+    ),
+
+    # ── Edição ────────────────────────────────────────────────────────────────
+    path(
+        '<uuid:pk>/editar/',
+        ocorrencias.occurrence_edit_view,
+        name='editar',
     ),
 
     # ── Cancelamento (estorno) ────────────────────────────────────────────────

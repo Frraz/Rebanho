@@ -567,3 +567,119 @@ def _render_already_cancelled_row(movement, cancellation) -> str:
             </div>
         </td>
     </tr>"""
+
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def occurrence_edit_view(request, pk):
+    """
+    Edita uma ocorrência ativa.
+    GET  → form pré-preenchido
+    POST → processa edição via OccurrenceService.edit_occurrence
+    """
+    from operations.models import Client, DeathReason
+
+    movement = get_object_or_404(
+        AnimalMovement.objects
+        .select_related(
+            'farm_stock_balance__farm',
+            'farm_stock_balance__animal_category',
+            'client',
+            'death_reason',
+            'created_by',
+        )
+        .prefetch_related('cancellation'),
+        pk=pk,
+        operation_type__in=OCCURRENCE_TYPES,
+    )
+
+    # Bloquear edição de canceladas — sem try/except: acessamos o manager direto
+    from inventory.models import AnimalMovementCancellation
+    if AnimalMovementCancellation.objects.filter(movement_id=pk).exists():
+        messages.warning(request, "Ocorrências canceladas não podem ser editadas.")
+        return redirect('ocorrencias:list')
+
+    op = movement.operation_type
+    meta = movement.metadata or {}
+
+    if request.method == 'POST':
+        try:
+            quantity = int(request.POST.get('quantity', movement.quantity))
+            observacao = request.POST.get('observacao', '').strip()
+            peso = request.POST.get('peso', '').strip()
+            preco_total = request.POST.get('preco_total', '').strip()
+            timestamp_str = request.POST.get('timestamp', '').strip()
+            client_id = request.POST.get('client_id', '').strip() or None
+            death_reason_id = request.POST.get('death_reason_id', '').strip() or None
+
+            # Montar metadata apenas com campos preenchidos
+            new_meta = {}
+            if observacao:
+                new_meta['observacao'] = observacao
+            if peso:
+                new_meta['peso'] = peso
+            if preco_total:
+                new_meta['preco_total'] = preco_total
+
+            data = {
+                'quantity': quantity,
+                'metadata': new_meta,
+            }
+
+            if timestamp_str:
+                from django.utils.dateparse import parse_datetime
+                ts = parse_datetime(timestamp_str)
+                if ts:
+                    from django.utils import timezone as tz
+                    if tz.is_naive(ts):
+                        ts = tz.make_aware(ts)
+                    data['timestamp'] = ts
+
+            if client_id:
+                data['client_id'] = client_id
+            if death_reason_id:
+                data['death_reason_id'] = death_reason_id
+
+            result = OccurrenceService.edit_occurrence(
+                movement_id=str(pk),
+                updated_by=request.user,
+                data=data,
+            )
+
+            messages.success(
+                request,
+                f"Ocorrência atualizada. "
+                f"Quantidade: {result['quantity_before']} → {result['quantity_after']}."
+                if result['quantity_before'] != result['quantity_after']
+                else "Ocorrência atualizada com sucesso."
+            )
+            return redirect('ocorrencias:list')
+
+        except ValidationError as e:
+            error = e.message if hasattr(e, 'message') else str(e)
+            messages.error(request, error)
+        except (ValueError, TypeError) as e:
+            messages.error(request, f"Dado inválido: {e}")
+        except Exception as e:
+            logger.error(f"Erro ao editar ocorrência {pk}: {e}", exc_info=True)
+            messages.error(request, "Erro interno ao editar. Tente novamente.")
+
+    # Contexto para o template
+    clients = Client.objects.filter(is_active=True).order_by('name')
+    death_reasons = DeathReason.objects.filter(is_active=True).order_by('name')
+
+    context = {
+        'movement': movement,
+        'op': op,
+        'meta': meta,
+        'clients': clients,
+        'death_reasons': death_reasons,
+        'cancel_url': reverse('ocorrencias:list'),
+        'timestamp_value': movement.timestamp.strftime('%Y-%m-%dT%H:%M'),
+        'shows_client': op in ('VENDA', 'DOACAO'),
+        'shows_death_reason': op == 'MORTE',
+        'shows_preco': op == 'VENDA',
+    }
+
+    return render(request, 'operations/occurrence_edit.html', context)

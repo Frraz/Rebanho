@@ -772,3 +772,100 @@ def _render_already_cancelled_row(movement, cancellation) -> str:
             </div>
         </td>
     </tr>"""
+
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def movement_edit_view(request, pk):
+    """
+    Edita uma movimentação ativa.
+    Operações compostas: apenas timestamp e metadata editáveis.
+    Operações simples: quantidade também editável.
+    """
+    from inventory.models import AnimalMovementCancellation
+
+    movement = get_object_or_404(
+        AnimalMovement.objects
+        .select_related(
+            'farm_stock_balance__farm',
+            'farm_stock_balance__animal_category',
+            'created_by',
+        )
+        .prefetch_related('cancellation'),
+        pk=pk,
+    )
+
+    # Bloquear canceladas
+    if AnimalMovementCancellation.objects.filter(movement_id=pk).exists():
+        messages.warning(request, "Movimentações canceladas não podem ser editadas.")
+        return redirect('movimentacoes:list')
+
+    # Não editar ocorrências por esta view
+    if movement.operation_type in OCCURRENCE_TYPES:
+        return redirect('ocorrencias:list')
+
+    is_composite = movement.operation_type in COMPOSITE_OPERATIONS
+    meta = movement.metadata or {}
+
+    if request.method == 'POST':
+        try:
+            quantity = int(request.POST.get('quantity', movement.quantity))
+            observacao = request.POST.get('observacao', '').strip()
+            peso = request.POST.get('peso', '').strip()
+            timestamp_str = request.POST.get('timestamp', '').strip()
+
+            new_meta = {}
+            if observacao:
+                new_meta['observacao'] = observacao
+            if peso:
+                new_meta['peso'] = peso
+
+            data = {
+                'quantity': quantity,
+                'metadata': new_meta,
+            }
+
+            if timestamp_str:
+                from django.utils.dateparse import parse_datetime
+                from django.utils import timezone as tz
+                ts = parse_datetime(timestamp_str)
+                if ts:
+                    if tz.is_naive(ts):
+                        ts = tz.make_aware(ts)
+                    data['timestamp'] = ts
+
+            result = MovementService.edit_movement(
+                movement_id=str(pk),
+                updated_by=request.user,
+                data=data,
+            )
+
+            messages.success(
+                request,
+                f"Movimentação atualizada. "
+                f"Quantidade: {result['quantity_before']} → {result['quantity_after']}."
+                if result['quantity_before'] != result['quantity_after']
+                else "Movimentação atualizada com sucesso."
+            )
+            return redirect('movimentacoes:list')
+
+        except ValidationError as e:
+            error = e.message if hasattr(e, 'message') else str(e)
+            messages.error(request, error)
+        except (ValueError, TypeError) as e:
+            messages.error(request, f"Dado inválido: {e}")
+        except Exception as e:
+            logger.error(f"Erro ao editar movimentação {pk}: {e}", exc_info=True)
+            messages.error(request, "Erro interno ao editar. Tente novamente.")
+
+    context = {
+        'movement': movement,
+        'meta': meta,
+        'is_composite': is_composite,
+        'cancel_url': reverse('movimentacoes:list'),
+        'timestamp_value': movement.timestamp.strftime('%Y-%m-%dT%H:%M'),
+        'operation_label': OPERATION_TYPE_LABELS.get(movement.operation_type, movement.get_operation_type_display()),
+    }
+
+    return render(request, 'inventory/movement_edit.html', context)

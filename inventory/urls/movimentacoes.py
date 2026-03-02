@@ -66,4 +66,9 @@ urlpatterns = [
         movimentacoes.movement_cancel_view,
         name='cancelar'
     ),
+    path(
+        '<uuid:pk>/editar/',
+        movimentacoes.movement_edit_view,
+        name='editar',
+    ),
 ]

@@ -1,0 +1,173 @@
+{# inventory/templates/inventory/movement_edit.html #}
+{% extends 'base/base.html' %}
+
+{% block title %}Editar Movimentação — {{ operation_label }}{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto space-y-6">
+
+    {# ── Cabeçalho ── #}
+    <div class="flex items-center gap-4">
+        <a href="{{ cancel_url }}"
+           class="inline-flex items-center justify-center w-10 h-10 rounded-xl border-2 border-gray-200 text-gray-500 hover:bg-gray-50 hover:border-gray-300 transition-all">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+        </a>
+        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600
+                    flex items-center justify-center shadow-lg flex-shrink-0">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5
+                         m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+            </svg>
+        </div>
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Editar Movimentação</h1>
+            <p class="text-sm text-gray-500 mt-0.5">
+                <span class="font-medium text-gray-700">{{ movement.farm_stock_balance.farm.name }}</span>
+                <span class="text-gray-400 mx-1">·</span>
+                {{ movement.farm_stock_balance.animal_category.name }}
+                <span class="text-gray-400 mx-1">·</span>
+                {{ operation_label }}
+            </p>
+        </div>
+    </div>
+
+    {# ── Mensagens ── #}
+    {% if messages %}
+    {% for msg in messages %}
+    <div class="flex items-start gap-3 px-4 py-3 rounded-xl border
+        {% if msg.tags == 'error' %}bg-red-50 border-red-200 text-red-800
+        {% else %}bg-green-50 border-green-200 text-green-800{% endif %}">
+        <svg class="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <span class="text-sm font-medium">{{ msg }}</span>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    {# ── Aviso operação composta — quantidade bloqueada ── #}
+    {% if is_composite %}
+    <div class="flex items-start gap-3 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3">
+        <svg class="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none"
+             stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <div class="text-sm text-blue-800">
+            <p class="font-semibold">Operação composta — quantidade não editável</p>
+            <p class="mt-0.5 text-blue-700">
+                {{ operation_label }} envolve dois registros simultâneos.
+                Para corrigir a quantidade, cancele e registre novamente.
+                Você pode editar data e observação livremente.
+            </p>
+        </div>
+    </div>
+    {% else %}
+    <div class="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+        <svg class="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none"
+             stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <div class="text-sm text-amber-800">
+            <p class="font-semibold">Alteração de quantidade afeta o saldo</p>
+            <p class="mt-0.5 text-amber-700">
+                O delta será aplicado ao estoque de
+                <strong>{{ movement.farm_stock_balance.animal_category.name }}</strong>
+                em <strong>{{ movement.farm_stock_balance.farm.name }}</strong>.
+            </p>
+        </div>
+    </div>
+    {% endif %}
+
+    {# ── Formulário ── #}
+    <form method="post" class="bg-white rounded-xl shadow-sm border border-gray-100 divide-y divide-gray-100">
+        {% csrf_token %}
+
+        <div class="p-6 space-y-5">
+
+            {# Quantidade — desabilitada para compostas #}
+            <div>
+                <label for="id_quantity" class="block text-sm font-semibold text-gray-700 mb-1.5">
+                    Quantidade {% if not is_composite %}<span class="text-red-500">*</span>{% endif %}
+                </label>
+                <input type="number" id="id_quantity" name="quantity"
+                       value="{{ movement.quantity }}" min="1"
+                       {% if is_composite %}disabled class="block w-full border border-gray-200 rounded-xl py-2.5 px-3 text-sm bg-gray-50 text-gray-400 cursor-not-allowed"
+                       {% else %}required class="block w-full border border-gray-300 rounded-xl py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"{% endif %}>
+                {% if is_composite %}
+                <p class="mt-1 text-xs text-blue-500">
+                    Quantidade bloqueada em operações compostas.
+                </p>
+                {% else %}
+                <p class="mt-1 text-xs text-gray-400">
+                    Valor atual: <strong>{{ movement.quantity }}</strong> animal(is)
+                </p>
+                {% endif %}
+            </div>
+
+            {# Data/Hora #}
+            <div>
+                <label for="id_timestamp" class="block text-sm font-semibold text-gray-700 mb-1.5">
+                    Data/Hora
+                </label>
+                <input type="datetime-local" id="id_timestamp" name="timestamp"
+                       value="{{ timestamp_value }}"
+                       class="block w-full border border-gray-300 rounded-xl py-2.5 px-3 text-sm
+                              focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+            </div>
+
+            {# Peso #}
+            <div>
+                <label for="id_peso" class="block text-sm font-semibold text-gray-700 mb-1.5">
+                    Peso (kg)
+                </label>
+                <input type="number" id="id_peso" name="peso" step="0.01" min="0"
+                       value="{{ meta.peso|default:'' }}"
+                       class="block w-full border border-gray-300 rounded-xl py-2.5 px-3 text-sm
+                              focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+            </div>
+
+            {# Observação #}
+            <div>
+                <label for="id_observacao" class="block text-sm font-semibold text-gray-700 mb-1.5">
+                    Observação
+                </label>
+                <textarea id="id_observacao" name="observacao" rows="3"
+                          class="block w-full border border-gray-300 rounded-xl py-2.5 px-3 text-sm
+                                 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none">{{ meta.observacao|default:'' }}</textarea>
+            </div>
+
+        </div>
+
+        {# ── Rodapé ── #}
+        <div class="px-6 py-4 bg-gray-50 rounded-b-xl flex items-center gap-3">
+            <button type="submit"
+                    class="inline-flex items-center gap-2 px-6 py-2.5
+                           bg-purple-600 hover:bg-purple-700 text-white text-sm
+                           font-semibold rounded-xl shadow-sm hover:shadow transition-all
+                           focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-1">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                Salvar Alterações
+            </button>
+            <a href="{{ cancel_url }}"
+               class="inline-flex items-center gap-2 px-6 py-2.5 border-2 border-gray-300
+                      text-gray-600 text-sm font-medium rounded-xl hover:bg-white
+                      hover:border-gray-400 transition-all">
+                Cancelar
+            </a>
+            <span class="ml-auto text-xs text-gray-400">
+                Criado por {{ movement.created_by.username }}
+                em {{ movement.timestamp|date:"d/m/Y \à\s H:i" }}
+            </span>
+        </div>
+    </form>
+
+</div>
+{% endblock %}
