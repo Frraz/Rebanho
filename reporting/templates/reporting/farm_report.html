@@ -286,50 +286,16 @@
                 </table>
             </div>
         </div>
-
-        <!-- Controle de Vendas -->
-        <div class="bg-white shadow sm:rounded-lg print:shadow-none">
-            <div class="px-4 py-3 sm:px-6">
-                <h3 class="text-xs font-bold text-gray-700 uppercase mb-2 text-center border-b pb-1">OBS: Controle de Vendas</h3>
-                <table class="min-w-full border border-gray-200 text-xs">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="border px-2 py-1 text-left">Data</th>
-                            <th class="border px-2 py-1 text-left">Animais</th>
-                            <th class="border px-2 py-1 text-left">Cliente</th>
-                            <th class="border px-2 py-1 text-center">Peso</th>
-                            <th class="border px-2 py-1 text-center">Qtd</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for venda in report.detalhamento.vendas %}
-                        <tr class="hover:bg-gray-50">
-                            <td class="border px-2 py-1 whitespace-nowrap">{{ venda.data|date:"d/m/Y" }}</td>
-                            <td class="border px-2 py-1">{{ venda.categoria }}</td>
-                            <td class="border px-2 py-1">{{ venda.cliente }}</td>
-                            <td class="border px-2 py-1 text-center">{{ venda.peso }}</td>
-                            <td class="border px-2 py-1 text-center font-semibold text-green-600">{{ venda.quantidade }}</td>
-                        </tr>
-                        {% empty %}
-                        <tr><td colspan="5" class="border px-2 py-2 text-center text-gray-400 italic">Nenhuma venda</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    {% if report.detalhamento.abates %}
-    <div class="bg-white shadow sm:rounded-lg print:shadow-none">
+            <div class="bg-white shadow sm:rounded-lg print:shadow-none">
         <div class="px-4 py-3 sm:px-6">
             <h3 class="text-xs font-bold text-gray-700 uppercase mb-2 text-center border-b pb-1">OBS: Abates</h3>
             <table class="min-w-full border border-gray-200 text-xs">
                 <thead class="bg-gray-50">
                     <tr>
                         <th class="border px-2 py-1 text-left">Animais</th>
-                        <th class="border px-2 py-1 text-left">Motivo/Obs</th>
-                        <th class="border px-2 py-1 text-center">Peso</th>
                         <th class="border px-2 py-1 text-center">Qtd</th>
+                        <th class="border px-2 py-1 text-left">Motivo/Obs</th>
+
                     </tr>
                 </thead>
                 <tbody>
@@ -340,6 +306,42 @@
                         <td class="border px-2 py-1 text-center">{{ abate.peso }}</td>
                         <td class="border px-2 py-1 text-center font-semibold text-gray-700">{{ abate.quantidade }}</td>
                     </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+
+
+    </div>
+
+    {% if report.detalhamento.abates %}
+    <!-- Controle de Vendas -->
+    <div class="bg-white shadow sm:rounded-lg print:shadow-none">
+        <div class="px-4 py-3 sm:px-6">
+            <h3 class="text-xs font-bold text-gray-700 uppercase mb-2 text-center border-b pb-1">OBS: Controle de Vendas</h3>
+            <table class="min-w-full border border-gray-200 text-xs">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="border px-2 py-1 text-left">Data</th>
+                        <th class="border px-2 py-1 text-left">Animais</th>
+                        <th class="border px-2 py-1 text-left">Cliente</th>
+                        <th class="border px-2 py-1 text-center">Peso</th>
+                        <th class="border px-2 py-1 text-center">Qtd</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for venda in report.detalhamento.vendas %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="border px-2 py-1 whitespace-nowrap">{{ venda.data|date:"d/m/Y" }}</td>
+                        <td class="border px-2 py-1">{{ venda.categoria }}</td>
+                        <td class="border px-2 py-1">{{ venda.cliente }}</td>
+                        <td class="border px-2 py-1 text-center">{{ venda.peso }}</td>
+                        <td class="border px-2 py-1 text-center font-semibold text-green-600">{{ venda.quantidade }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="5" class="border px-2 py-2 text-center text-gray-400 italic">Nenhuma venda</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
