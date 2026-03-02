@@ -614,6 +614,7 @@ def movement_cancel_view(request, pk):
       os dois lados atomicamente
     """
     from inventory.models import AnimalMovementCancellation
+    from inventory.domain import InsufficientStockError
 
     movement = get_object_or_404(
         AnimalMovement.objects
@@ -668,22 +669,42 @@ def movement_cancel_view(request, pk):
         messages.success(
             request,
             f"Movimentação estornada com sucesso.{composite_msg} "
-            f"{result['quantity_restored']} animal(is) de "
-            f"{result['category']} em {result['farm']} "
-            f"tiveram o saldo revertido."
+            f"Saldo de {result['category']} em {result['farm']} revertido."
         )
 
-    except ValidationError as e:
-        error_msg = e.message if hasattr(e, 'message') else str(e)
+    except (ValidationError, InsufficientStockError) as e:
+        # Erros de negócio esperados — exibir mensagem clara ao usuário,
+        # sem logar como ERROR (não é um bug, é uma regra de negócio)
+        if isinstance(e, InsufficientStockError):
+            farm = movement.farm_stock_balance.farm.name
+            category = movement.farm_stock_balance.animal_category.name
+            qty = movement.quantity
+            current = movement.farm_stock_balance.current_quantity
+            error_msg = (
+                f"Não é possível estornar esta entrada de {qty} {category} em {farm}: "
+                f"o saldo atual é {current} animal(is), inferior à quantidade que seria removida. "
+                f"Provavelmente outros animais já saíram do estoque após esta entrada."
+            )
+        else:
+            error_msg = e.message if hasattr(e, 'message') else str(e)
+
         logger.warning(
-            f"Cancelamento inválido. "
-            f"Usuário: {request.user.username} | Movement: {pk} | Erro: {error_msg}"
+            f"Cancelamento bloqueado por regra de negócio. "
+            f"Usuário: {request.user.username} | Movement: {pk} | Motivo: {error_msg}"
         )
+
         if is_htmx:
             return HttpResponse(
-                f'<tr><td colspan="7" class="px-6 py-4 text-center">'
-                f'<span class="text-red-600 text-xs font-medium px-3 py-2 '
-                f'bg-red-50 rounded-lg inline-block">{error_msg}</span></td></tr>',
+                f'<tr id="movement-row-{pk}"><td colspan="7" class="px-6 py-4 text-center">'
+                f'<div class="inline-flex items-center gap-2 text-sm text-red-700 bg-red-50 '
+                f'border border-red-200 rounded-xl px-4 py-3 max-w-lg">'
+                f'<svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">'
+                f'<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" '
+                f'd="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4'
+                f'c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>'
+                f'</svg>'
+                f'<span>{error_msg}</span>'
+                f'</div></td></tr>',
                 status=200,
             )
         messages.error(request, error_msg)
@@ -696,7 +717,7 @@ def movement_cancel_view(request, pk):
         )
         if is_htmx:
             return HttpResponse(
-                '<tr><td colspan="7" class="px-6 py-4 text-center">'
+                f'<tr id="movement-row-{pk}"><td colspan="7" class="px-6 py-4 text-center">'
                 '<span class="text-red-600 text-xs font-medium px-3 py-2 '
                 'bg-red-50 rounded-lg inline-block">'
                 'Erro interno. Tente novamente.</span></td></tr>',
@@ -727,7 +748,7 @@ def _render_cancelled_row(result: dict) -> str:
                     </svg>
                 </div>
                 <div class="text-amber-800">
-                    <span class="font-semibold">{op}</span> cancelada{composite} —
+                    <span class="font-semibold">{op}</span> estornada{composite} —
                     saldo de <span class="font-semibold">{category}</span>
                     em <span class="font-semibold">{farm}</span> revertido
                     (<span class="font-semibold text-amber-700">{qty} animal(is)</span>)
