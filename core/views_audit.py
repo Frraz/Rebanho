@@ -3,27 +3,32 @@ Audit Views - Painel de Auditoria do sistema.
 
 Acesso restrito: apenas is_staff=True ou is_superuser=True.
 
-IMPORTANTE:
-- A listagem usa AnimalMovement.history como fonte principal para exibir
-  eventos separados (Cadastro, Edição, Remoção).
-- Cancelamento continua sendo mostrado consultando o registro "live"
-  correspondente (quando existir).
+FONTE DE DADOS: AnimalMovement (tabela live) — garantia de que TODOS os
+registros aparecem, inclusive os criados antes da ativação do simple_history.
+O histórico (AnimalMovement.history) é consultado apenas para enriquecer
+cada item com informações de edição (quem editou, quando, delta de qty).
 """
 
 import calendar
+import logging
 from datetime import date
-from collections import defaultdict
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.core.paginator import Paginator
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, render
+from django.utils.dateparse import parse_datetime
 
 from farms.models import Farm
 from inventory.models import AnimalMovement
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Constants
+# ---------------------------------------------------------------------------
 
 ITEMS_PER_PAGE = 30
 
@@ -64,12 +69,6 @@ COLOR_CLASSES: dict[str, str] = {
     "amber": "bg-amber-100 text-amber-800",
 }
 
-EVENT_TYPE_LABELS = {
-    "+": "Cadastro",
-    "~": "Edição",
-    "-": "Remoção",
-}
-
 _DEFAULT_COLOR = "gray"
 
 META_LABELS: dict[str, str] = {
@@ -82,23 +81,41 @@ META_LABELS: dict[str, str] = {
 }
 
 
+# ---------------------------------------------------------------------------
+# Access control
+# ---------------------------------------------------------------------------
+
 def _pode_ver_auditoria(user) -> bool:
     return user.is_active and (user.is_staff or user.is_superuser)
 
 
-def _history_base_queryset():
+# ---------------------------------------------------------------------------
+# Helpers — baseados na tabela LIVE (AnimalMovement)
+# ---------------------------------------------------------------------------
+
+def _get_cancellation(movement):
+    """Retorna o objeto cancellation ou None (sem disparar exceção)."""
+    try:
+        return movement.cancellation
+    except Exception:
+        return None
+
+
+def _base_queryset():
+    """QuerySet principal — tabela live, com todos os relacionamentos."""
     return (
-        AnimalMovement.history
+        AnimalMovement.objects
         .select_related(
-            "history_user",
             "farm_stock_balance__farm",
             "farm_stock_balance__animal_category",
             "created_by",
             "client",
             "death_reason",
             "related_movement__farm_stock_balance__farm",
+            "cancellation",
+            "cancellation__cancelled_by",
         )
-        .order_by("-history_date", "-history_id")
+        .order_by("-timestamp", "-created_at")
     )
 
 
@@ -116,7 +133,6 @@ def _apply_filters(qs, params: dict):
             | Q(created_by__last_name__icontains=search)
             | Q(client__name__icontains=search)
             | Q(death_reason__name__icontains=search)
-            | Q(metadata__observacao__icontains=search)
         )
 
     user_id = params.get("user", "").strip()
@@ -130,12 +146,13 @@ def _apply_filters(qs, params: dict):
         qs = qs.filter(operation_type=operation)
 
     farm_id = params.get("farm", "").strip()
-    if farm_id and farm_id.isdigit():
+    if farm_id:
         filtros_ativos = True
-        qs = qs.filter(farm_stock_balance__farm_id=int(farm_id))
+        qs = qs.filter(farm_stock_balance__farm_id=farm_id)
 
     month_str = params.get("month", "").strip()
     year_str = params.get("year", "").strip()
+
     if year_str and year_str.isdigit():
         year = int(year_str)
         if month_str and month_str.isdigit():
@@ -143,83 +160,142 @@ def _apply_filters(qs, params: dict):
             if 1 <= month <= 12:
                 start = date(year, month, 1)
                 end = date(year, month, calendar.monthrange(year, month)[1])
-                qs = qs.filter(history_date__date__range=(start, end))
+                qs = qs.filter(timestamp__date__range=(start, end))
                 filtros_ativos = True
         else:
-            qs = qs.filter(history_date__year=year)
+            qs = qs.filter(timestamp__year=year)
             filtros_ativos = True
 
     return qs, filtros_ativos
 
 
-def _build_prev_history_map(page_history_rows):
-    grouped = defaultdict(list)
-    for row in page_history_rows:
-        grouped[row.id].append(row)
+def _build_history_map(page_movements):
+    """
+    Consulta a tabela de histórico para os movimentos da página atual.
+    Retorna dict: movement_id -> lista de entradas histórico (mais recente primeiro).
+    Usado para detectar edições e calcular deltas.
+    """
+    ids = [m.id for m in page_movements]
+    if not ids:
+        return {}
 
-    prev_map = {}
-    for movement_id, rows in grouped.items():
-        # para cada linha, pega o anterior imediato (corrige delta por evento)
-        for row in rows:
-            previous = (
-                AnimalMovement.history
-                .filter(id=movement_id)
-                .filter(
-                    Q(history_date__lt=row.history_date)
-                    | Q(history_date=row.history_date, history_id__lt=row.history_id)
-                )
-                .order_by("-history_date", "-history_id")
-                .first()
-            )
-            if previous:
-                prev_map[(movement_id, row.history_date, row.history_id)] = previous
+    history_map = {}
+    try:
+        qs = (
+            AnimalMovement.history
+            .filter(id__in=ids)
+            .select_related("history_user")
+            .order_by("id", "-history_date", "-history_id")
+        )
+        for h in qs:
+            history_map.setdefault(h.id, []).append(h)
+    except Exception:
+        logger.debug("Tabela de histórico indisponível — ignorando enriquecimento.")
 
-    return prev_map
-
-
-def _build_live_map(page_history_rows):
-    ids = sorted({row.id for row in page_history_rows})
-    live_qs = (
-        AnimalMovement.objects
-        .filter(id__in=ids)
-        .select_related("cancellation", "cancellation__cancelled_by")
-    )
-    return {m.id: m for m in live_qs}
+    return history_map
 
 
-def _serialize_history_row(row, prev_map, live_map) -> dict:
-    label, color = OPERATION_LABELS.get(
-        row.operation_type,
-        (row.operation_type, _DEFAULT_COLOR),
-    )
+def _detect_edit_info(movement, history_entries):
+    """
+    Detecta se houve edição usando DUAS fontes (ambas são verificadas):
 
-    key = (row.id, row.history_date, row.history_id)
-    prev = prev_map.get(key)
+    Fonte 1 — simple_history (history_type == "~"):
+        Funciona quando save() é chamado (não é o caso dos services atuais).
 
+    Fonte 2 — metadata._edited_by:
+        Gravado pelos services via QuerySet.update(). Esta é a fonte
+        PRINCIPAL no fluxo atual do sistema.
+
+    Retorna: (was_edited, event_badge, qty_delta, edit_user, edit_date)
+    """
+    was_edited = False
+    event_badge = "Cadastro"
     qty_delta = None
-    if row.history_type == "~" and prev and prev.quantity != row.quantity:
-        qty_delta = f"{prev.quantity} → {row.quantity}"
+    edit_user = None
+    edit_date = None
 
-    live = live_map.get(row.id)
-    cancellation = getattr(live, "cancellation", None) if live else None
+    # ── Fonte 1: simple_history (quando model.save() gera entrada "~")
+    if history_entries:
+        for entry in history_entries:
+            if entry.history_type == "~":
+                was_edited = True
+                event_badge = "Edição"
+                edit_user = entry.history_user
+                edit_date = entry.history_date
+
+                # Calcular delta: encontrar a entrada imediatamente anterior
+                idx = history_entries.index(entry)
+                if idx + 1 < len(history_entries):
+                    previous = history_entries[idx + 1]
+                    if previous.quantity != entry.quantity:
+                        qty_delta = f"{previous.quantity} → {entry.quantity}"
+                break  # pega a edição mais recente
+
+    # ── Fonte 2: metadata._edited_by (QuerySet.update — fonte principal)
+    # Sempre verificar, mesmo que Fonte 1 já tenha encontrado edição,
+    # pois o metadata pode ter informações mais recentes.
+    meta = movement.metadata or {}
+    edited_by_username = meta.get("_edited_by")
+
+    if edited_by_username:
+        # Se a Fonte 1 não detectou edição, usar os dados do metadata
+        if not was_edited:
+            was_edited = True
+            event_badge = "Edição"
+
+            try:
+                edit_user = User.objects.get(username=edited_by_username)
+            except User.DoesNotExist:
+                edit_user = None
+
+            edit_date_str = meta.get("_edited_at")
+            if edit_date_str:
+                edit_date = parse_datetime(edit_date_str)
+
+        # Delta de quantidade via metadata (sempre mais confiável para
+        # edições via QuerySet.update, pois o service grava o valor anterior)
+        qty_before = meta.get("_qty_before_edit")
+        if qty_before is not None:
+            try:
+                qty_before_int = int(qty_before)
+                if qty_before_int != movement.quantity:
+                    qty_delta = f"{qty_before_int} → {movement.quantity}"
+            except (ValueError, TypeError):
+                pass
+
+    return was_edited, event_badge, qty_delta, edit_user, edit_date
+
+
+def _enrich(movement, history_map) -> dict:
+    """Enriquece um movimento live com dados de auditoria."""
+    label, color = OPERATION_LABELS.get(
+        movement.operation_type,
+        (movement.operation_type, _DEFAULT_COLOR),
+    )
+
+    history_entries = history_map.get(movement.id, [])
+    was_edited, event_badge, qty_delta, edit_user, edit_date = _detect_edit_info(
+        movement, history_entries
+    )
 
     return {
-        "obj": row,
-        "movement_id": str(row.id),  # evita problema com UUID em URL
+        "obj": movement,
         "label": label,
         "color_class": COLOR_CLASSES.get(color, COLOR_CLASSES[_DEFAULT_COLOR]),
-        "is_saida": row.movement_type == "SAIDA",
-        "cancellation": cancellation,
-        "event_type": row.history_type,
-        "event_badge": EVENT_TYPE_LABELS.get(row.history_type, "Evento"),
+        "is_saida": movement.movement_type == "SAIDA",
+        "cancellation": _get_cancellation(movement),
+
+        # Auditoria de edição
+        "event_badge": event_badge,
         "quantity_delta": qty_delta,
-        "edited": row.history_type == "~",
-        "history_user": row.history_user,
-        "history_date": row.history_date,
+        "edited": was_edited,
+        "history_user": edit_user,
+        "history_date": edit_date,
     }
 
 
 def _get_metadata_items(movement) -> list[tuple[str, str]]:
+    """Extrai metadados para exibição, filtrando campos internos (_prefixo)."""
     metadata = movement.metadata or {}
     items = []
 
@@ -229,11 +305,15 @@ def _get_metadata_items(movement) -> list[tuple[str, str]]:
             items.append((label, value))
 
     for key, value in metadata.items():
-        if key not in META_LABELS and value:
+        if key not in META_LABELS and value and not key.startswith("_"):
             items.append((key.replace("_", " ").title(), value))
 
     return items
 
+
+# ---------------------------------------------------------------------------
+# Views
+# ---------------------------------------------------------------------------
 
 @login_required
 @user_passes_test(_pode_ver_auditoria, login_url="/")
@@ -241,30 +321,30 @@ def audit_list_view(request):
     today = date.today()
     params = request.GET
 
-    qs = _history_base_queryset()
+    qs = _base_queryset()
     qs, filtros_ativos = _apply_filters(qs, params)
 
     total_count = qs.count()
     paginator = Paginator(qs, ITEMS_PER_PAGE)
     page_obj = paginator.get_page(params.get("page", 1))
 
-    page_rows = list(page_obj.object_list)
-    prev_map = _build_prev_history_map(page_rows)
-    live_map = _build_live_map(page_rows)
-
-    movements = [_serialize_history_row(r, prev_map, live_map) for r in page_rows]
+    # Enriquecer com dados de histórico (apenas para a página atual)
+    history_map = _build_history_map(page_obj.object_list)
+    movements = [_enrich(m, history_map) for m in page_obj.object_list]
 
     context = {
         "movements": movements,
         "page_obj": page_obj,
         "total_count": total_count,
         "filtros_ativos": filtros_ativos,
+
         "search_term": params.get("q", "").strip(),
         "selected_user": params.get("user", "").strip(),
         "selected_op": params.get("operation", "").strip(),
         "selected_farm": params.get("farm", "").strip(),
         "selected_month": params.get("month", "").strip(),
         "selected_year": params.get("year", "").strip(),
+
         "usuarios": (
             User.objects
             .filter(animal_movements__isnull=False)
@@ -302,12 +382,25 @@ def audit_detail_view(request, pk):
         (movement.operation_type, _DEFAULT_COLOR),
     )
 
-    history_entries = list(
-        AnimalMovement.history
-        .filter(id=movement.id)
-        .select_related("history_user")
-        .order_by("-history_date", "-history_id")
+    # Histórico completo do item para timeline no detalhe
+    history_entries = []
+    try:
+        history_entries = list(
+            AnimalMovement.history
+            .filter(id=movement.id)
+            .select_related("history_user")
+            .order_by("-history_date", "-history_id")
+        )
+    except Exception:
+        pass
+
+    # Detectar edição via ambas as fontes
+    was_edited, event_badge, qty_delta, edit_user, edit_date = _detect_edit_info(
+        movement, history_entries
     )
+
+    # Metadados internos de auditoria para exibição no detail
+    meta = movement.metadata or {}
 
     context = {
         "movement": movement,
@@ -315,7 +408,19 @@ def audit_detail_view(request, pk):
         "color_class": COLOR_CLASSES.get(color, COLOR_CLASSES[_DEFAULT_COLOR]),
         "meta_items": _get_metadata_items(movement),
         "is_saida": movement.movement_type == "SAIDA",
-        "cancellation": getattr(movement, "cancellation", None),
+        "cancellation": _get_cancellation(movement),
         "history_entries": history_entries,
+
+        # Dados de edição unificados
+        "was_edited": was_edited,
+        "event_badge": event_badge,
+        "qty_delta": qty_delta,
+        "edit_user": edit_user,
+        "edit_date": edit_date,
+
+        # Fallback metadata raw (para debug ou exibição extra)
+        "meta_edited_by": meta.get("_edited_by"),
+        "meta_edited_at": meta.get("_edited_at"),
+        "meta_qty_before": meta.get("_qty_before_edit"),
     }
     return render(request, "core/audit_detail.html", context)

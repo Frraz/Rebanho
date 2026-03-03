@@ -17,9 +17,11 @@ IMPORTANTE — select_for_update() + PostgreSQL:
 - FarmStockBalance não tem FKs nullable, select_related seguro ali
 """
 import logging
+
 from django.core.cache import cache
-from django.db import transaction
 from django.core.exceptions import ValidationError
+from django.db import transaction
+from django.db.models import F
 from django.utils import timezone
 
 logger = logging.getLogger(__name__)
@@ -32,6 +34,14 @@ class OccurrenceService:
     """
 
     CANCELLABLE_TYPES = frozenset({'MORTE', 'ABATE', 'VENDA', 'DOACAO'})
+
+    # Campos que NUNCA podem ser alterados via edit_occurrence.
+    _BLOCKED_EDIT_FIELDS = frozenset({'farm_stock_balance', 'farm_stock_balance_id',
+                                       'operation_type', 'id'})
+
+    # ────────────────────────────────────────────────────────────────────
+    # CANCELAMENTO
+    # ────────────────────────────────────────────────────────────────────
 
     @staticmethod
     @transaction.atomic
@@ -50,8 +60,11 @@ class OccurrenceService:
         Raises:
             ValidationError: se já cancelada, tipo inválido ou não encontrada
         """
-        from inventory.models import AnimalMovement, FarmStockBalance
-        from inventory.models import AnimalMovementCancellation
+        from inventory.models import (
+            AnimalMovement,
+            AnimalMovementCancellation,
+            FarmStockBalance,
+        )
 
         # ── 1. Buscar o movement com lock
         # SEM select_related: client e death_reason são FKs nullable e
@@ -123,16 +136,17 @@ class OccurrenceService:
         # ── 8. Invalidar cache da fazenda
         # farm_detail_view usa cache de 5min. Sem isso, o saldo
         # só seria atualizado na tela após o cache expirar naturalmente.
-        cache.delete(f'farm_summary_{farm_id}')
-        cache.delete(f'farm_history_{farm_id}')
-        cache.delete('farms_list')
+        OccurrenceService._invalidate_farm_cache(farm_id)
 
         logger.warning(
-            f"[CANCELAMENTO] Ocorrência {movement_id} estornada. "
-            f"Fazenda: {farm_name} | Categoria: {category_name} | "
-            f"Quantidade: +{quantity} | "
-            f"Saldo: {balance_before} → {balance_after} | "
-            f"Cancelado por: {cancelled_by.username}"
+            "[CANCELAMENTO] Ocorrência %s estornada. "
+            "Fazenda: %s | Categoria: %s | "
+            "Quantidade: +%s | "
+            "Saldo: %s → %s | "
+            "Cancelado por: %s",
+            movement_id, farm_name, category_name,
+            quantity, balance_before, balance_after,
+            cancelled_by.username,
         )
 
         return {
@@ -145,6 +159,10 @@ class OccurrenceService:
             'balance_before': balance_before,
             'balance_after': balance_after,
         }
+
+    # ────────────────────────────────────────────────────────────────────
+    # EDIÇÃO
+    # ────────────────────────────────────────────────────────────────────
 
     @staticmethod
     @transaction.atomic
@@ -182,17 +200,29 @@ class OccurrenceService:
 
         Raises:
             ValidationError: ocorrência cancelada, tipo inválido,
-                             saldo insuficiente para delta positivo
+                             saldo insuficiente para delta positivo,
+                             campo bloqueado presente em data
         """
-        from inventory.models import AnimalMovement, FarmStockBalance
-        from inventory.models import AnimalMovementCancellation
-        from django.db.models import F
+        from inventory.models import (
+            AnimalMovement,
+            AnimalMovementCancellation,
+            FarmStockBalance,
+        )
 
-        # ── 1. Buscar o movement SEM lock (FKs nullable → não usamos select_for_update aqui)
+        # ── 0. Rejeitar campos proibidos ANTES de qualquer query
+        blocked = OccurrenceService._BLOCKED_EDIT_FIELDS & data.keys()
+        if blocked:
+            raise ValidationError(
+                f"Os seguintes campos não podem ser editados: {', '.join(sorted(blocked))}."
+            )
+
+        # ── 1. Buscar o movement COM lock para evitar lost update
+        # SEM select_related: client e death_reason são FKs nullable —
+        # LEFT OUTER JOIN é incompatível com FOR UPDATE no PostgreSQL.
         try:
             movement = (
                 AnimalMovement.objects
-                .select_related('farm_stock_balance__farm', 'farm_stock_balance__animal_category')
+                .select_for_update(nowait=False)
                 .get(id=movement_id)
             )
         except AnimalMovement.DoesNotExist:
@@ -252,7 +282,9 @@ class OccurrenceService:
             )
 
             if updated_rows == 0:
-                raise ValidationError("Conflito de concorrência ao atualizar saldo. Tente novamente.")
+                raise ValidationError(
+                    "Conflito de concorrência ao atualizar saldo. Tente novamente."
+                )
 
             update_fields['quantity'] = new_quantity
             balance_result = {
@@ -270,38 +302,91 @@ class OccurrenceService:
         if 'death_reason_id' in data:
             update_fields['death_reason_id'] = data['death_reason_id'] or None
 
-        # ── 7. Merge de metadata com auditoria de edição
-        if 'metadata' in data or update_fields:
-            current_meta = movement.metadata or {}
-            if 'metadata' in data:
-                current_meta.update({k: v for k, v in data['metadata'].items() if v is not None})
-            # Trilha de auditoria sempre gravada
-            current_meta['_edited_by'] = updated_by.username
-            current_meta['_edited_at'] = timezone.now().isoformat()
+        # ── 7. Se não há nada para atualizar, retornar cedo (sem update vazio)
+        if not update_fields and 'metadata' not in data:
+            return {
+                'farm': self._get_farm_name(movement),
+                'category': self._get_category_name(movement),
+                'operation_display': movement.get_operation_type_display(),
+                'quantity_before': movement.quantity,
+                'quantity_after': movement.quantity,
+                'balance': None,
+                'changed_fields': [],
+            }
+
+        # ── 8. Merge de metadata com auditoria de edição
+        current_meta = movement.metadata or {}
+        if 'metadata' in data and isinstance(data['metadata'], dict):
+            current_meta.update({k: v for k, v in data['metadata'].items() if v is not None})
+
+        # Trilha de auditoria sempre gravada quando há mudança
+        current_meta['_edited_by'] = updated_by.username
+        current_meta['_edited_at'] = timezone.now().isoformat()
+        if 'quantity' in update_fields:
             current_meta['_qty_before_edit'] = movement.quantity
-            update_fields['metadata'] = current_meta
+        update_fields['metadata'] = current_meta
 
-        # ── 8. Aplicar update — bypass INTENCIONAL do model.save()
-        if update_fields:
-            AnimalMovement.objects.filter(id=movement_id).update(**update_fields)
+        # ── 9. Aplicar update — bypass INTENCIONAL do model.save()
+        AnimalMovement.objects.filter(id=movement_id).update(**update_fields)
 
-        # ── 9. Invalidar cache
-        farm_id = str(movement.farm_stock_balance.farm_id)
-        cache.delete(f'farm_summary_{farm_id}')
-        cache.delete(f'farm_history_{farm_id}')
-        cache.delete('farms_list')
+        # ── 10. Invalidar cache
+        farm_id = str(movement.farm_stock_balance_id)
+        # Precisamos do farm_id real — buscar via FarmStockBalance
+        # (movement foi obtido sem select_related)
+        try:
+            farm_id = str(
+                FarmStockBalance.objects
+                .values_list('farm_id', flat=True)
+                .get(id=movement.farm_stock_balance_id)
+            )
+        except FarmStockBalance.DoesNotExist:
+            farm_id = None
+
+        if farm_id:
+            OccurrenceService._invalidate_farm_cache(farm_id)
+
+        # ── 11. Buscar nomes para o retorno (query leve, sem lock)
+        farm_name = ''
+        category_name = ''
+        if farm_id:
+            try:
+                fsb = (
+                    FarmStockBalance.objects
+                    .select_related('farm', 'animal_category')
+                    .get(id=movement.farm_stock_balance_id)
+                )
+                farm_name = fsb.farm.name
+                category_name = fsb.animal_category.name
+            except FarmStockBalance.DoesNotExist:
+                pass
 
         logger.warning(
-            f"[EDIÇÃO] Ocorrência {movement_id} editada por {updated_by.username}. "
-            f"Campos: {list(update_fields.keys())} | "
-            f"Qty: {movement.quantity} → {update_fields.get('quantity', movement.quantity)}"
+            "[EDIÇÃO] Ocorrência %s editada por %s. "
+            "Campos: %s | Qty: %s → %s",
+            movement_id, updated_by.username,
+            list(update_fields.keys()),
+            movement.quantity,
+            update_fields.get('quantity', movement.quantity),
         )
 
         return {
-            'farm': movement.farm_stock_balance.farm.name,
-            'category': movement.farm_stock_balance.animal_category.name,
+            'farm': farm_name,
+            'category': category_name,
             'operation_display': movement.get_operation_type_display(),
             'quantity_before': movement.quantity,
             'quantity_after': update_fields.get('quantity', movement.quantity),
             'balance': balance_result,
+            'changed_fields': list(update_fields.keys()),
         }
+
+    # ────────────────────────────────────────────────────────────────────
+    # HELPERS PRIVADOS
+    # ────────────────────────────────────────────────────────────────────
+
+    @staticmethod
+    def _invalidate_farm_cache(farm_id: str) -> None:
+        """Invalida todas as chaves de cache conhecidas para uma fazenda."""
+        cache.delete(f'farm_summary_{farm_id}')
+        cache.delete(f'farm_history_{farm_id}')
+        cache.delete(f'farm_stock_{farm_id}')
+        cache.delete('farms_list')

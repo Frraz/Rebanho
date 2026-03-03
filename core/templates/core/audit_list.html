@@ -163,7 +163,7 @@
         <div class="bg-white rounded-2xl border {% if m.cancellation %}border-gray-200 opacity-80{% else %}border-gray-200{% endif %} overflow-hidden">
             <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
                 <div>
-                    <div class="text-sm font-bold text-gray-900">{{ m.history_date|date:"d/m/Y H:i" }}</div>
+                    <div class="text-sm font-bold text-gray-900">{{ m.obj.timestamp|date:"d/m/Y H:i" }}</div>
                     <div class="text-xs text-gray-500">{{ m.obj.farm_stock_balance.farm.name }} · {{ m.obj.farm_stock_balance.animal_category.name }}</div>
                 </div>
                 <div class="text-right">
@@ -241,7 +241,8 @@
                             <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold {{ m.color_class }}">{{ m.label }}</span>
                         </td>
                         <td class="px-4 py-3 text-center whitespace-nowrap">
-                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold
+                                {% if m.edited %}bg-indigo-100 text-indigo-700 border border-indigo-200{% else %}bg-slate-100 text-slate-700 border border-slate-200{% endif %}">
                                 {{ m.event_badge }}
                             </span>
                             {% if m.quantity_delta %}
