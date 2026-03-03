@@ -50,7 +50,7 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
           timeout: 30s
-          command_timeout: 14m
+          command_timeout: 16m
           script_stop: true
           script: |
             set -euo pipefail
@@ -63,38 +63,42 @@ jobs:
 
             cd "$PROJECT_DIR"
 
-            echo "[1/8] Atualizando codigo..."
+            echo "[1/9] Atualizando código..."
             git fetch origin main
             git reset --hard origin/main
             echo "Commit: $(git log -1 --oneline)"
 
-            echo "[2/8] Garantindo diretórios..."
+            echo "[2/9] Garantindo diretórios..."
             mkdir -p "$STATICFILES_DIR"
 
-            echo "[3/8] Corrigindo permissoes de staticfiles..."
+            echo "[3/9] Corrigindo permissões de staticfiles..."
             sudo chown -R "${CONTAINER_UID}:${CONTAINER_GID}" "$STATICFILES_DIR"
 
-            echo "[4/8] Build da imagem web..."
+            echo "[4/9] Build da imagem web..."
             $COMPOSE build web
 
-            echo "[5/8] Subindo web..."
+            echo "[5/9] Subindo web..."
             $COMPOSE up -d --no-deps --remove-orphans web
 
-            echo "[6/8] Aplicando migrações..."
+            echo "[6/9] Aplicando migrações..."
             $COMPOSE run --rm web python manage.py migrate --noinput
 
-            echo "[7/8] Coletando arquivos estáticos..."
-            $COMPOSE run --rm web python manage.py collectstatic --noinput
+            echo "[7/9] Verificando se existem mudanças de model sem migration..."
+            # Falha o deploy se ainda houver mudanças sem migration
+            $COMPOSE run --rm web python manage.py makemigrations --check --dry-run
 
-            echo "[8/8] Reiniciando celery..."
+            echo "[8/9] Limpando staticfiles órfãos e coletando estáticos..."
+            $COMPOSE run --rm web sh -lc "rm -rf /app/staticfiles/* && python manage.py collectstatic --noinput"
+
+            echo "[9/9] Reiniciando celery..."
             $COMPOSE restart celery
 
             echo "Limpando imagens antigas..."
             docker image prune -f
 
-            echo "Deploy concluido: $(git log -1 --oneline)"
+            echo "Deploy concluído: $(git log -1 --oneline)"
 
-      - name: 🏥 Health check da aplicacao
+      - name: 🏥 Health check da aplicação
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
