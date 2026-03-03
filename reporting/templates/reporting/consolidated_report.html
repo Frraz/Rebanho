@@ -6,7 +6,6 @@
 {% block content %}
 <div class="space-y-4">
 
-    <!-- FILTROS -->
     <div class="bg-white shadow sm:rounded-lg print:hidden">
         <div class="px-4 py-4 sm:p-6">
             <div class="flex justify-between items-center mb-4">
@@ -33,7 +32,6 @@
             </div>
 
             <form method="get" class="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <!-- Mês -->
                 <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1">Mês</label>
                     <select name="month" class="w-full rounded-md border-gray-300 shadow-sm text-sm focus:border-green-500 focus:ring-green-500">
@@ -44,30 +42,27 @@
                     </select>
                 </div>
 
-                <!-- Ano -->
                 <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1">Ano</label>
                     <select name="year" class="w-full rounded-md border-gray-300 shadow-sm text-sm focus:border-green-500 focus:ring-green-500">
                         {% for y in years %}
-                        <option value="{{ y|stringformat:"d" }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+                        <option value="{{ y|stringformat:'d' }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
                         {% endfor %}
                     </select>
                 </div>
 
-                <!-- Categoria -->
                 <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1">Categoria</label>
                     <select name="category" class="w-full rounded-md border-gray-300 shadow-sm text-sm focus:border-green-500 focus:ring-green-500">
                         <option value="">Todas</option>
                         {% for cat in categories %}
-                        <option value="{{ cat.id }}" {% if cat.id|stringformat:"s" == selected_category_id %}selected{% endif %}>
+                        <option value="{{ cat.id }}" {% if cat.id|stringformat:'s' == selected_category_id %}selected{% endif %}>
                             {{ cat.name }}
                         </option>
                         {% endfor %}
                     </select>
                 </div>
 
-                <!-- Botão -->
                 <div class="flex items-end">
                     <button type="submit" name="gerar" value="1"
                         class="w-full px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700">
@@ -80,7 +75,6 @@
 
     {% if report %}
 
-    <!-- CABEÇALHO IMPRESSÃO -->
     <div class="hidden print:block text-center py-2">
         <p class="text-lg font-bold">MOVIMENTAÇÃO DO GADO — FAZENDAS REUNIDAS</p>
         <p class="text-sm">
@@ -96,7 +90,6 @@
         </p>
     </div>
 
-    <!-- Fazendas incluídas -->
     <div class="bg-blue-50 border border-blue-200 rounded-lg px-4 py-2 text-sm text-blue-800 print:hidden">
         <strong>{{ report.farm_count }} fazenda{{ report.farm_count|pluralize }}:</strong>
         {% for farm_name in report.farms %}
@@ -104,7 +97,6 @@
         {% endfor %}
     </div>
 
-    <!-- TABELA PRINCIPAL -->
     <div class="bg-white shadow sm:rounded-lg print:shadow-none">
         <div class="px-4 py-3 sm:px-6">
             <h2 class="text-sm font-bold text-blue-600 text-center mb-2 uppercase tracking-wider">
@@ -180,7 +172,6 @@
         </div>
     </div>
 
-    <!-- RESUMO DE ESTOQUE ATUAL POR FAZENDA -->
     {% if report.farm_reports %}
     <div class="bg-white shadow sm:rounded-lg print:shadow-none print:break-before-page">
         <div class="px-4 py-3 sm:px-6">
@@ -205,7 +196,7 @@
                             {% for category in report.categories %}
                             <td class="border border-gray-300 px-3 py-2 text-center text-gray-900">
                                 {% with qty=farm_report.estoque_final|get_item:category|default:0 %}
-                                {% if qty %}{{ qty }}{% endif %}
+                                {% if qty %}{{ qty }}{% else %}0{% endif %}
                                 {% endwith %}
                             </td>
                             {% endfor %}

@@ -11,7 +11,7 @@ from django.db.models import Q, Sum, Count
 from django.core.cache import cache
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.urls import reverse
-from typing import List, Dict, Any
+from typing import List, Dict
 import logging
 
 from .models import Farm
@@ -50,7 +50,7 @@ def _get_farm_summary_fresh(farm_id: str) -> List[Dict]:
     """
     Obtém resumo de estoque DIRETAMENTE do banco, sem cache.
     Usar em contextos onde o dado deve estar sempre atualizado
-    (ex: farm_detail após cancelamento de ocorrência).
+    (ex: farm_detail após cancelamento/edição de movimentações).
     """
     try:
         return StockQueryService.get_farm_stock_summary(str(farm_id))
@@ -64,17 +64,16 @@ def _calculate_total_animals(summary: List[Dict]) -> int:
 
 
 def _invalidate_farm_cache(farm_id: str) -> None:
-    cache_keys = [
+    cache.delete_many([
         f'farm_summary_{farm_id}',
         f'farm_history_{farm_id}',
         'farms_list',
-    ]
-    cache.delete_many(cache_keys)
+    ])
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # VIEWS
-# ══════════════════════════════════════════════════════════════════════════════
+# ═════════════════════════════════════════════════════════════════════════════��
 
 @login_required
 @require_http_methods(["GET"])
@@ -83,17 +82,18 @@ def farm_list_view(request):
         search_term = request.GET.get('q', '').strip()
         page_number = request.GET.get('page', 1)
 
-        farms_queryset = Farm.objects.filter(is_active=True).select_related()
+        farms_queryset = Farm.objects.filter(is_active=True)
 
         if search_term:
+            # OBS: Farm.location pode não existir no model em alguns ambientes.
+            # Mantivemos apenas name para evitar FieldError.
             farms_queryset = farms_queryset.filter(
-                Q(name__icontains=search_term) |
-                Q(location__icontains=search_term)
+                Q(name__icontains=search_term)
             )
 
         farms_queryset = farms_queryset.order_by('name').annotate(
             total_animals=Sum('stock_balances__current_quantity'),
-            categories_count=Count('stock_balances__animal_category', distinct=True)
+            categories_count=Count('stock_balances__animal_category', distinct=True),
         )
 
         paginator = Paginator(farms_queryset, 10)
@@ -230,18 +230,14 @@ def farm_detail_view(request, pk):
     """
     Exibe detalhes completos de uma fazenda.
 
-    IMPORTANTE: summary e total_animals são buscados DIRETAMENTE do banco
-    (sem cache) para garantir que cancelamentos de ocorrências reflitam
-    imediatamente, sem aguardar expiração do cache de 5 minutos.
+    IMPORTANTE:
+    - summary e total_animals são buscados do banco (sem cache), garantindo
+      refletir imediatamente edições/cancelamentos.
     """
     try:
         farm = get_object_or_404(Farm, pk=pk)
 
-        # ── Busca SEMPRE do banco — sem cache ──────────────────────────────
-        # Motivo: cancelamentos de ocorrências atualizam o saldo via service
-        # e invalidam o cache, mas se o Redis estiver lento ou a chave não
-        # corresponder exatamente, o dado antigo seria exibido.
-        # A query é simples e rápida; o custo do cache não compensa aqui.
+        # Snapshot real (fonte do detalhe da fazenda)
         summary = _get_farm_summary_fresh(str(farm.id))
         total_animals = _calculate_total_animals(summary)
 
@@ -249,16 +245,15 @@ def farm_detail_view(request, pk):
         try:
             history = StockQueryService.get_movement_history(
                 farm_id=str(farm.id),
-                limit=20
+                limit=20,
             )
         except Exception as e:
             logger.error(f"Erro ao obter histórico da fazenda {farm.id}: {str(e)}")
             history = []
 
-        # Estatísticas diretas do banco (sem cache — mesma razão)
         stock_stats = FarmStockBalance.objects.filter(farm=farm).aggregate(
             total_categories=Count('animal_category', distinct=True),
-            total_quantity=Sum('current_quantity')
+            total_quantity=Sum('current_quantity'),
         )
 
         context = {

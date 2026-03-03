@@ -7,7 +7,6 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_http_methods
 from django.http import HttpResponse, Http404
-from django.core.cache import cache
 from datetime import date
 import calendar
 from typing import Tuple, Dict, List, Optional
@@ -392,13 +391,21 @@ def consolidated_report_pdf_view(request):
 @require_http_methods(["GET"])
 def report_index_view(request):
     """
-    Página inicial de relatórios com cards de acesso rápido.
+    Página inicial de relatórios com cards e formulários rápidos.
     """
+    today = date.today()
+    months, years = _get_period_selects(today)
+
     context = {
+        'farms': Farm.objects.filter(is_active=True).order_by('name'),
+        'categories': AnimalCategory.objects.filter(is_active=True).order_by('name'),
+        'months': months,
+        'years': years,
+        'default_month': today.month,
+        'default_year': today.year,
         'total_farms': Farm.objects.filter(is_active=True).count(),
         'total_categories': AnimalCategory.objects.filter(is_active=True).count(),
     }
 
     logger.info(f"Índice de relatórios acessado por {request.user.username}")
-
     return render(request, 'reporting/report_index.html', context)

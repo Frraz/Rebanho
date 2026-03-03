@@ -164,7 +164,7 @@
                     {% for movement in history %}
 
                     {% if movement.cancellation %}
-                    <!-- Movimento cancelado: linha riscada -->
+                    <!-- Movimento cancelado -->
                     <tr class="bg-gray-50 opacity-60">
                         <td class="px-6 py-3 whitespace-nowrap text-sm">
                             <div class="flex flex-col">
@@ -194,7 +194,8 @@
                             {{ movement.created_by.username|default:"Sistema" }}
                         </td>
                     </tr>
-                    <!-- Linha de estorno: entrada verde logo abaixo -->
+
+                    <!-- Linha de estorno -->
                     <tr class="bg-green-50 border-l-4 border-green-400">
                         <td class="px-6 py-3 whitespace-nowrap text-sm">
                             <div class="flex flex-col">
