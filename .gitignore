@@ -50,3 +50,9 @@ coverage.xml
 
 # Docker
 *.env.prod
+
+Dockerfile
+
+docker-compose.yml
+
+/static/img/*

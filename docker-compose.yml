@@ -43,25 +43,25 @@ services:
       start_period: 20s
     command: >
       postgres
-      -c shared_buffers=64MB
-      -c work_mem=4MB
-      -c maintenance_work_mem=32MB
-      -c effective_cache_size=128MB
+      -c shared_buffers=128MB
+      -c work_mem=8MB
+      -c maintenance_work_mem=64MB
+      -c effective_cache_size=256MB
       -c max_connections=20
       -c random_page_cost=1.1
       -c checkpoint_completion_target=0.9
-      -c wal_buffers=8MB
+      -c wal_buffers=16MB
       -c default_statistics_target=100
       -c log_min_duration_statement=1000
       -c log_destination=stderr
     deploy:
       resources:
         limits:
-          cpus: "0.4"
-          memory: 256M
+          cpus: "0.6"
+          memory: 512M
         reservations:
           cpus: "0.05"
-          memory: 128M
+          memory: 256M
 
   # ── Redis ───────────────────────────────────────────────────────────────────
   redis:
@@ -98,7 +98,7 @@ services:
           memory: 128M
         reservations:
           cpus: "0.02"
-          memory: 64M
+          memory: 32M
 
   # ── Web (Django + Gunicorn) ─────────────────────────────────────────────────
   web:
@@ -110,7 +110,7 @@ services:
     <<: *default-restart
     env_file: .env.prod
     environment:
-      ALLOWED_HOSTS: rebanho.ferzion.com.br,www.rebanho.ferzion.com.br,127.0.0.1,localhost
+      ALLOWED_HOSTS: rebanhojd.ferzion.com.br,www.rebanhojd.ferzion.com.br,127.0.0.1,localhost
     volumes:
       - ./staticfiles:/app/staticfiles
       - ./media:/app/media
@@ -144,11 +144,11 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.5"
-          memory: 384M
+          cpus: "1.2"
+          memory: 1G
         reservations:
-          cpus: "0.1"
-          memory: 256M
+          cpus: "0.2"
+          memory: 384M
 
   # ── Celery Worker ───────────────────────────────────────────────────────────
   celery:
@@ -187,11 +187,11 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.4"
-          memory: 256M
+          cpus: "0.8"
+          memory: 512M
         reservations:
-          cpus: "0.05"
-          memory: 128M
+          cpus: "0.1"
+          memory: 256M
 
 volumes:
   postgres_data:
