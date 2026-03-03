@@ -2,30 +2,28 @@
 inventory/models/animal_movement_cancellation.py
 ════════════════════════════════════════════════
 
-Model para registrar cancelamentos de ocorrências SEM tocar no ledger imutável.
+Model para registrar cancelamentos/estornos sem apagar movimentações.
 
-PRINCÍPIO: AnimalMovement nunca é alterado (imutável por design).
-O cancelamento é um EVENTO SEPARADO que:
-1. Registra que aquela ocorrência foi estornada
-2. Guarda quem cancelou e quando
-3. O service usa este model para saber se a operação já foi revertida
-
-Este model é APPEND-ONLY também: não se cancela um cancelamento.
-Para corrigir um cancelamento errado, cria-se uma nova movimentação de entrada.
+PRINCÍPIO:
+- O movimento original continua existindo.
+- O cancelamento é um evento 1:1 separado e auditável.
+- Não se altera nem se remove um cancelamento após criado.
 """
 import uuid
 from django.db import models
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
+from simple_history.models import HistoricalRecords
 
 User = get_user_model()
 
 
 class AnimalMovementCancellation(models.Model):
     """
-    Registro de cancelamento de uma ocorrência.
+    Registro de cancelamento de uma movimentação.
 
-    Relacionamento 1:1 com AnimalMovement — cada ocorrência
-    pode ter no máximo um cancelamento.
+    Relacionamento 1:1 com AnimalMovement:
+    - cada movimentação pode ter no máximo um cancelamento.
     """
 
     id = models.UUIDField(
@@ -34,12 +32,11 @@ class AnimalMovementCancellation(models.Model):
         editable=False,
     )
 
-    # 1:1 garante que uma ocorrência só pode ser cancelada uma vez
     movement = models.OneToOneField(
         'inventory.AnimalMovement',
         on_delete=models.PROTECT,   # nunca cascade — preserva auditoria
         related_name='cancellation',
-        verbose_name="Ocorrência cancelada",
+        verbose_name="Movimentação cancelada",
     )
 
     cancelled_by = models.ForeignKey(
@@ -55,15 +52,14 @@ class AnimalMovementCancellation(models.Model):
         db_index=True,
     )
 
-    # Quantidade que foi devolvida ao estoque (= movement.quantity)
     quantity_restored = models.PositiveIntegerField(
         verbose_name="Quantidade estornada",
     )
 
-    # Saldo antes e depois para auditoria
     balance_before = models.PositiveIntegerField(
         verbose_name="Saldo antes do estorno",
     )
+
     balance_after = models.PositiveIntegerField(
         verbose_name="Saldo após o estorno",
     )
@@ -74,10 +70,15 @@ class AnimalMovementCancellation(models.Model):
         verbose_name="Observações",
     )
 
+    # Histórico também do evento de cancelamento (opcional, mas útil na auditoria)
+    history = HistoricalRecords(
+        inherit=True,
+    )
+
     class Meta:
         db_table = 'animal_movement_cancellations'
-        verbose_name = 'Cancelamento de Ocorrência'
-        verbose_name_plural = 'Cancelamentos de Ocorrências'
+        verbose_name = 'Cancelamento de Movimentação'
+        verbose_name_plural = 'Cancelamentos de Movimentações'
         ordering = ['-cancelled_at']
         indexes = [
             models.Index(fields=['cancelled_at']),
@@ -90,13 +91,44 @@ class AnimalMovementCancellation(models.Model):
             f"por {self.cancelled_by} em {self.cancelled_at:%d/%m/%Y %H:%M}"
         )
 
+    def clean(self):
+        super().clean()
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Adicione ao inventory/models/__init__.py:
-#
-#   from .animal_movement_cancellation import AnimalMovementCancellation
-#
-# Depois rode:
-#   python manage.py makemigrations inventory
-#   python manage.py migrate
-# ─────────────────────────────────────────────────────────────────────────────
+        if not self.movement_id:
+            raise ValidationError({'movement': 'Movimentação é obrigatória.'})
+
+        if not self.cancelled_by_id:
+            raise ValidationError({'cancelled_by': 'Usuário que cancelou é obrigatório.'})
+
+        if self.quantity_restored <= 0:
+            raise ValidationError({'quantity_restored': 'Quantidade estornada deve ser maior que zero.'})
+
+        if self.balance_after < 0 or self.balance_before < 0:
+            raise ValidationError('Saldos de auditoria não podem ser negativos.')
+
+        # Regra de consistência: para cancelamentos comuns, quantity_restored
+        # deve ser igual à quantidade original da movimentação.
+        # (se houver exceção de negócio no futuro, tratar no service e ajustar esta validação)
+        if self.movement and self.quantity_restored != self.movement.quantity:
+            raise ValidationError({
+                'quantity_restored': (
+                    f"Quantidade estornada ({self.quantity_restored}) deve ser igual "
+                    f"à quantidade da movimentação ({self.movement.quantity})."
+                )
+            })
+
+    def save(self, *args, **kwargs):
+        # append-only: se já existe, não permite update
+        if self.pk and self.__class__.objects.filter(pk=self.pk).exists():
+            raise ValidationError(
+                "Cancelamentos são imutáveis e não podem ser alterados após criação."
+            )
+
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise ValidationError(
+            "Cancelamentos não podem ser removidos. "
+            "Para corrigir, registre uma nova movimentação de ajuste."
+        )

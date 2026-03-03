@@ -2,11 +2,11 @@
 Audit Views - Painel de Auditoria do sistema.
 
 Acesso restrito: apenas is_staff=True ou is_superuser=True.
-Usuarios comuns (apenas is_active=True) sao redirecionados ao dashboard.
 """
 
 import calendar
 from datetime import date
+from collections import defaultdict
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required, user_passes_test
@@ -42,46 +42,51 @@ MONTHS = (
 )
 
 OPERATION_LABELS: dict[str, tuple[str, str]] = {
-    "MORTE":                 ("Morte",              "red"),
-    "ABATE":                 ("Abate",              "gray"),
-    "VENDA":                 ("Venda",              "green"),
-    "DOACAO":                ("Doação",             "blue"),
-    "NASCIMENTO":            ("Nascimento",         "emerald"),
-    "DESMAME_IN":            ("Desmame (+)",        "teal"),
-    "DESMAME_OUT":           ("Desmame (−)",        "teal"),
-    "COMPRA":                ("Compra",             "indigo"),
-    "SALDO":                 ("Ajuste de Saldo",    "purple"),
-    "MANEJO_IN":             ("Manejo (+)",         "violet"),
-    "MANEJO_OUT":            ("Manejo (−)",         "orange"),
-    "MUDANCA_CATEGORIA_IN":  ("Mud. Categoria (+)", "cyan"),
+    "MORTE": ("Morte", "red"),
+    "ABATE": ("Abate", "gray"),
+    "VENDA": ("Venda", "green"),
+    "DOACAO": ("Doação", "blue"),
+    "NASCIMENTO": ("Nascimento", "emerald"),
+    "DESMAME_IN": ("Desmame (+)", "teal"),
+    "DESMAME_OUT": ("Desmame (−)", "teal"),
+    "COMPRA": ("Compra", "indigo"),
+    "SALDO": ("Ajuste de Saldo", "purple"),
+    "MANEJO_IN": ("Manejo (+)", "violet"),
+    "MANEJO_OUT": ("Manejo (−)", "orange"),
+    "MUDANCA_CATEGORIA_IN": ("Mud. Categoria (+)", "cyan"),
     "MUDANCA_CATEGORIA_OUT": ("Mud. Categoria (−)", "amber"),
 }
 
 COLOR_CLASSES: dict[str, str] = {
-    "red":     "bg-red-100 text-red-800",
-    "gray":    "bg-gray-100 text-gray-800",
-    "green":   "bg-green-100 text-green-800",
-    "blue":    "bg-blue-100 text-blue-800",
+    "red": "bg-red-100 text-red-800",
+    "gray": "bg-gray-100 text-gray-800",
+    "green": "bg-green-100 text-green-800",
+    "blue": "bg-blue-100 text-blue-800",
     "emerald": "bg-emerald-100 text-emerald-800",
-    "teal":    "bg-teal-100 text-teal-800",
-    "indigo":  "bg-indigo-100 text-indigo-800",
-    "purple":  "bg-purple-100 text-purple-800",
-    "violet":  "bg-violet-100 text-violet-800",
-    "orange":  "bg-orange-100 text-orange-800",
-    "cyan":    "bg-cyan-100 text-cyan-800",
-    "amber":   "bg-amber-100 text-amber-800",
+    "teal": "bg-teal-100 text-teal-800",
+    "indigo": "bg-indigo-100 text-indigo-800",
+    "purple": "bg-purple-100 text-purple-800",
+    "violet": "bg-violet-100 text-violet-800",
+    "orange": "bg-orange-100 text-orange-800",
+    "cyan": "bg-cyan-100 text-cyan-800",
+    "amber": "bg-amber-100 text-amber-800",
+}
+
+EVENT_TYPE_LABELS = {
+    "+": "Cadastro",
+    "~": "Edição",
+    "-": "Remoção",
 }
 
 _DEFAULT_COLOR = "gray"
 
-# Mapeamento de chaves de metadata para labels legíveis
 META_LABELS: dict[str, str] = {
-    "observacao":      "Observação",
-    "peso":            "Peso (kg)",
-    "preco_total":     "Preço Total (R$)",
-    "preco_unitario":  "Preço Unitário (R$)",
-    "fornecedor":      "Fornecedor",
-    "motivo":          "Motivo",
+    "observacao": "Observação",
+    "peso": "Peso (kg)",
+    "preco_total": "Preço Total (R$)",
+    "preco_unitario": "Preço Unitário (R$)",
+    "fornecedor": "Fornecedor",
+    "motivo": "Motivo",
 }
 
 
@@ -90,7 +95,6 @@ META_LABELS: dict[str, str] = {
 # ---------------------------------------------------------------------------
 
 def _pode_ver_auditoria(user) -> bool:
-    """Permite acesso apenas a membros da equipe (staff) ou superusuarios."""
     return user.is_active and (user.is_staff or user.is_superuser)
 
 
@@ -99,11 +103,6 @@ def _pode_ver_auditoria(user) -> bool:
 # ---------------------------------------------------------------------------
 
 def _get_cancellation(movement):
-    """
-    Retorna o objeto de cancelamento (reverse OneToOne) ou None.
-    Usa hasattr para evitar queries desnecessarias quando ja prefetchado
-    via select_related.
-    """
     if hasattr(movement, "_cancellation_cache"):
         return movement._cancellation_cache
     try:
@@ -112,23 +111,86 @@ def _get_cancellation(movement):
         return None
 
 
-def _enrich(movement) -> dict:
-    """Adiciona label, cor CSS e metadados de exibicao a um movement."""
+def _build_history_map_for_page(page_movements):
+    """
+    Monta mapa por movement_id com o último estado histórico anterior para calcular delta.
+    """
+    ids = [m.id for m in page_movements]
+    history_map = defaultdict(list)
+
+    qs = (
+        AnimalMovement.history
+        .filter(id__in=ids)
+        .order_by("id", "-history_date", "-history_id")
+    )
+
+    for h in qs:
+        history_map[h.id].append(h)
+
+    return history_map
+
+
+def _compute_edit_delta(history_entries):
+    """
+    Retorna string de delta para exibição, ex: '6 → 3'.
+    Só mostra quando último evento é edição (~) e quantidade mudou.
+    """
+    if not history_entries:
+        return None, None
+
+    latest = history_entries[0]
+    latest_type = latest.history_type
+
+    if latest_type != "~":
+        return latest_type, None
+
+    previous = history_entries[1] if len(history_entries) > 1 else None
+    if not previous:
+        return latest_type, None
+
+    if previous.quantity != latest.quantity:
+        return latest_type, f"{previous.quantity} → {latest.quantity}"
+
+    return latest_type, None
+
+
+def _enrich(movement, history_map) -> dict:
     label, color = OPERATION_LABELS.get(
         movement.operation_type,
         (movement.operation_type, _DEFAULT_COLOR),
     )
+
+    history_entries = history_map.get(movement.id, [])
+    latest_history_type, qty_delta = _compute_edit_delta(history_entries)
+
+    event_badge = EVENT_TYPE_LABELS.get(latest_history_type, "Cadastro")
+
+    # quem/quando da última mudança de histórico (se houver)
+    history_user = None
+    history_date = None
+    if history_entries:
+        latest_h = history_entries[0]
+        history_user = latest_h.history_user
+        history_date = latest_h.history_date
+
     return {
-        "obj":          movement,
-        "label":        label,
-        "color_class":  COLOR_CLASSES.get(color, COLOR_CLASSES[_DEFAULT_COLOR]),
-        "is_saida":     movement.movement_type == "SAIDA",
+        "obj": movement,
+        "label": label,
+        "color_class": COLOR_CLASSES.get(color, COLOR_CLASSES[_DEFAULT_COLOR]),
+        "is_saida": movement.movement_type == "SAIDA",
         "cancellation": _get_cancellation(movement),
+
+        # NOVO: auditoria de edição
+        "event_type": latest_history_type or "+",
+        "event_badge": event_badge,  # Cadastro / Edição / Remoção
+        "quantity_delta": qty_delta,  # ex: "6 → 3"
+        "edited": latest_history_type == "~",
+        "history_user": history_user,
+        "history_date": history_date,
     }
 
 
 def _base_queryset():
-    """QuerySet base com todos os joins necessarios para auditoria."""
     return (
         AnimalMovement.objects
         .select_related(
@@ -146,13 +208,8 @@ def _base_queryset():
 
 
 def _apply_filters(qs, params: dict):
-    """
-    Aplica filtros ao queryset com base nos parametros GET.
-    Retorna (queryset_filtrado, filtros_ativos: bool).
-    """
     filtros_ativos = False
 
-    # Busca textual
     search = params.get("q", "").strip()
     if search:
         filtros_ativos = True
@@ -166,25 +223,21 @@ def _apply_filters(qs, params: dict):
             | Q(death_reason__name__icontains=search)
         )
 
-    # Filtro por usuario
     user_id = params.get("user", "").strip()
     if user_id and user_id.isdigit():
         filtros_ativos = True
         qs = qs.filter(created_by_id=int(user_id))
 
-    # Filtro por tipo de operacao
     operation = params.get("operation", "").strip()
     if operation and operation in OPERATION_LABELS:
         filtros_ativos = True
         qs = qs.filter(operation_type=operation)
 
-    # Filtro por fazenda
     farm_id = params.get("farm", "").strip()
-    if farm_id and farm_id.isdigit():
+    if farm_id:
         filtros_ativos = True
-        qs = qs.filter(farm_stock_balance__farm_id=int(farm_id))
+        qs = qs.filter(farm_stock_balance__farm_id=farm_id)
 
-    # Filtro temporal (mes + ano, ou apenas ano)
     month_str = params.get("month", "").strip()
     year_str = params.get("year", "").strip()
 
@@ -205,17 +258,14 @@ def _apply_filters(qs, params: dict):
 
 
 def _get_metadata_items(movement) -> list[tuple[str, str]]:
-    """Extrai itens de metadata formatados para exibicao no detalhe."""
     metadata = movement.metadata or {}
     items = []
 
-    # Chaves conhecidas com labels amigaveis
     for key, label in META_LABELS.items():
         value = metadata.get(key)
         if value:
             items.append((label, value))
 
-    # Chaves extras nao mapeadas
     for key, value in metadata.items():
         if key not in META_LABELS and value:
             items.append((key.replace("_", " ").title(), value))
@@ -230,7 +280,6 @@ def _get_metadata_items(movement) -> list[tuple[str, str]]:
 @login_required
 @user_passes_test(_pode_ver_auditoria, login_url="/")
 def audit_list_view(request):
-    """Lista paginada de todas as movimentacoes com filtros."""
     today = date.today()
     params = request.GET
 
@@ -240,31 +289,34 @@ def audit_list_view(request):
     total_count = qs.count()
     paginator = Paginator(qs, ITEMS_PER_PAGE)
     page_obj = paginator.get_page(params.get("page", 1))
-    movements = [_enrich(m) for m in page_obj]
+
+    # histórico só da página atual (eficiente)
+    history_map = _build_history_map_for_page(page_obj.object_list)
+    movements = [_enrich(m, history_map) for m in page_obj.object_list]
 
     context = {
-        "movements":       movements,
-        "page_obj":        page_obj,
-        "total_count":     total_count,
-        "filtros_ativos":  filtros_ativos,
-        # Valores atuais dos filtros (para manter estado no template)
-        "search_term":     params.get("q", "").strip(),
-        "selected_user":   params.get("user", "").strip(),
-        "selected_op":     params.get("operation", "").strip(),
-        "selected_farm":   params.get("farm", "").strip(),
-        "selected_month":  params.get("month", "").strip(),
-        "selected_year":   params.get("year", "").strip(),
-        # Opcoes dos selects
-        "usuarios":        (
+        "movements": movements,
+        "page_obj": page_obj,
+        "total_count": total_count,
+        "filtros_ativos": filtros_ativos,
+
+        "search_term": params.get("q", "").strip(),
+        "selected_user": params.get("user", "").strip(),
+        "selected_op": params.get("operation", "").strip(),
+        "selected_farm": params.get("farm", "").strip(),
+        "selected_month": params.get("month", "").strip(),
+        "selected_year": params.get("year", "").strip(),
+
+        "usuarios": (
             User.objects
             .filter(animal_movements__isnull=False)
             .distinct()
             .order_by("username")
         ),
-        "farms":           Farm.objects.filter(is_active=True).order_by("name"),
+        "farms": Farm.objects.filter(is_active=True).order_by("name"),
         "operation_types": OPERATION_LABELS,
-        "months":          MONTHS,
-        "years":           list(range(today.year - 3, today.year + 1)),
+        "months": MONTHS,
+        "years": list(range(today.year - 3, today.year + 1)),
     }
     return render(request, "core/audit_list.html", context)
 
@@ -272,7 +324,6 @@ def audit_list_view(request):
 @login_required
 @user_passes_test(_pode_ver_auditoria, login_url="/")
 def audit_detail_view(request, pk):
-    """Detalhe completo de uma movimentacao individual."""
     movement = get_object_or_404(
         AnimalMovement.objects.select_related(
             "farm_stock_balance__farm",
@@ -293,12 +344,20 @@ def audit_detail_view(request, pk):
         (movement.operation_type, _DEFAULT_COLOR),
     )
 
+    # histórico completo do item para detalhe (timeline)
+    history_entries = list(
+        AnimalMovement.history
+        .filter(id=movement.id)
+        .order_by("-history_date", "-history_id")
+    )
+
     context = {
-        "movement":     movement,
-        "op_label":     label,
-        "color_class":  COLOR_CLASSES.get(color, COLOR_CLASSES[_DEFAULT_COLOR]),
-        "meta_items":   _get_metadata_items(movement),
-        "is_saida":     movement.movement_type == "SAIDA",
+        "movement": movement,
+        "op_label": label,
+        "color_class": COLOR_CLASSES.get(color, COLOR_CLASSES[_DEFAULT_COLOR]),
+        "meta_items": _get_metadata_items(movement),
+        "is_saida": movement.movement_type == "SAIDA",
         "cancellation": _get_cancellation(movement),
+        "history_entries": history_entries,  # opcional para mostrar timeline no detail
     }
     return render(request, "core/audit_detail.html", context)
