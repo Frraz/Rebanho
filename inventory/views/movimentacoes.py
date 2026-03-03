@@ -159,6 +159,14 @@ def movement_list_view(request):
             .order_by('operation_type')
         )
 
+        tipos_disponiveis_com_label = [
+            {
+                'value': tipo,
+                'label': OPERATION_TYPE_LABELS.get(tipo, tipo),
+            }
+            for tipo in tipos_disponiveis
+        ]
+
         ano_atual = timezone.now().year
         anos = list(range(ano_atual, ano_atual - 6, -1))
         meses = [
@@ -186,8 +194,7 @@ def movement_list_view(request):
             'ano_filtro': filters['ano'],
             'filtros_ativos': filters['has_filters'],
             'farms': Farm.objects.filter(is_active=True).order_by('name'),
-            'tipos_disponiveis': tipos_disponiveis,
-            'operation_labels': OPERATION_TYPE_LABELS,
+            'tipos_disponiveis': tipos_disponiveis_com_label,
             'anos': anos,
             'meses': meses,
             'stats': stats,
