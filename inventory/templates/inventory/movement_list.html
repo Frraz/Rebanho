@@ -121,7 +121,9 @@
                     <select name="tipo" class="block w-full border border-gray-300 rounded-xl py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
                         <option value="">Todos os tipos</option>
                         {% for tipo in tipos_disponiveis %}
-                        <option value="{{ tipo }}" {% if tipo == tipo_filtro %}selected{% endif %}>{{ operation_labels|default_if_none:tipo }}</option>
+                        <option value="{{ tipo }}" {% if tipo == tipo_filtro %}selected{% endif %}>
+                            {{ operation_labels.get(tipo, tipo) }}
+                        </option>
                         {% endfor %}
                     </select>
                 </div>
