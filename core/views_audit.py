@@ -25,26 +25,12 @@ from inventory.models import AnimalMovement
 
 User = get_user_model()
 
-
-# ---------------------------------------------------------------------------
-# Constants
-# ---------------------------------------------------------------------------
-
 ITEMS_PER_PAGE = 30
 
 MONTHS = (
-    (1, "Janeiro"),
-    (2, "Fevereiro"),
-    (3, "Março"),
-    (4, "Abril"),
-    (5, "Maio"),
-    (6, "Junho"),
-    (7, "Julho"),
-    (8, "Agosto"),
-    (9, "Setembro"),
-    (10, "Outubro"),
-    (11, "Novembro"),
-    (12, "Dezembro"),
+    (1, "Janeiro"), (2, "Fevereiro"), (3, "Março"), (4, "Abril"),
+    (5, "Maio"), (6, "Junho"), (7, "Julho"), (8, "Agosto"),
+    (9, "Setembro"), (10, "Outubro"), (11, "Novembro"), (12, "Dezembro"),
 )
 
 OPERATION_LABELS: dict[str, tuple[str, str]] = {
@@ -96,17 +82,9 @@ META_LABELS: dict[str, str] = {
 }
 
 
-# ---------------------------------------------------------------------------
-# Access control
-# ---------------------------------------------------------------------------
-
 def _pode_ver_auditoria(user) -> bool:
     return user.is_active and (user.is_staff or user.is_superuser)
 
-
-# ---------------------------------------------------------------------------
-# Helpers (History-first)
-# ---------------------------------------------------------------------------
 
 def _history_base_queryset():
     return (
@@ -158,7 +136,6 @@ def _apply_filters(qs, params: dict):
 
     month_str = params.get("month", "").strip()
     year_str = params.get("year", "").strip()
-
     if year_str and year_str.isdigit():
         year = int(year_str)
         if month_str and month_str.isdigit():
@@ -176,40 +153,31 @@ def _apply_filters(qs, params: dict):
 
 
 def _build_prev_history_map(page_history_rows):
-    """
-    Para cada item da página, localiza o histórico imediatamente anterior
-    para cálculo de delta (ex.: 6 → 3).
-    """
     grouped = defaultdict(list)
     for row in page_history_rows:
         grouped[row.id].append(row)
 
     prev_map = {}
     for movement_id, rows in grouped.items():
-        # menor data da página para esse id (mais antigo dentro da página)
-        min_date = min(r.history_date for r in rows)
-        min_history_id = min(r.history_id for r in rows if r.history_date == min_date)
-
-        older = (
-            AnimalMovement.history
-            .filter(id=movement_id)
-            .filter(
-                Q(history_date__lt=min_date)
-                | Q(history_date=min_date, history_id__lt=min_history_id)
+        # para cada linha, pega o anterior imediato (corrige delta por evento)
+        for row in rows:
+            previous = (
+                AnimalMovement.history
+                .filter(id=movement_id)
+                .filter(
+                    Q(history_date__lt=row.history_date)
+                    | Q(history_date=row.history_date, history_id__lt=row.history_id)
+                )
+                .order_by("-history_date", "-history_id")
+                .first()
             )
-            .order_by("-history_date", "-history_id")
-            .first()
-        )
-        if older:
-            prev_map[(movement_id, min_date, min_history_id)] = older
+            if previous:
+                prev_map[(movement_id, row.history_date, row.history_id)] = previous
 
     return prev_map
 
 
 def _build_live_map(page_history_rows):
-    """
-    Mapa id -> movimento live (para status de cancelamento).
-    """
     ids = sorted({row.id for row in page_history_rows})
     live_qs = (
         AnimalMovement.objects
@@ -236,12 +204,12 @@ def _serialize_history_row(row, prev_map, live_map) -> dict:
     cancellation = getattr(live, "cancellation", None) if live else None
 
     return {
-        "obj": row,  # template usa m.obj.*
+        "obj": row,
+        "movement_id": str(row.id),  # evita problema com UUID em URL
         "label": label,
         "color_class": COLOR_CLASSES.get(color, COLOR_CLASSES[_DEFAULT_COLOR]),
         "is_saida": row.movement_type == "SAIDA",
         "cancellation": cancellation,
-
         "event_type": row.history_type,
         "event_badge": EVENT_TYPE_LABELS.get(row.history_type, "Evento"),
         "quantity_delta": qty_delta,
@@ -267,10 +235,6 @@ def _get_metadata_items(movement) -> list[tuple[str, str]]:
     return items
 
 
-# ---------------------------------------------------------------------------
-# Views
-# ---------------------------------------------------------------------------
-
 @login_required
 @user_passes_test(_pode_ver_auditoria, login_url="/")
 def audit_list_view(request):
@@ -295,14 +259,12 @@ def audit_list_view(request):
         "page_obj": page_obj,
         "total_count": total_count,
         "filtros_ativos": filtros_ativos,
-
         "search_term": params.get("q", "").strip(),
         "selected_user": params.get("user", "").strip(),
         "selected_op": params.get("operation", "").strip(),
         "selected_farm": params.get("farm", "").strip(),
         "selected_month": params.get("month", "").strip(),
         "selected_year": params.get("year", "").strip(),
-
         "usuarios": (
             User.objects
             .filter(animal_movements__isnull=False)

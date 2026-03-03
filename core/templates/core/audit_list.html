@@ -163,7 +163,7 @@
         <div class="bg-white rounded-2xl border {% if m.cancellation %}border-gray-200 opacity-80{% else %}border-gray-200{% endif %} overflow-hidden">
             <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
                 <div>
-                    <div class="text-sm font-bold text-gray-900">{{ m.obj.timestamp|date:"d/m/Y H:i" }}</div>
+                    <div class="text-sm font-bold text-gray-900">{{ m.history_date|date:"d/m/Y H:i" }}</div>
                     <div class="text-xs text-gray-500">{{ m.obj.farm_stock_balance.farm.name }} · {{ m.obj.farm_stock_balance.animal_category.name }}</div>
                 </div>
                 <div class="text-right">
