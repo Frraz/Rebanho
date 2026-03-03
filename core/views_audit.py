@@ -2,6 +2,12 @@
 Audit Views - Painel de Auditoria do sistema.
 
 Acesso restrito: apenas is_staff=True ou is_superuser=True.
+
+IMPORTANTE:
+- A listagem usa AnimalMovement.history como fonte principal para exibir
+  eventos separados (Cadastro, Edição, Remoção).
+- Cancelamento continua sendo mostrado consultando o registro "live"
+  correspondente (quando existir).
 """
 
 import calendar
@@ -99,111 +105,22 @@ def _pode_ver_auditoria(user) -> bool:
 
 
 # ---------------------------------------------------------------------------
-# Helpers
+# Helpers (History-first)
 # ---------------------------------------------------------------------------
 
-def _get_cancellation(movement):
-    if hasattr(movement, "_cancellation_cache"):
-        return movement._cancellation_cache
-    try:
-        return movement.cancellation
-    except AnimalMovement.cancellation.RelatedObjectDoesNotExist:
-        return None
-
-
-def _build_history_map_for_page(page_movements):
-    """
-    Monta mapa por movement_id com o último estado histórico anterior para calcular delta.
-    """
-    ids = [m.id for m in page_movements]
-    history_map = defaultdict(list)
-
-    qs = (
-        AnimalMovement.history
-        .filter(id__in=ids)
-        .order_by("id", "-history_date", "-history_id")
-    )
-
-    for h in qs:
-        history_map[h.id].append(h)
-
-    return history_map
-
-
-def _compute_edit_delta(history_entries):
-    """
-    Retorna string de delta para exibição, ex: '6 → 3'.
-    Só mostra quando último evento é edição (~) e quantidade mudou.
-    """
-    if not history_entries:
-        return None, None
-
-    latest = history_entries[0]
-    latest_type = latest.history_type
-
-    if latest_type != "~":
-        return latest_type, None
-
-    previous = history_entries[1] if len(history_entries) > 1 else None
-    if not previous:
-        return latest_type, None
-
-    if previous.quantity != latest.quantity:
-        return latest_type, f"{previous.quantity} → {latest.quantity}"
-
-    return latest_type, None
-
-
-def _enrich(movement, history_map) -> dict:
-    label, color = OPERATION_LABELS.get(
-        movement.operation_type,
-        (movement.operation_type, _DEFAULT_COLOR),
-    )
-
-    history_entries = history_map.get(movement.id, [])
-    latest_history_type, qty_delta = _compute_edit_delta(history_entries)
-
-    event_badge = EVENT_TYPE_LABELS.get(latest_history_type, "Cadastro")
-
-    # quem/quando da última mudança de histórico (se houver)
-    history_user = None
-    history_date = None
-    if history_entries:
-        latest_h = history_entries[0]
-        history_user = latest_h.history_user
-        history_date = latest_h.history_date
-
-    return {
-        "obj": movement,
-        "label": label,
-        "color_class": COLOR_CLASSES.get(color, COLOR_CLASSES[_DEFAULT_COLOR]),
-        "is_saida": movement.movement_type == "SAIDA",
-        "cancellation": _get_cancellation(movement),
-
-        # NOVO: auditoria de edição
-        "event_type": latest_history_type or "+",
-        "event_badge": event_badge,  # Cadastro / Edição / Remoção
-        "quantity_delta": qty_delta,  # ex: "6 → 3"
-        "edited": latest_history_type == "~",
-        "history_user": history_user,
-        "history_date": history_date,
-    }
-
-
-def _base_queryset():
+def _history_base_queryset():
     return (
-        AnimalMovement.objects
+        AnimalMovement.history
         .select_related(
+            "history_user",
             "farm_stock_balance__farm",
             "farm_stock_balance__animal_category",
             "created_by",
             "client",
             "death_reason",
             "related_movement__farm_stock_balance__farm",
-            "cancellation",
-            "cancellation__cancelled_by",
         )
-        .order_by("-timestamp", "-created_at")
+        .order_by("-history_date", "-history_id")
     )
 
 
@@ -221,6 +138,7 @@ def _apply_filters(qs, params: dict):
             | Q(created_by__last_name__icontains=search)
             | Q(client__name__icontains=search)
             | Q(death_reason__name__icontains=search)
+            | Q(metadata__observacao__icontains=search)
         )
 
     user_id = params.get("user", "").strip()
@@ -234,9 +152,9 @@ def _apply_filters(qs, params: dict):
         qs = qs.filter(operation_type=operation)
 
     farm_id = params.get("farm", "").strip()
-    if farm_id:
+    if farm_id and farm_id.isdigit():
         filtros_ativos = True
-        qs = qs.filter(farm_stock_balance__farm_id=farm_id)
+        qs = qs.filter(farm_stock_balance__farm_id=int(farm_id))
 
     month_str = params.get("month", "").strip()
     year_str = params.get("year", "").strip()
@@ -248,13 +166,89 @@ def _apply_filters(qs, params: dict):
             if 1 <= month <= 12:
                 start = date(year, month, 1)
                 end = date(year, month, calendar.monthrange(year, month)[1])
-                qs = qs.filter(timestamp__date__range=(start, end))
+                qs = qs.filter(history_date__date__range=(start, end))
                 filtros_ativos = True
         else:
-            qs = qs.filter(timestamp__year=year)
+            qs = qs.filter(history_date__year=year)
             filtros_ativos = True
 
     return qs, filtros_ativos
+
+
+def _build_prev_history_map(page_history_rows):
+    """
+    Para cada item da página, localiza o histórico imediatamente anterior
+    para cálculo de delta (ex.: 6 → 3).
+    """
+    grouped = defaultdict(list)
+    for row in page_history_rows:
+        grouped[row.id].append(row)
+
+    prev_map = {}
+    for movement_id, rows in grouped.items():
+        # menor data da página para esse id (mais antigo dentro da página)
+        min_date = min(r.history_date for r in rows)
+        min_history_id = min(r.history_id for r in rows if r.history_date == min_date)
+
+        older = (
+            AnimalMovement.history
+            .filter(id=movement_id)
+            .filter(
+                Q(history_date__lt=min_date)
+                | Q(history_date=min_date, history_id__lt=min_history_id)
+            )
+            .order_by("-history_date", "-history_id")
+            .first()
+        )
+        if older:
+            prev_map[(movement_id, min_date, min_history_id)] = older
+
+    return prev_map
+
+
+def _build_live_map(page_history_rows):
+    """
+    Mapa id -> movimento live (para status de cancelamento).
+    """
+    ids = sorted({row.id for row in page_history_rows})
+    live_qs = (
+        AnimalMovement.objects
+        .filter(id__in=ids)
+        .select_related("cancellation", "cancellation__cancelled_by")
+    )
+    return {m.id: m for m in live_qs}
+
+
+def _serialize_history_row(row, prev_map, live_map) -> dict:
+    label, color = OPERATION_LABELS.get(
+        row.operation_type,
+        (row.operation_type, _DEFAULT_COLOR),
+    )
+
+    key = (row.id, row.history_date, row.history_id)
+    prev = prev_map.get(key)
+
+    qty_delta = None
+    if row.history_type == "~" and prev and prev.quantity != row.quantity:
+        qty_delta = f"{prev.quantity} → {row.quantity}"
+
+    live = live_map.get(row.id)
+    cancellation = getattr(live, "cancellation", None) if live else None
+
+    return {
+        "obj": row,  # template usa m.obj.*
+        "label": label,
+        "color_class": COLOR_CLASSES.get(color, COLOR_CLASSES[_DEFAULT_COLOR]),
+        "is_saida": row.movement_type == "SAIDA",
+        "cancellation": cancellation,
+
+        "event_type": row.history_type,
+        "event_badge": EVENT_TYPE_LABELS.get(row.history_type, "Evento"),
+        "quantity_delta": qty_delta,
+        "edited": row.history_type == "~",
+        "history_user": row.history_user,
+        "history_date": row.history_date,
+    }
 
 
 def _get_metadata_items(movement) -> list[tuple[str, str]]:
@@ -283,16 +277,18 @@ def audit_list_view(request):
     today = date.today()
     params = request.GET
 
-    qs = _base_queryset()
+    qs = _history_base_queryset()
     qs, filtros_ativos = _apply_filters(qs, params)
 
     total_count = qs.count()
     paginator = Paginator(qs, ITEMS_PER_PAGE)
     page_obj = paginator.get_page(params.get("page", 1))
 
-    # histórico só da página atual (eficiente)
-    history_map = _build_history_map_for_page(page_obj.object_list)
-    movements = [_enrich(m, history_map) for m in page_obj.object_list]
+    page_rows = list(page_obj.object_list)
+    prev_map = _build_prev_history_map(page_rows)
+    live_map = _build_live_map(page_rows)
+
+    movements = [_serialize_history_row(r, prev_map, live_map) for r in page_rows]
 
     context = {
         "movements": movements,
@@ -344,10 +340,10 @@ def audit_detail_view(request, pk):
         (movement.operation_type, _DEFAULT_COLOR),
     )
 
-    # histórico completo do item para detalhe (timeline)
     history_entries = list(
         AnimalMovement.history
         .filter(id=movement.id)
+        .select_related("history_user")
         .order_by("-history_date", "-history_id")
     )
 
@@ -357,7 +353,7 @@ def audit_detail_view(request, pk):
         "color_class": COLOR_CLASSES.get(color, COLOR_CLASSES[_DEFAULT_COLOR]),
         "meta_items": _get_metadata_items(movement),
         "is_saida": movement.movement_type == "SAIDA",
-        "cancellation": _get_cancellation(movement),
-        "history_entries": history_entries,  # opcional para mostrar timeline no detail
+        "cancellation": getattr(movement, "cancellation", None),
+        "history_entries": history_entries,
     }
     return render(request, "core/audit_detail.html", context)
