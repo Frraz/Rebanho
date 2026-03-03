@@ -53,3 +53,5 @@ isort>=5.12.0
 # Monitoramento (opcional)
 # =============================================================================
 # sentry-sdk>=1.38.0            # Monitoramento de erros
+
+django-simple-history==3.7.0

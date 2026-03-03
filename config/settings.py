@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.humanize',  # Para formatação de números e datas
+    "simple_history",
 
     # Third-party apps
     'django_extensions',
