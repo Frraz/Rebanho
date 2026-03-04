@@ -1,5 +1,6 @@
 {% extends 'reporting/pdf_base.html' %}
 {% load report_tags %}
+{% load number_filters %}
 
 {% block title %}Relatório — {{ report.farm.name }} — {{ report.period.start|date:"m/Y" }}{% endblock %}
 
@@ -13,6 +14,7 @@
   </div>
 </div>
 
+{# ── Estoque Inicial ───────────────────────────────────────────────────────── #}
 <div class="section">
   <div class="section-title red">Estoque Inicial</div>
   <table class="estoque-table">
@@ -33,6 +35,7 @@
   </table>
 </div>
 
+{# ── Tabela Principal de Movimentações ────────────────────────────────────── #}
 <div class="section">
   <div class="section-title blue">{{ report.period.start|date:"F/Y"|upper }}</div>
   <table>
@@ -128,6 +131,7 @@
   </table>
 </div>
 
+{# ── Estoque Final ─────────────────────────────────────────────────────────── #}
 <div class="section">
   <div class="section-title green">Estoque Final do Mês</div>
   <table class="estoque-table">
@@ -148,14 +152,18 @@
   </table>
 </div>
 
+{# ── Detalhamentos ─────────────────────────────────────────────────────────── #}
 <div class="section">
   <div class="section-title gray">Detalhamentos</div>
+
+  {# Linha superior: três colunas iguais — Mortes | Doações | Abates #}
   <div class="details-grid">
 
+    {# Coluna 1 — Causa das Mortes dos Animais #}
     <div class="details-col">
       <table>
         <thead>
-          <tr><th colspan="3">OBS: Causa das Mortes</th></tr>
+          <tr><th colspan="3">OBS: Causa das Mortes dos Animais</th></tr>
           <tr>
             <th class="text-left">Animal</th>
             <th class="text-left">Motivo</th>
@@ -170,12 +178,13 @@
             <td class="val-morte">{{ m.quantidade }}</td>
           </tr>
           {% empty %}
-          <tr><td colspan="3" class="val-zero">Nenhuma morte</td></tr>
+          <tr><td colspan="3" class="val-zero">Nenhuma morte registrada</td></tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
 
+    {# Coluna 2 — Doações #}
     <div class="details-col">
       <table>
         <thead>
@@ -196,69 +205,69 @@
             <td class="val-abate">{{ d.quantidade }}</td>
           </tr>
           {% empty %}
-          <tr><td colspan="4" class="val-zero">Nenhuma doação</td></tr>
+          <tr><td colspan="4" class="val-zero">Nenhuma doação registrada</td></tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
 
+    {# Coluna 3 — Abates #}
     <div class="details-col">
       <table>
         <thead>
-          <tr><th colspan="5">OBS: Controle de Vendas</th></tr>
+          <tr><th colspan="3">OBS: Abates</th></tr>
           <tr>
-            <th>Data</th>
             <th class="text-left">Animal</th>
-            <th class="text-left">Cliente</th>
-            <th>Peso</th>
+            <th class="text-left">Observação</th>
             <th>Qtd</th>
           </tr>
         </thead>
         <tbody>
-          {% for v in report.detalhamento.vendas %}
+          {% for a in report.detalhamento.abates %}
           <tr>
-            <td>{{ v.data|date:"d/m/Y" }}</td>
-            <td class="text-left">{{ v.categoria }}</td>
-            <td class="text-left">{{ v.cliente }}</td>
-            <td>{{ v.peso|default:"—" }}</td>
-            <td class="val-nasc">{{ v.quantidade }}</td>
+            <td class="text-left">{{ a.categoria }}</td>
+            <td class="text-left">{{ a.observacao|default:"—" }}</td>
+            <td class="val-abate">{{ a.quantidade }}</td>
           </tr>
           {% empty %}
-          <tr><td colspan="5" class="val-zero">Nenhuma venda</td></tr>
+          <tr><td colspan="3" class="val-zero">Nenhum abate registrado</td></tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
 
-  </div>
-</div>
+  </div>{# /details-grid #}
 
-{% if report.detalhamento.abates %}
-<div class="section">
-  <table>
+  {# Linha inferior: Controle de Vendas em largura total #}
+  <table class="vendas-table">
     <thead>
-      <tr><th colspan="4">OBS: Abates</th></tr>
+      <tr><th colspan="5">OBS: Controle de Vendas</th></tr>
       <tr>
+        <th>Data</th>
         <th class="text-left">Animal</th>
-        <th class="text-left">Observação</th>
+        <th class="text-left">Cliente</th>
         <th>Peso</th>
         <th>Qtd</th>
       </tr>
     </thead>
     <tbody>
-      {% for a in report.detalhamento.abates %}
+      {% for v in report.detalhamento.vendas %}
       <tr>
-        <td class="text-left">{{ a.categoria }}</td>
-        <td class="text-left">{{ a.observacao|default:"—" }}</td>
-        <td>{{ a.peso|default:"—" }}</td>
-        <td class="val-abate">{{ a.quantidade }}</td>
+        <td>{{ v.data|date:"d/m/Y" }}</td>
+        <td class="text-left">{{ v.categoria }}</td>
+        <td class="text-left">{{ v.cliente }}</td>
+        <td>{{ v.peso|default:"—" }}</td>
+        <td class="val-nasc">{{ v.quantidade }}</td>
       </tr>
+      {% empty %}
+      <tr><td colspan="5" class="val-zero">Nenhuma venda registrada</td></tr>
       {% endfor %}
     </tbody>
   </table>
-</div>
-{% endif %}
 
+</div>{# /section detalhamentos #}
+
+{# ── Rodapé ────────────────────────────────────────────────────────────────── #}
 <div class="report-footer">
   <div class="footer-left">Sistema de Gestão de Rebanhos</div>
   <div class="footer-right">{{ report.farm.name }} · {{ report.period.start|date:"F/Y" }}</div>
