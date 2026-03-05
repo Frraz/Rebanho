@@ -118,43 +118,43 @@ class ConsolidatedReportService:
         # Consolidar cada relatório
         for report in farm_reports:
             # Categorias
-            consolidated['categories'].update(report['categories'])
-            
+            consolidated['categories'].update(report.categories)
+
             # Estoque inicial
-            for category, qty in report['estoque_inicial'].items():
+            for category, qty in report.estoque_inicial.items():
                 consolidated['estoque_inicial'][category] = \
                     consolidated['estoque_inicial'].get(category, 0) + qty
-            
+
             # Ocorrências
             for op_type in ['morte', 'venda', 'abate', 'doacao']:
-                for category, qty in report['ocorrencias'][op_type].items():
+                for category, qty in getattr(report.ocorrencias, op_type).items():
                     consolidated['ocorrencias'][op_type][category] = \
                         consolidated['ocorrencias'][op_type].get(category, 0) + qty
-            
+
             # Entradas
-            for op_type in ['nascimento', 'desmame', 'compra', 'saldo', 
-                           'manejo_in', 'manejo_out', 'mudanca_in', 'mudanca_out']:
-                for category, qty in report['entradas'][op_type].items():
+            for op_type in ['nascimento', 'desmame', 'compra', 'saldo',
+                        'manejo_in', 'manejo_out', 'mudanca_in', 'mudanca_out']:
+                for category, qty in getattr(report.entradas, op_type).items():
                     consolidated['entradas'][op_type][category] = \
                         consolidated['entradas'][op_type].get(category, 0) + qty
-            
+
             # Consolidado
-            for category, qty in report['consolidado']['entradas'].items():
+            for category, qty in report.consolidado.entradas.items():
                 consolidated['consolidado']['entradas'][category] = \
                     consolidated['consolidado']['entradas'].get(category, 0) + qty
-            
-            for category, qty in report['consolidado']['saidas'].items():
+
+            for category, qty in report.consolidado.saidas.items():
                 consolidated['consolidado']['saidas'][category] = \
                     consolidated['consolidado']['saidas'].get(category, 0) + qty
-            
+
             # Detalhamento (concatenar listas)
-            consolidated['detalhamento']['mortes'].extend(report['detalhamento']['mortes'])
-            consolidated['detalhamento']['vendas'].extend(report['detalhamento']['vendas'])
-            consolidated['detalhamento']['abates'].extend(report['detalhamento']['abates'])
-            consolidated['detalhamento']['doacoes'].extend(report['detalhamento']['doacoes'])
-            
+            consolidated['detalhamento']['mortes'].extend(report.detalhamento.mortes)
+            consolidated['detalhamento']['vendas'].extend(report.detalhamento.vendas)
+            consolidated['detalhamento']['abates'].extend(report.detalhamento.abates)
+            consolidated['detalhamento']['doacoes'].extend(report.detalhamento.doacoes)
+
             # Estoque final
-            for category, qty in report['estoque_final'].items():
+            for category, qty in report.estoque_final.items():
                 consolidated['estoque_final'][category] = \
                     consolidated['estoque_final'].get(category, 0) + qty
         

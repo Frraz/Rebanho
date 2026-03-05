@@ -37,6 +37,7 @@
                 <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1">Mês</label>
                     <select name="month" class="w-full rounded-md border-gray-300 shadow-sm text-sm focus:border-green-500 focus:ring-green-500">
+                        <option value="0" {% if selected_month == 0 %}selected{% endif %}>Todos os meses</option>
                         {% for num, nome in months %}
                         <option value="{{ num }}" {% if num == selected_month %}selected{% endif %}>{{ nome }}</option>
                         {% endfor %}
@@ -89,7 +90,13 @@
 
     <div class="hidden print:block text-center py-2">
         <p class="text-lg font-bold">MOVIMENTAÇÃO DO GADO — {{ report.farm.name }}</p>
-        <p class="text-sm">{{ report.period.start|date:"F/Y"|upper }}</p>
+        <p class="text-sm">
+            {% if selected_month == 0 %}
+                {{ selected_year }}
+            {% else %}
+                {{ report.period.start|date:"F/Y"|upper }}
+            {% endif %}
+        </p>
     </div>
 
     <!-- 1. ESTOQUE INICIAL -->
@@ -129,7 +136,11 @@
     <div class="bg-white shadow sm:rounded-lg print:shadow-none">
         <div class="px-4 py-3 sm:px-6">
             <h2 class="text-sm font-bold text-blue-600 text-center mb-2 uppercase tracking-wider">
-                {{ report.period.start|date:"N/Y"|upper }}
+                {% if selected_month == 0 %}
+                    {{ selected_year }}
+                {% else %}
+                    {{ report.period.start|date:"N/Y"|upper }}
+                {% endif %}
             </h2>
             <div class="overflow-x-auto">
                 <table class="min-w-full border border-gray-300 text-xs">
@@ -200,7 +211,13 @@
     <!-- 3. ESTOQUE FINAL -->
     <div class="bg-white shadow sm:rounded-lg print:shadow-none">
         <div class="px-4 py-3 sm:px-6">
-            <h2 class="text-sm font-bold text-green-600 text-center mb-2 uppercase tracking-wider">Estoque Final do Mês</h2>
+            <h2 class="text-sm font-bold text-green-600 text-center mb-2 uppercase tracking-wider">
+                {% if selected_month == 0 %}
+                    Estoque Final do Ano
+                {% else %}
+                    Estoque Final do Mês
+                {% endif %}
+            </h2>
             <div class="overflow-x-auto">
                 <table class="min-w-full border border-gray-300 text-sm">
                     <thead>
