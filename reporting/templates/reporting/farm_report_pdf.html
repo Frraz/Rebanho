@@ -16,7 +16,11 @@
 
 {# ── Estoque Inicial ───────────────────────────────────────────────────────── #}
 <div class="section">
-  <div class="section-title red">Estoque Inicial</div>
+  {# AQUI: adiciona o mês anterior #}
+  <div class="section-title red">
+    Estoque Inicial{% if prev_month_label %} - {{ prev_month_label }}{% endif %}
+  </div>
+
   <table class="estoque-table">
     <thead>
       <tr>

@@ -1,8 +1,15 @@
 {% load report_tags %}
+{% load custom_filters %}
 
 {# Estoque Inicial #}
 <div class="section">
-  <div class="section-title red">Estoque Inicial</div>
+  <div class="section-title red">
+    Estoque Inicial
+    {% if r.prev_period_label %}
+      - {{ r.prev_period_label|upper }}
+    {% endif %}
+  </div>
+
   <table class="estoque-table">
     <thead>
       <tr>

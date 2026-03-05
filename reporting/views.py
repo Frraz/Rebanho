@@ -28,17 +28,12 @@ def _get_period_from_request(request) -> Tuple[date, date, int, int]:
     """
     Extrai e valida período (mês/ano) dos parâmetros GET.
 
-    Args:
-        request: HttpRequest
-
     Returns:
-        Tupla (start_date, end_date, month, year)
+        (start_date, end_date, month, year)
 
-    Validações:
-    - Mês 0 = todos os meses do ano (período anual completo: 01/01 a 31/12)
-    - Mês entre 1-12 = mês específico
-    - Ano entre 2000-2100
-    - Fallback para mês/ano atual se inválido
+    Regras:
+    - month=0 => ano completo
+    - month 1-12 => mês específico
     """
     today = date.today()
 
@@ -47,7 +42,6 @@ def _get_period_from_request(request) -> Tuple[date, date, int, int]:
         year_raw = str(request.GET.get('year', today.year)).replace(".", "").replace(",", "")
         year = int(year_raw)
 
-        # month=0 é válido (todos os meses); fora disso, clampar entre 1-12
         if month != 0:
             month = max(1, min(12, month))
         year = max(2000, min(2100, year))
@@ -59,11 +53,9 @@ def _get_period_from_request(request) -> Tuple[date, date, int, int]:
         )
         month, year = today.month, today.year
 
-    # Calcular datas do período
     if month == 0:
-        # Todos os meses: cobre o ano inteiro
         start_date = date(year, 1, 1)
-        end_date = date(year, 12, 31)
+        end_date   = date(year, 12, 31)
     else:
         start_date = date(year, month, 1)
         _, last_day = calendar.monthrange(year, month)
@@ -73,74 +65,55 @@ def _get_period_from_request(request) -> Tuple[date, date, int, int]:
 
 
 def _get_period_selects(today: Optional[date] = None) -> Tuple[List, List]:
-    """
-    Retorna listas de meses e anos para filtros de período.
-    """
     if today is None:
         today = date.today()
 
     months = [
-        (1, 'Janeiro'), (2, 'Fevereiro'), (3, 'Março'),
-        (4, 'Abril'), (5, 'Maio'), (6, 'Junho'),
-        (7, 'Julho'), (8, 'Agosto'), (9, 'Setembro'),
-        (10, 'Outubro'), (11, 'Novembro'), (12, 'Dezembro'),
+        (1, 'Janeiro'),  (2, 'Fevereiro'), (3, 'Março'),
+        (4, 'Abril'),    (5, 'Maio'),       (6, 'Junho'),
+        (7, 'Julho'),    (8, 'Agosto'),     (9, 'Setembro'),
+        (10, 'Outubro'), (11, 'Novembro'),  (12, 'Dezembro'),
     ]
-
     years = list(range(today.year - 5, today.year + 2))
-
     return months, years
 
 
 def _render_pdf(template_name: str, context: dict) -> HttpResponse:
-    """
-    Renderiza template Django como PDF usando WeasyPrint.
-    """
     try:
         from weasyprint import HTML
         from django.template.loader import render_to_string
 
         html_string = render_to_string(template_name, context)
-        pdf_bytes = HTML(string=html_string).write_pdf()
+        pdf_bytes   = HTML(string=html_string).write_pdf()
 
         response = HttpResponse(pdf_bytes, content_type='application/pdf')
         filename = context.get('pdf_filename', 'relatorio.pdf')
         response['Content-Disposition'] = f'inline; filename="{filename}"'
-
-        logger.info(
-            f"PDF gerado com sucesso: {filename}. "
-            f"Template: {template_name}, Tamanho: {len(pdf_bytes)} bytes"
-        )
-
         return response
 
     except ImportError:
         logger.error("WeasyPrint não está instalado.")
-        return HttpResponse(
-            """
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
-                <h2 style="color: #d32f2f;">WeasyPrint não instalado</h2>
-                <p>Para gerar relatórios em PDF, instale o WeasyPrint:</p>
-                <pre style="background: #f5f5f5; padding: 10px; border-radius: 4px;">pip install weasyprint</pre>
-                <p><a href="javascript:history.back()" style="color: #1976d2;">← Voltar</a></p>
-            </div>
-            """,
-            status=501,
-            content_type='text/html',
-        )
+        return HttpResponse("WeasyPrint não instalado.", status=501)
 
     except Exception as e:
         logger.error(f"Erro ao gerar PDF: {str(e)}. Template: {template_name}", exc_info=True)
-        return HttpResponse(
-            f"""
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
-                <h2 style="color: #d32f2f;">Erro ao gerar PDF</h2>
-                <pre style="background: #f5f5f5; padding: 10px; border-radius: 4px; color: #d32f2f;">{str(e)}</pre>
-                <p><a href="javascript:history.back()" style="color: #1976d2;">← Voltar</a></p>
-            </div>
-            """,
-            status=500,
-            content_type='text/html',
-        )
+        return HttpResponse(f"Erro ao gerar PDF: {str(e)}", status=500)
+
+
+def _get_previous_month_label(period_start: date) -> str:
+    """
+    Retorna label do mês anterior em PT-BR.
+      period_start=2026-01-01 -> "DEZEMBRO 2025"
+      period_start=2026-03-01 -> "FEVEREIRO 2026"
+    """
+    meses = [
+        'JANEIRO', 'FEVEREIRO', 'MARÇO',    'ABRIL',   'MAIO',      'JUNHO',
+        'JULHO',   'AGOSTO',    'SETEMBRO', 'OUTUBRO', 'NOVEMBRO',  'DEZEMBRO',
+    ]
+    m, y = period_start.month, period_start.year
+    prev_m = 12 if m == 1 else m - 1
+    prev_y = y - 1 if m == 1 else y
+    return f"{meses[prev_m - 1]} {prev_y}"
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -154,65 +127,47 @@ def farm_report_view(request):
     Relatório por fazenda com filtros na mesma página.
     """
     try:
-        farms = Farm.objects.filter(is_active=True).order_by('name')
+        farms      = Farm.objects.filter(is_active=True).order_by('name')
         categories = AnimalCategory.objects.filter(is_active=True).order_by('name')
 
         today = date.today()
         months, years = _get_period_selects(today)
         start_date, end_date, month, year = _get_period_from_request(request)
 
-        farm_id = request.GET.get('farm', '').strip()
+        farm_id     = request.GET.get('farm', '').strip()
         category_id = request.GET.get('category', '').strip()
 
         report = None
         if farm_id:
-            try:
-                farm = get_object_or_404(Farm, pk=farm_id, is_active=True)
+            farm     = get_object_or_404(Farm, pk=farm_id, is_active=True)
+            category = None
+            if category_id:
+                category = get_object_or_404(AnimalCategory, pk=category_id, is_active=True)
 
-                report = FarmReportService.generate_report(
-                    farm_id=farm_id,
-                    start_date=start_date,
-                    end_date=end_date,
-                    animal_category_id=category_id if category_id else None
-                )
-
-                logger.info(
-                    f"Relatório de fazenda gerado por {request.user.username}. "
-                    f"Fazenda: {farm.name}, Período: {month}/{year}"
-                )
-
-            except Farm.DoesNotExist:
-                messages.error(request, 'Fazenda não encontrada ou inativa.')
-                farm_id = ''
-
-            except Exception as e:
-                logger.error(
-                    f"Erro ao gerar relatório de fazenda: {str(e)}. "
-                    f"Fazenda: {farm_id}, Usuário: {request.user.username}",
-                    exc_info=True
-                )
-                messages.error(request, 'Erro ao gerar relatório. Por favor, tente novamente.')
+            report = FarmReportService.generate(
+                farm=farm,
+                start_date=start_date,
+                end_date=end_date,
+                category=category,
+            )
 
         context = {
-            'farms': farms,
-            'categories': categories,
-            'report': report,
-            'selected_farm_id': farm_id,
+            'months':              months,
+            'years':               years,
+            'farms':               farms,
+            'categories':          categories,
+            'selected_month':      month,
+            'selected_year':       year,
+            'selected_farm_id':    farm_id,
             'selected_category_id': category_id,
-            'selected_month': month,
-            'selected_year': year,
-            'months': months,
-            'years': years,
+            'report':              report,
         }
-
         return render(request, 'reporting/farm_report.html', context)
 
     except Exception as e:
-        logger.error(f"Erro na view de relatório por fazenda: {str(e)}", exc_info=True)
-        messages.error(request, 'Erro ao carregar página de relatórios. Por favor, tente novamente.')
-        return render(request, 'reporting/farm_report.html', {
-            'farms': [], 'categories': [], 'report': None,
-        })
+        logger.error(f"Erro ao gerar relatório por fazenda: {e}", exc_info=True)
+        messages.error(request, "Erro ao gerar relatório. Tente novamente.")
+        return render(request, 'reporting/farm_report.html', {})
 
 
 @login_required
@@ -220,7 +175,6 @@ def farm_report_view(request):
 def consolidated_report_view(request):
     """
     Relatório consolidado de todas as fazendas.
-
     Suporta month=0 para consolidar o ano inteiro.
     """
     try:
@@ -231,7 +185,7 @@ def consolidated_report_view(request):
         start_date, end_date, month, year = _get_period_from_request(request)
 
         category_id = request.GET.get('category', '').strip()
-        gerar = request.GET.get('gerar')
+        gerar       = request.GET.get('gerar')
 
         report = None
         if gerar:
@@ -239,33 +193,30 @@ def consolidated_report_view(request):
                 report = ConsolidatedReportService.generate_consolidated_report(
                     start_date=start_date,
                     end_date=end_date,
-                    animal_category_id=category_id if category_id else None
+                    animal_category_id=category_id if category_id else None,
                 )
-
                 logger.info(
                     f"Relatório consolidado gerado por {request.user.username}. "
                     f"Período: {'Ano completo' if month == 0 else f'{month}/{year}'} {year}, "
                     f"Categoria: {category_id or 'Todas'}"
                 )
-
             except Exception as e:
                 logger.error(
                     f"Erro ao gerar relatório consolidado: {str(e)}. "
                     f"Usuário: {request.user.username}",
-                    exc_info=True
+                    exc_info=True,
                 )
                 messages.error(request, 'Erro ao gerar relatório consolidado. Por favor, tente novamente.')
 
         context = {
-            'categories': categories,
-            'report': report,
+            'categories':          categories,
+            'report':              report,
             'selected_category_id': category_id,
-            'selected_month': month,   # 0 = todos os meses
-            'selected_year': year,
-            'months': months,
-            'years': years,
+            'selected_month':      month,    # 0 = todos os meses
+            'selected_year':       year,
+            'months':              months,
+            'years':               years,
         }
-
         return render(request, 'reporting/consolidated_report.html', context)
 
     except Exception as e:
@@ -284,51 +235,38 @@ def consolidated_report_view(request):
 @require_http_methods(["GET"])
 def farm_report_pdf_view(request):
     """
-    Exporta relatório de fazenda como PDF.
+    Gera PDF do relatório por fazenda.
     """
+    start_date, end_date, month, year = _get_period_from_request(request)
+
     farm_id = request.GET.get('farm', '').strip()
-
     if not farm_id:
-        logger.warning(f"Tentativa de gerar PDF sem farm_id. Usuário: {request.user.username}")
-        raise Http404("Parâmetro 'farm' é obrigatório para gerar PDF.")
+        raise Http404("Fazenda não informada.")
 
-    try:
-        farm = get_object_or_404(Farm, pk=farm_id, is_active=True)
+    category_id = request.GET.get('category', '').strip()
+    farm        = get_object_or_404(Farm, pk=farm_id, is_active=True)
 
-        category_id = request.GET.get('category', '').strip()
-        start_date, end_date, month, year = _get_period_from_request(request)
+    category = None
+    if category_id:
+        category = get_object_or_404(AnimalCategory, pk=category_id, is_active=True)
 
-        report = FarmReportService.generate_report(
-            farm_id=farm_id,
-            start_date=start_date,
-            end_date=end_date,
-            animal_category_id=category_id if category_id else None
-        )
+    report = FarmReportService.generate(
+        farm=farm,
+        start_date=start_date,
+        end_date=end_date,
+        category=category,
+    )
 
-        farm_slug = farm.name.lower().replace(' ', '-')
-        filename = f"relatorio_{farm_slug}_{month:02d}-{year}.pdf"
+    # report.period.start funciona porque FarmReport é um dataclass
+    prev_month_label = _get_previous_month_label(report.period.start)
 
-        logger.info(
-            f"PDF de relatório gerado por {request.user.username}. "
-            f"Fazenda: {farm.name}, Arquivo: {filename}"
-        )
-
-        return _render_pdf('reporting/farm_report_pdf.html', {
-            'report': report,
-            'user': request.user,
-            'pdf_filename': filename,
-        })
-
-    except Farm.DoesNotExist:
-        raise Http404("Fazenda não encontrada.")
-
-    except Exception as e:
-        logger.error(
-            f"Erro ao gerar PDF de fazenda: {str(e)}. "
-            f"Fazenda: {farm_id}, Usuário: {request.user.username}",
-            exc_info=True
-        )
-        return HttpResponse("Erro ao gerar relatório em PDF. Por favor, tente novamente.", status=500)
+    context = {
+        'report':          report,
+        'user':            request.user,
+        'prev_month_label': prev_month_label,
+        'pdf_filename':    f"relatorio_{farm.name}_{report.period.start.strftime('%m_%Y')}.pdf",
+    }
+    return _render_pdf('reporting/farm_report_pdf.html', context)
 
 
 @login_required
@@ -336,7 +274,6 @@ def farm_report_pdf_view(request):
 def consolidated_report_pdf_view(request):
     """
     Exporta relatório consolidado como PDF.
-
     Suporta month=0 para PDF do ano inteiro.
     """
     try:
@@ -346,14 +283,14 @@ def consolidated_report_pdf_view(request):
         report = ConsolidatedReportService.generate_consolidated_report(
             start_date=start_date,
             end_date=end_date,
-            animal_category_id=category_id if category_id else None
+            animal_category_id=category_id if category_id else None,
         )
 
-        # Nome do arquivo: ano completo ou mês específico
-        if month == 0:
-            filename = f"relatorio_consolidado_{year}.pdf"
-        else:
-            filename = f"relatorio_consolidado_{month:02d}-{year}.pdf"
+        filename = (
+            f"relatorio_consolidado_{year}.pdf"
+            if month == 0
+            else f"relatorio_consolidado_{month:02d}-{year}.pdf"
+        )
 
         logger.info(
             f"PDF de relatório consolidado gerado por {request.user.username}. "
@@ -361,25 +298,23 @@ def consolidated_report_pdf_view(request):
             f"Arquivo: {filename}"
         )
 
-        # ✅ Passa selected_month e selected_year para o template PDF
-        # (necessário para exibir título correto no cabeçalho do PDF)
         return _render_pdf('reporting/consolidated_report_pdf.html', {
-            'report': report,
-            'user': request.user,
-            'pdf_filename': filename,
+            'report':         report,
+            'user':           request.user,
+            'pdf_filename':   filename,
             'selected_month': month,
-            'selected_year': year,
+            'selected_year':  year,
         })
 
     except Exception as e:
         logger.error(
             f"Erro ao gerar PDF consolidado: {str(e)}. "
             f"Usuário: {request.user.username}",
-            exc_info=True
+            exc_info=True,
         )
         return HttpResponse(
             "Erro ao gerar relatório consolidado em PDF. Por favor, tente novamente.",
-            status=500
+            status=500,
         )
 
 
@@ -397,13 +332,13 @@ def report_index_view(request):
     months, years = _get_period_selects(today)
 
     context = {
-        'farms': Farm.objects.filter(is_active=True).order_by('name'),
-        'categories': AnimalCategory.objects.filter(is_active=True).order_by('name'),
-        'months': months,
-        'years': years,
-        'default_month': today.month,
-        'default_year': today.year,
-        'total_farms': Farm.objects.filter(is_active=True).count(),
+        'farms':            Farm.objects.filter(is_active=True).order_by('name'),
+        'categories':       AnimalCategory.objects.filter(is_active=True).order_by('name'),
+        'months':           months,
+        'years':            years,
+        'default_month':    today.month,
+        'default_year':     today.year,
+        'total_farms':      Farm.objects.filter(is_active=True).count(),
         'total_categories': AnimalCategory.objects.filter(is_active=True).count(),
     }
 
