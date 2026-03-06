@@ -17,9 +17,7 @@
       {{ report.period.start|date:"F" }} / {{ report.period.start|date:"Y" }}
     {% endif %}
   </div>
-  <div class="report-meta">
-    {{ report.farm_count }} fazenda{{ report.farm_count|pluralize }}
-  </div>
+
   <div style="margin-top:4px;">
     {% for fname in report.farms %}
     <span class="farm-badge">{{ fname }}</span>
