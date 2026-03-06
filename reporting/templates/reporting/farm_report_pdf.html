@@ -9,17 +9,11 @@
 <div class="report-header">
   <div class="report-title">Movimentação do Gado — {{ report.farm.name }}</div>
   <div class="report-subtitle">{{ report.period.start|date:"F" }} / {{ report.period.start|date:"Y" }}</div>
-  <div class="report-meta">
-    Gerado em {% now "d/m/Y \à\s H:i" %} por {{ user.get_full_name|default:user.username }}
-  </div>
 </div>
 
 {# ── Estoque Inicial ───────────────────────────────────────────────────────── #}
 <div class="section">
-  {# AQUI: adiciona o mês anterior #}
-  <div class="section-title red">
-    Estoque Inicial{% if prev_month_label %} - {{ prev_month_label }}{% endif %}
-  </div>
+  <div class="section-title red">Estoque Inicial - Mês Anterior</div>
 
   <table class="estoque-table">
     <thead>
@@ -273,8 +267,8 @@
 
 {# ── Rodapé ────────────────────────────────────────────────────────────────── #}
 <div class="report-footer">
-  <div class="footer-left">Sistema de Gestão de Rebanhos</div>
-  <div class="footer-right">{{ report.farm.name }} · {{ report.period.start|date:"F/Y" }}</div>
+  <div class="footer-left">{{ report.farm.name }}</div>
+  <div class="footer-right">{{ report.period.start|date:"F/Y" }}</div>
 </div>
 
 {% endblock %}

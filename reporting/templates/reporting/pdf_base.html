@@ -10,12 +10,10 @@
 
   html, body {
     font-family: Arial, Helvetica, sans-serif;
-    font-size: 7.5pt;
+    font-size: 8pt;
     color: #1a1a1a;
     background: white;
-    line-height: 1.2;
-    /* overflow:hidden impede que o espaço abaixo do conteúdo
-       gere páginas extras no PDF */
+    line-height: 1.4;
     overflow: hidden;
   }
 
@@ -25,11 +23,6 @@
     margin: 0.7cm 1cm;
   }
 
-  /*
-   * #page-wrapper recebe zoom via JavaScript.
-   * zoom (diferente de transform:scale) redimensiona o elemento
-   * E o espaço que ele ocupa no fluxo, eliminando a margem inferior.
-   */
   #page-wrapper {
     width: 100%;
   }
@@ -37,39 +30,39 @@
   /* ── Cabeçalho do relatório ──────────────────────────────────── */
   .report-header {
     text-align: center;
-    margin-bottom: 5px;
-    padding-bottom: 4px;
+    margin-bottom: 6px;
+    padding-bottom: 5px;
     border-bottom: 2px solid #166534;
   }
   .report-title {
-    font-size: 11pt;
+    font-size: 12pt;
     font-weight: bold;
     color: #166534;
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
   .report-subtitle {
-    font-size: 8.5pt;
+    font-size: 9pt;
     color: #374151;
-    margin-top: 1px;
+    margin-top: 2px;
   }
   .report-meta {
-    font-size: 6.5pt;
+    font-size: 7pt;
     color: #6b7280;
     margin-top: 1px;
   }
 
   /* ── Seções ──────────────────────────────────────────────────── */
   .section {
-    margin-bottom: 5px;
+    margin-bottom: 6px;
   }
   .section-title {
-    font-size: 6.5pt;
+    font-size: 7pt;
     font-weight: bold;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    padding: 2px 5px;
-    margin-bottom: 2px;
+    padding: 3px 5px;
+    margin-bottom: 3px;
     border-radius: 2px;
   }
   /* Variantes de cor para os títulos de seção */
@@ -82,17 +75,17 @@
   table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 6.5pt;
+    font-size: 7.5pt;
   }
   th, td {
     border: 1px solid #d1d5db;
-    padding: 2px 3px;
+    padding: 4px 4px;
   }
   th {
     background: #f3f4f6;
     font-weight: bold;
     text-align: center;
-    font-size: 6pt;
+    font-size: 6.5pt;
     text-transform: uppercase;
     color: #374151;
   }
@@ -105,32 +98,33 @@
   .th-consolidado { background: #eff6ff !important; color: #1d4ed8 !important; }
 
   /* ── Cores semânticas dos valores ────────────────────────────── */
-  .val-morte   { color: #dc2626; font-weight: 600; }   /* vermelho — baixa */
-  .val-venda   { color: #d97706; font-weight: 600; }   /* âmbar   — saída comercial */
-  .val-abate   { color: #6b7280; font-weight: 600; }   /* cinza   — abate */
-  .val-nasc    { color: #16a34a; font-weight: 600; }   /* verde   — entrada/nascimento */
-  .val-entrada { color: #16a34a; font-weight: bold; background: #f0fdf4; } /* consolidado — entrada */
-  .val-saida   { color: #dc2626; font-weight: bold; background: #fef2f2; } /* consolidado — saída */
-  .val-zero    { color: #d1d5db; }                     /* cinza claro — sem movimento */
+  .val-morte   { color: #dc2626; font-weight: 600; }
+  .val-venda   { color: #d97706; font-weight: 600; }
+  .val-abate   { color: #6b7280; font-weight: 600; }
+  .val-nasc    { color: #16a34a; font-weight: 600; }
+  .val-entrada { color: #16a34a; font-weight: bold; background: #f0fdf4; }
+  .val-saida   { color: #dc2626; font-weight: bold; background: #fef2f2; }
+  .val-zero    { color: #d1d5db; }
 
   /* ── Linha de totais ─────────────────────────────────────────── */
   tr.total-row td {
     background: #f3f4f6;
     font-weight: bold;
     border-top: 2px solid #9ca3af;
+    padding: 5px 4px;
   }
 
   /* ── Tabelas de estoque (inicial e final) ────────────────────── */
   .estoque-table th { background: #f0fdf4; color: #166534; }
-  .estoque-table td { font-weight: bold; font-size: 8pt; }
-  .estoque-total    { background: #dcfce7 !important; color: #166534; font-size: 8.5pt; }
+  .estoque-table td { font-weight: bold; font-size: 8.5pt; padding: 5px 4px; }
+  .estoque-total    { background: #dcfce7 !important; color: #166534; font-size: 9pt; }
 
   /* ── Grade de detalhamentos — linha superior (3 colunas) ─────── */
   .details-grid {
     display: table;
     width: 100%;
     border-spacing: 4px 0;
-    margin-bottom: 4px; /* separa as 3 colunas da tabela de vendas abaixo */
+    margin-bottom: 4px;
   }
   .details-col {
     display: table-cell;
@@ -139,23 +133,23 @@
     padding-right: 4px;
   }
   .details-col:last-child { padding-right: 0; }
-  .details-col table th { font-size: 6pt; }
-  .details-col table td { font-size: 6.5pt; }
+  .details-col table th { font-size: 6.5pt; }
+  .details-col table td { font-size: 7pt; }
 
   /* ── Tabela de vendas — linha inferior (largura total) ───────── */
   .vendas-table {
     width: 100%;
     margin-top: 3px;
   }
-  .vendas-table th { font-size: 6pt; }
-  .vendas-table td { font-size: 6.5pt; }
+  .vendas-table th { font-size: 6.5pt; }
+  .vendas-table td { font-size: 7pt; }
 
   /* ── Rodapé do documento ─────────────────────────────────────── */
   .report-footer {
     margin-top: 5px;
     padding-top: 3px;
     border-top: 1px solid #e5e7eb;
-    font-size: 6pt;
+    font-size: 6.5pt;
     color: #9ca3af;
     display: table;
     width: 100%;
@@ -172,7 +166,7 @@
     border: 1px solid #bbf7d0;
     border-radius: 3px;
     padding: 1px 5px;
-    font-size: 6.5pt;
+    font-size: 7pt;
     color: #166534;
     display: inline-block;
     margin: 1px;
@@ -186,68 +180,28 @@
 </div>
 
 <script>
-/*
- * Auto-escala com zoom (em vez de transform:scale).
- *
- * Por que zoom e não transform:scale?
- *   transform:scale() escala visualmente mas NÃO altera o espaço
- *   que o elemento ocupa no fluxo — por isso sobra margem branca abaixo.
- *   zoom redimensiona o elemento E seu espaço ocupado, eliminando
- *   completamente a margem inferior vazia.
- *
- * Dimensões da área útil — A4 paisagem, margem 0.7cm × 1cm:
- *   Largura útil = 297mm − 2×10mm = 277mm
- *   Altura útil  = 210mm − 2× 7mm = 196mm
- *
- * Cálculo do zoom:
- *   1. Medimos o conteúdo em zoom=1 (tamanho natural).
- *   2. zoomX = larguraUtil / larguraConteudo
- *      zoomY = alturaUtil  / alturaConteudo
- *      zoom  = min(zoomX, zoomY)   ← menor evita overflow
- *   3. Limitamos entre 0.48 e 1.55 para legibilidade.
- *   4. Aplicamos: wrapper.style.zoom = zoom
- *      O browser reajusta a altura do elemento automaticamente.
- *
- * Compatibilidade:
- *   - Chromium / wkhtmltopdf / Playwright → zoom funciona perfeitamente.
- *   - WeasyPrint não suporta zoom; nesse caso use a versão com
- *     transform:scale + height fixo (consulte comentário ao final).
- */
 (function () {
-  var MM   = 96 / 25.4;           /* fator de conversão mm → px a 96 dpi */
-  var availW = (297 - 20) * MM;   /* 277mm em px ≈ 1047px */
-  var availH = (210 - 14) * MM;   /* 196mm em px ≈  741px */
+  var MM   = 96 / 25.4;
+  var availW = (297 - 20) * MM;
+  var availH = (210 - 14) * MM;
 
   var wrapper = document.getElementById('page-wrapper');
 
-  /* ── Passo 1: garante zoom=1 e largura natural antes de medir ── */
   wrapper.style.zoom  = '1';
   wrapper.style.width = availW + 'px';
 
-  /*
-   * Aguarda um frame para que o browser termine o layout antes
-   * de ler scrollHeight — evita leituras prematuras com altura 0.
-   */
   requestAnimationFrame(function () {
     var contentH = wrapper.scrollHeight;
     var contentW = wrapper.scrollWidth;
 
-    /* ── Passo 2: calcula o zoom ideal ─────────────────────────── */
     var zoomX = availW / (contentW || 1);
     var zoomY = availH / (contentH || 1);
     var zoom  = Math.min(zoomX, zoomY);
 
-    /* ── Passo 3: limites de legibilidade ───────────────────────── */
-    zoom = Math.min(zoom, 1.55);   /* máximo: 155% — evita fontes gigantes */
-    zoom = Math.max(zoom, 0.48);   /* mínimo:  48% — abaixo fica ilegível  */
+    zoom = Math.min(zoom, 1.55);
+    zoom = Math.max(zoom, 0.48);
 
-    /* ── Passo 4: aplica zoom apenas se diferença > 1% ─────────── */
     if (Math.abs(zoom - 1) > 0.01) {
-      /*
-       * Com zoom aplicado, a largura lógica deve ser redefinida para
-       * que as tabelas (width:100%) continuem ocupando toda a linha.
-       * A largura lógica = largura física / zoom.
-       */
       wrapper.style.width = (availW / zoom) + 'px';
       wrapper.style.zoom  = zoom;
     }

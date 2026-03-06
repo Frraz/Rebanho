@@ -18,8 +18,7 @@
     {% endif %}
   </div>
   <div class="report-meta">
-    {{ report.farm_count }} fazenda{{ report.farm_count|pluralize }} ·
-    Gerado em {% now "d/m/Y \à\s H:i" %} por {{ user.get_full_name|default:user.username }}
+    {{ report.farm_count }} fazenda{{ report.farm_count|pluralize }}
   </div>
   <div style="margin-top:4px;">
     {% for fname in report.farms %}
@@ -133,9 +132,8 @@
 {% endif %}
 
 <div class="report-footer">
-  <div class="footer-left">Sistema de Gestão de Rebanhos</div>
+  <div class="footer-left">Fazendas Reunidas</div>
   <div class="footer-right">
-    Fazendas Reunidas ·
     {% if selected_month == 0 %}{{ selected_year }}
     {% else %}{{ report.period.start|date:"F/Y" }}{% endif %}
   </div>

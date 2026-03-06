@@ -11,192 +11,204 @@
   <div class="report-subtitle">{{ month_label }} / {{ year }}</div>
 </div>
 
-<div class="section-title red" style="font-size:7pt; margin-bottom:4px;">OCORRÊNCIAS</div>
+{# ── OCORRÊNCIAS ─────────────────────────────────────────────── #}
+<div class="section-title red" style="font-size:7.5pt; margin-bottom:3px;">OCORRÊNCIAS</div>
 
-<div style="display:table; width:100%; border-spacing:6px 0; margin-bottom:6px;">
+<div style="display:table; width:100%; border-spacing:5px 0; margin-bottom:4px;">
 
+  {# Coluna esquerda — MORTES #}
   <div style="display:table-cell; width:38%; vertical-align:top;">
-    <table style="width:100%;">
+    <table style="width:100%; font-size:7.5pt; border-collapse:collapse;">
       <thead>
-        <tr><th colspan="4" style="background:#fef2f2; color:#dc2626; border:1px solid #d1d5db; padding:3px; text-align:center; font-size:6.5pt; text-transform:uppercase; letter-spacing:.5px;">MORTES</th></tr>
+        <tr><th colspan="4" style="background:#fef2f2; color:#dc2626; border:1px solid #d1d5db; padding:3px 4px; text-align:center; font-size:7pt; text-transform:uppercase; letter-spacing:.5px;">MORTES</th></tr>
         <tr>
-          <th style="width:22%;">Data</th>
-          <th style="width:18%;">Quant.</th>
-          <th style="width:35%;">Animal</th>
-          <th style="width:25%;">Motivo</th>
+          <th style="width:22%; font-size:6.5pt; padding:2px 3px; border:1px solid #d1d5db;">Data</th>
+          <th style="width:18%; font-size:6.5pt; padding:2px 3px; border:1px solid #d1d5db;">Quant.</th>
+          <th style="width:35%; font-size:6.5pt; padding:2px 3px; border:1px solid #d1d5db;">Animal</th>
+          <th style="width:25%; font-size:6.5pt; padding:2px 3px; border:1px solid #d1d5db;">Motivo</th>
         </tr>
       </thead>
       <tbody>
-        {% for i in blank_11 %}<tr><td style="height:18px;"></td><td></td><td></td><td></td></tr>{% endfor %}
+        {% for i in blank_11 %}<tr><td style="height:16px; border:1px solid #d1d5db;"></td><td style="border:1px solid #d1d5db;"></td><td style="border:1px solid #d1d5db;"></td><td style="border:1px solid #d1d5db;"></td></tr>{% endfor %}
       </tbody>
     </table>
   </div>
 
+  {# Coluna direita — VENDA + ABATE #}
   <div style="display:table-cell; width:62%; vertical-align:top;">
 
-    <table style="width:100%; margin-bottom:5px;">
+    <table style="width:100%; margin-bottom:4px; font-size:7.5pt; border-collapse:collapse;">
       <thead>
-        <tr><th colspan="5" style="background:#fef2f2; color:#dc2626; border:1px solid #d1d5db; padding:3px; text-align:center; font-size:6.5pt; text-transform:uppercase; letter-spacing:.5px;">VENDA</th></tr>
+        <tr><th colspan="5" style="background:#fef2f2; color:#dc2626; border:1px solid #d1d5db; padding:3px 4px; text-align:center; font-size:7pt; text-transform:uppercase; letter-spacing:.5px;">VENDA</th></tr>
         <tr>
-          <th style="width:18%;">Data</th>
-          <th style="width:14%;">Quant.</th>
-          <th style="width:28%;">Animal</th>
-          <th style="width:25%;">Cliente</th>
-          <th style="width:15%;">Peso</th>
+          <th style="width:18%; font-size:6.5pt; padding:2px 3px; border:1px solid #d1d5db;">Data</th>
+          <th style="width:14%; font-size:6.5pt; padding:2px 3px; border:1px solid #d1d5db;">Quant.</th>
+          <th style="width:28%; font-size:6.5pt; padding:2px 3px; border:1px solid #d1d5db;">Animal</th>
+          <th style="width:25%; font-size:6.5pt; padding:2px 3px; border:1px solid #d1d5db;">Cliente</th>
+          <th style="width:15%; font-size:6.5pt; padding:2px 3px; border:1px solid #d1d5db;">Peso</th>
         </tr>
       </thead>
       <tbody>
-        {% for i in blank_5 %}<tr><td style="height:18px;"></td><td></td><td></td><td></td><td></td></tr>{% endfor %}
+        {% for i in blank_5 %}<tr><td style="height:16px; border:1px solid #d1d5db;"></td><td style="border:1px solid #d1d5db;"></td><td style="border:1px solid #d1d5db;"></td><td style="border:1px solid #d1d5db;"></td><td style="border:1px solid #d1d5db;"></td></tr>{% endfor %}
       </tbody>
     </table>
 
-    <table style="width:100%;">
+    <table style="width:100%; font-size:7.5pt; border-collapse:collapse;">
       <thead>
-        <tr><th colspan="5" style="background:#fef9eb; color:#92400e; border:1px solid #d1d5db; padding:3px; text-align:center; font-size:6.5pt; text-transform:uppercase; letter-spacing:.5px;">ABATE</th></tr>
+        <tr><th colspan="5" style="background:#fef9eb; color:#92400e; border:1px solid #d1d5db; padding:3px 4px; text-align:center; font-size:7pt; text-transform:uppercase; letter-spacing:.5px;">ABATE</th></tr>
         <tr>
-          <th style="width:18%;">Data</th>
-          <th style="width:14%;">Quant.</th>
-          <th style="width:28%;">Animal</th>
-          <th style="width:25%;">Observação</th>
-          <th style="width:15%;">Peso</th>
+          <th style="width:18%; font-size:6.5pt; padding:2px 3px; border:1px solid #d1d5db;">Data</th>
+          <th style="width:14%; font-size:6.5pt; padding:2px 3px; border:1px solid #d1d5db;">Quant.</th>
+          <th style="width:28%; font-size:6.5pt; padding:2px 3px; border:1px solid #d1d5db;">Animal</th>
+          <th style="width:25%; font-size:6.5pt; padding:2px 3px; border:1px solid #d1d5db;">Observação</th>
+          <th style="width:15%; font-size:6.5pt; padding:2px 3px; border:1px solid #d1d5db;">Peso</th>
         </tr>
       </thead>
       <tbody>
-        {% for i in blank_3 %}<tr><td style="height:18px;"></td><td></td><td></td><td></td><td></td></tr>{% endfor %}
+        {% for i in blank_4 %}<tr><td style="height:16px; border:1px solid #d1d5db;"></td><td style="border:1px solid #d1d5db;"></td><td style="border:1px solid #d1d5db;"></td><td style="border:1px solid #d1d5db;"></td><td style="border:1px solid #d1d5db;"></td></tr>{% endfor %}
       </tbody>
     </table>
 
   </div>
 </div>{# /ocorrências #}
 
-<div class="section-title green" style="font-size:7pt; margin-bottom:4px;">MOVIMENTAÇÕES</div>
+{# ── MOVIMENTAÇÕES ───────────────────────────────────────────── #}
+<div class="section-title green" style="font-size:7.5pt; margin-bottom:3px;">MOVIMENTAÇÕES</div>
 
-<div style="display:table; width:100%; border-spacing:6px 0; margin-bottom:5px;">
+{# Linha 1: NASCIMENTO + MANEJO #}
+<div style="display:table; width:100%; border-spacing:5px 0; margin-bottom:4px;">
 
   <div style="display:table-cell; width:28%; vertical-align:top;">
-    <table style="width:100%;">
+    <table style="width:100%; font-size:7.5pt; border-collapse:collapse;">
       <thead>
-        <tr><th colspan="3" style="background:#f0fdf4; color:#16a34a; border:1px solid #d1d5db; padding:3px; text-align:center; font-size:6.5pt; text-transform:uppercase; letter-spacing:.5px;">NASCIMENTO</th></tr>
+        <tr><th colspan="3" style="background:#f0fdf4; color:#16a34a; border:1px solid #d1d5db; padding:3px 4px; text-align:center; font-size:7pt; text-transform:uppercase; letter-spacing:.5px;">NASCIMENTO</th></tr>
         <tr>
-          <th style="width:35%;">Data</th>
-          <th style="width:30%;">Quant.</th>
-          <th style="width:35%;">Sexo</th>
+          <th style="width:35%; font-size:6.5pt; padding:2px 3px; border:1px solid #d1d5db;">Data</th>
+          <th style="width:30%; font-size:6.5pt; padding:2px 3px; border:1px solid #d1d5db;">Quant.</th>
+          <th style="width:35%; font-size:6.5pt; padding:2px 3px; border:1px solid #d1d5db;">Sexo</th>
         </tr>
       </thead>
       <tbody>
-        {% for i in blank_5 %}<tr><td style="height:18px;"></td><td></td><td></td></tr>{% endfor %}
+        {% for i in blank_5 %}<tr><td style="height:16px; border:1px solid #d1d5db;"></td><td style="border:1px solid #d1d5db;"></td><td style="border:1px solid #d1d5db;"></td></tr>{% endfor %}
       </tbody>
     </table>
   </div>
 
   <div style="display:table-cell; width:72%; vertical-align:top;">
-    <table style="width:100%;">
+    <table style="width:100%; font-size:7.5pt; border-collapse:collapse;">
       <thead>
-        <tr><th colspan="6" style="background:#f0fdf4; color:#16a34a; border:1px solid #d1d5db; padding:3px; text-align:center; font-size:6.5pt; text-transform:uppercase; letter-spacing:.5px;">MANEJO</th></tr>
+        <tr><th colspan="6" style="background:#f0fdf4; color:#16a34a; border:1px solid #d1d5db; padding:3px 4px; text-align:center; font-size:7pt; text-transform:uppercase; letter-spacing:.5px;">MANEJO</th></tr>
         <tr>
-          <th style="width:16%;">Data</th>
-          <th style="width:12%;">Quant.</th>
-          <th style="width:22%;">Animal</th>
-          <th style="width:20%;">Fazenda/Saída</th>
-          <th style="width:20%;">Fazenda/Destino</th>
-          <th style="width:10%;">Peso</th>
+          <th style="width:16%; font-size:6.5pt; padding:2px 3px; border:1px solid #d1d5db;">Data</th>
+          <th style="width:12%; font-size:6.5pt; padding:2px 3px; border:1px solid #d1d5db;">Quant.</th>
+          <th style="width:22%; font-size:6.5pt; padding:2px 3px; border:1px solid #d1d5db;">Animal</th>
+          <th style="width:20%; font-size:6.5pt; padding:2px 3px; border:1px solid #d1d5db;">Fazenda/Saída</th>
+          <th style="width:20%; font-size:6.5pt; padding:2px 3px; border:1px solid #d1d5db;">Fazenda/Destino</th>
+          <th style="width:10%; font-size:6.5pt; padding:2px 3px; border:1px solid #d1d5db;">Peso</th>
         </tr>
       </thead>
       <tbody>
-        {% for i in blank_4 %}<tr><td style="height:18px;"></td><td></td><td></td><td></td><td></td><td></td></tr>{% endfor %}
+        {% for i in blank_5 %}<tr><td style="height:16px; border:1px solid #d1d5db;"></td><td style="border:1px solid #d1d5db;"></td><td style="border:1px solid #d1d5db;"></td><td style="border:1px solid #d1d5db;"></td><td style="border:1px solid #d1d5db;"></td><td style="border:1px solid #d1d5db;"></td></tr>{% endfor %}
       </tbody>
     </table>
   </div>
 
 </div>
 
-<div style="display:table; width:100%; border-spacing:6px 0; margin-bottom:5px;">
+{# Linha 2: DESMAME + MUDANÇA DE CATEGORIA #}
+<div style="display:table; width:100%; border-spacing:5px 0; margin-bottom:4px;">
 
   <div style="display:table-cell; width:34%; vertical-align:top;">
-    <table style="width:100%;">
+    <table style="width:100%; font-size:7.5pt; border-collapse:collapse;">
       <thead>
-        <tr><th colspan="3" style="background:#f0fdf4; color:#16a34a; border:1px solid #d1d5db; padding:3px; text-align:center; font-size:6.5pt; text-transform:uppercase; letter-spacing:.5px;">DESMAME</th></tr>
+        <tr><th colspan="3" style="background:#f0fdf4; color:#16a34a; border:1px solid #d1d5db; padding:3px 4px; text-align:center; font-size:7pt; text-transform:uppercase; letter-spacing:.5px;">DESMAME</th></tr>
         <tr>
-          <th style="width:35%;">Data</th>
-          <th style="width:30%;">Quant.</th>
-          <th style="width:35%;">Animal</th>
+          <th style="width:35%; font-size:6.5pt; padding:2px 3px; border:1px solid #d1d5db;">Data</th>
+          <th style="width:30%; font-size:6.5pt; padding:2px 3px; border:1px solid #d1d5db;">Quant.</th>
+          <th style="width:35%; font-size:6.5pt; padding:2px 3px; border:1px solid #d1d5db;">Animal</th>
         </tr>
       </thead>
       <tbody>
-        {% for i in blank_3 %}<tr><td style="height:18px;"></td><td></td><td></td></tr>{% endfor %}
+        {% for i in blank_4 %}<tr><td style="height:16px; border:1px solid #d1d5db;"></td><td style="border:1px solid #d1d5db;"></td><td style="border:1px solid #d1d5db;"></td></tr>{% endfor %}
       </tbody>
     </table>
   </div>
 
   <div style="display:table-cell; width:66%; vertical-align:top;">
-    <table style="width:100%;">
+    <table style="width:100%; font-size:7.5pt; border-collapse:collapse;">
       <thead>
-        <tr><th colspan="4" style="background:#eff6ff; color:#1d4ed8; border:1px solid #d1d5db; padding:3px; text-align:center; font-size:6.5pt; text-transform:uppercase; letter-spacing:.5px;">MUDANÇA DE CATEGORIA</th></tr>
+        <tr><th colspan="4" style="background:#eff6ff; color:#1d4ed8; border:1px solid #d1d5db; padding:3px 4px; text-align:center; font-size:7pt; text-transform:uppercase; letter-spacing:.5px;">MUDANÇA DE CATEGORIA</th></tr>
         <tr>
-          <th style="width:23%;">Data</th>
-          <th style="width:20%;">Quant.</th>
-          <th style="width:30%;">Animal/Cat.</th>
-          <th style="width:27%;">Nova Categ.</th>
+          <th style="width:23%; font-size:6.5pt; padding:2px 3px; border:1px solid #d1d5db;">Data</th>
+          <th style="width:20%; font-size:6.5pt; padding:2px 3px; border:1px solid #d1d5db;">Quant.</th>
+          <th style="width:30%; font-size:6.5pt; padding:2px 3px; border:1px solid #d1d5db;">Animal/Cat.</th>
+          <th style="width:27%; font-size:6.5pt; padding:2px 3px; border:1px solid #d1d5db;">Nova Categ.</th>
         </tr>
       </thead>
       <tbody>
-        {% for i in blank_4 %}<tr><td style="height:18px;"></td><td></td><td></td><td></td></tr>{% endfor %}
+        {% for i in blank_4 %}<tr><td style="height:16px; border:1px solid #d1d5db;"></td><td style="border:1px solid #d1d5db;"></td><td style="border:1px solid #d1d5db;"></td><td style="border:1px solid #d1d5db;"></td></tr>{% endfor %}
       </tbody>
     </table>
   </div>
 
 </div>
 
-<div style="display:table; width:100%; border-spacing:6px 0;">
+{# Linha 3: COMPRA + DOAÇÃO + ABATE COZINHA #}
+<div style="display:table; width:100%; border-spacing:5px 0;">
 
   <div style="display:table-cell; width:30%; vertical-align:top;">
-    <table style="width:100%;">
+    <table style="width:100%; font-size:7.5pt; border-collapse:collapse;">
       <thead>
-        <tr><th colspan="3" style="background:#f0fdf4; color:#16a34a; border:1px solid #d1d5db; padding:3px; text-align:center; font-size:6.5pt; text-transform:uppercase; letter-spacing:.5px;">COMPRA</th></tr>
+        <tr><th colspan="3" style="background:#f0fdf4; color:#16a34a; border:1px solid #d1d5db; padding:3px 4px; text-align:center; font-size:7pt; text-transform:uppercase; letter-spacing:.5px;">COMPRA</th></tr>
         <tr>
-          <th style="width:35%;">Data</th>
-          <th style="width:30%;">Quant.</th>
-          <th style="width:35%;">Animal</th>
+          <th style="width:35%; font-size:6.5pt; padding:2px 3px; border:1px solid #d1d5db;">Data</th>
+          <th style="width:30%; font-size:6.5pt; padding:2px 3px; border:1px solid #d1d5db;">Quant.</th>
+          <th style="width:35%; font-size:6.5pt; padding:2px 3px; border:1px solid #d1d5db;">Animal</th>
         </tr>
       </thead>
       <tbody>
-        {% for i in blank_3 %}<tr><td style="height:18px;"></td><td></td><td></td></tr>{% endfor %}
+        {% for i in blank_4 %}<tr><td style="height:16px; border:1px solid #d1d5db;"></td><td style="border:1px solid #d1d5db;"></td><td style="border:1px solid #d1d5db;"></td></tr>{% endfor %}
       </tbody>
     </table>
   </div>
 
   <div style="display:table-cell; width:30%; vertical-align:top;">
-    <table style="width:100%;">
+    <table style="width:100%; font-size:7.5pt; border-collapse:collapse;">
       <thead>
-        <tr><th colspan="3" style="background:#f5f3ff; color:#7c3aed; border:1px solid #d1d5db; padding:3px; text-align:center; font-size:6.5pt; text-transform:uppercase; letter-spacing:.5px;">DOAÇÃO</th></tr>
+        <tr><th colspan="3" style="background:#f5f3ff; color:#7c3aed; border:1px solid #d1d5db; padding:3px 4px; text-align:center; font-size:7pt; text-transform:uppercase; letter-spacing:.5px;">DOAÇÃO</th></tr>
         <tr>
-          <th style="width:35%;">Data</th>
-          <th style="width:30%;">Quant.</th>
-          <th style="width:35%;">Animal</th>
+          <th style="width:35%; font-size:6.5pt; padding:2px 3px; border:1px solid #d1d5db;">Data</th>
+          <th style="width:30%; font-size:6.5pt; padding:2px 3px; border:1px solid #d1d5db;">Quant.</th>
+          <th style="width:35%; font-size:6.5pt; padding:2px 3px; border:1px solid #d1d5db;">Animal</th>
         </tr>
       </thead>
       <tbody>
-        {% for i in blank_3 %}<tr><td style="height:18px;"></td><td></td><td></td></tr>{% endfor %}
+        {% for i in blank_4 %}<tr><td style="height:16px; border:1px solid #d1d5db;"></td><td style="border:1px solid #d1d5db;"></td><td style="border:1px solid #d1d5db;"></td></tr>{% endfor %}
       </tbody>
     </table>
   </div>
 
   <div style="display:table-cell; width:40%; vertical-align:top;">
-    <table style="width:100%;">
+    <table style="width:100%; font-size:7.5pt; border-collapse:collapse;">
       <thead>
-        <tr><th colspan="3" style="background:#fef9eb; color:#92400e; border:1px solid #d1d5db; padding:3px; text-align:center; font-size:6.5pt; text-transform:uppercase; letter-spacing:.5px;">ABATE DE GADO PARA COZINHA</th></tr>
+        <tr><th colspan="3" style="background:#fef9eb; color:#92400e; border:1px solid #d1d5db; padding:3px 4px; text-align:center; font-size:7pt; text-transform:uppercase; letter-spacing:.5px;">ABATE DE GADO PARA COZINHA</th></tr>
         <tr>
-          <th style="width:33%;">Data</th>
-          <th style="width:34%;">Quant.</th>
-          <th style="width:33%;">Peso (Kg)</th>
+          <th style="width:33%; font-size:6.5pt; padding:2px 3px; border:1px solid #d1d5db;">Data</th>
+          <th style="width:34%; font-size:6.5pt; padding:2px 3px; border:1px solid #d1d5db;">Quant.</th>
+          <th style="width:33%; font-size:6.5pt; padding:2px 3px; border:1px solid #d1d5db;">Peso (Kg)</th>
         </tr>
       </thead>
       <tbody>
-        {% for i in blank_3 %}<tr><td style="height:18px;"></td><td></td><td></td></tr>{% endfor %}
+        {% for i in blank_4 %}<tr><td style="height:16px; border:1px solid #d1d5db;"></td><td style="border:1px solid #d1d5db;"></td><td style="border:1px solid #d1d5db;"></td></tr>{% endfor %}
       </tbody>
     </table>
   </div>
 
+</div>
+
+<div class="report-footer">
+  <div class="footer-left">{{ farm.name }}</div>
+  <div class="footer-right">{{ month_label }}/{{ year }}</div>
 </div>
 
 <div class="page-break"></div>
@@ -206,72 +218,72 @@
   <div class="report-subtitle">{{ month_label }} / {{ year }}</div>
 </div>
 
-<div style="margin-bottom:5px; display:table; width:100%;">
-  <div style="display:table-cell; font-size:7.5pt; font-weight:bold;">
+<div style="margin-bottom:6px; display:table; width:100%;">
+  <div style="display:table-cell; font-size:8.5pt; font-weight:bold;">
     FAZENDA: <span style="font-weight:normal;">{{ farm.name }}</span>
   </div>
-  <div style="display:table-cell; text-align:right; font-size:7.5pt; font-weight:bold;">
+  <div style="display:table-cell; text-align:right; font-size:8.5pt; font-weight:bold;">
     DATA: ____/____/________
   </div>
 </div>
 
-<table style="width:100%; border-collapse:collapse; font-size:6.5pt;">
+<table style="width:100%; border-collapse:collapse; font-size:8pt;">
   <thead>
     <tr>
-      <th style="border:1.5px solid #374151; background:#f3f4f6; padding:3px 4px; text-align:left; width:14%; font-size:6pt; text-transform:uppercase;">Animais</th>
-      <th style="border:1.5px solid #374151; background:#f3f4f6; padding:3px 4px; text-align:center; width:8%; font-size:6pt; text-transform:uppercase;">Saldo/Inicial</th>
-      <th style="border:1.5px solid #374151; background:#fef2f2; color:#dc2626; padding:3px 4px; text-align:center; width:6%; font-size:6pt; text-transform:uppercase;">Morte</th>
-      <th style="border:1.5px solid #374151; background:#fef2f2; color:#dc2626; padding:3px 4px; text-align:center; width:6%; font-size:6pt; text-transform:uppercase;">Venda</th>
-      <th style="border:1.5px solid #374151; background:#fef2f2; color:#dc2626; padding:3px 4px; text-align:center; width:6%; font-size:6pt; text-transform:uppercase;">Abate</th>
-      <th style="border:1.5px solid #374151; background:#f0fdf4; color:#16a34a; padding:3px 4px; text-align:center; width:6%; font-size:6pt; text-transform:uppercase;">Nasc.</th>
-      <th style="border:1.5px solid #374151; background:#f0fdf4; color:#16a34a; padding:3px 4px; text-align:center; width:6%; font-size:6pt; text-transform:uppercase;">Desm.</th>
-      <th style="border:1.5px solid #374151; background:#f0fdf4; color:#16a34a; padding:3px 4px; text-align:center; width:6%; font-size:6pt; text-transform:uppercase;">Doação</th>
-      <th style="border:1.5px solid #374151; background:#f0fdf4; color:#16a34a; padding:3px 4px; text-align:center; width:7%; font-size:6pt; text-transform:uppercase;">Man. (+)</th>
-      <th style="border:1.5px solid #374151; background:#f0fdf4; color:#16a34a; padding:3px 4px; text-align:center; width:7%; font-size:6pt; text-transform:uppercase;">Man. (-)</th>
-      <th style="border:1.5px solid #374151; background:#eff6ff; color:#1d4ed8; padding:3px 4px; text-align:center; width:7%; font-size:6pt; text-transform:uppercase;">M.Cat. (+)</th>
-      <th style="border:1.5px solid #374151; background:#eff6ff; color:#1d4ed8; padding:3px 4px; text-align:center; width:7%; font-size:6pt; text-transform:uppercase;">M. Cat. (-)</th>
-      <th style="border:1.5px solid #374151; background:#f9fafb; padding:3px 4px; text-align:center; width:8%; font-size:6pt; text-transform:uppercase; font-weight:bold;">Saldo Final</th>
+      <th style="border:1.5px solid #374151; background:#f3f4f6; padding:5px 4px; text-align:left; width:14%; font-size:7pt; text-transform:uppercase;">Animais</th>
+      <th style="border:1.5px solid #374151; background:#f3f4f6; padding:5px 4px; text-align:center; width:8%; font-size:7pt; text-transform:uppercase;">Saldo/Inicial</th>
+      <th style="border:1.5px solid #374151; background:#fef2f2; color:#dc2626; padding:5px 4px; text-align:center; width:6%; font-size:7pt; text-transform:uppercase;">Morte</th>
+      <th style="border:1.5px solid #374151; background:#fef2f2; color:#dc2626; padding:5px 4px; text-align:center; width:6%; font-size:7pt; text-transform:uppercase;">Venda</th>
+      <th style="border:1.5px solid #374151; background:#fef2f2; color:#dc2626; padding:5px 4px; text-align:center; width:6%; font-size:7pt; text-transform:uppercase;">Abate</th>
+      <th style="border:1.5px solid #374151; background:#f0fdf4; color:#16a34a; padding:5px 4px; text-align:center; width:6%; font-size:7pt; text-transform:uppercase;">Nasc.</th>
+      <th style="border:1.5px solid #374151; background:#f0fdf4; color:#16a34a; padding:5px 4px; text-align:center; width:6%; font-size:7pt; text-transform:uppercase;">Desm.</th>
+      <th style="border:1.5px solid #374151; background:#f0fdf4; color:#16a34a; padding:5px 4px; text-align:center; width:6%; font-size:7pt; text-transform:uppercase;">Doação</th>
+      <th style="border:1.5px solid #374151; background:#f0fdf4; color:#16a34a; padding:5px 4px; text-align:center; width:7%; font-size:7pt; text-transform:uppercase;">Man. (+)</th>
+      <th style="border:1.5px solid #374151; background:#f0fdf4; color:#16a34a; padding:5px 4px; text-align:center; width:7%; font-size:7pt; text-transform:uppercase;">Man. (-)</th>
+      <th style="border:1.5px solid #374151; background:#eff6ff; color:#1d4ed8; padding:5px 4px; text-align:center; width:7%; font-size:7pt; text-transform:uppercase;">M.Cat. (+)</th>
+      <th style="border:1.5px solid #374151; background:#eff6ff; color:#1d4ed8; padding:5px 4px; text-align:center; width:7%; font-size:7pt; text-transform:uppercase;">M. Cat. (-)</th>
+      <th style="border:1.5px solid #374151; background:#f9fafb; padding:5px 4px; text-align:center; width:8%; font-size:7pt; text-transform:uppercase; font-weight:bold;">Saldo Final</th>
     </tr>
   </thead>
   <tbody>
     {% for row in stock_rows %}
     <tr style="{% if forloop.counter|divisibleby:2 %}background:#fafafa;{% endif %}">
-      <td style="border:1px solid #d1d5db; padding:4px 4px; text-align:left;">{{ row.name }}</td>
-      <td style="border:1px solid #d1d5db; padding:4px 4px; text-align:center; font-weight:{% if row.initial %}600{% else %}normal{% endif %}; color:{% if row.initial %}#1a1a1a{% else %}#9ca3af{% endif %};">{{ row.initial|default:"0" }}</td>
-      <td style="border:1px solid #d1d5db; padding:4px 4px; height:20px;"></td>
-      <td style="border:1px solid #d1d5db; padding:4px 4px;"></td>
-      <td style="border:1px solid #d1d5db; padding:4px 4px;"></td>
-      <td style="border:1px solid #d1d5db; padding:4px 4px;"></td>
-      <td style="border:1px solid #d1d5db; padding:4px 4px;"></td>
-      <td style="border:1px solid #d1d5db; padding:4px 4px;"></td>
-      <td style="border:1px solid #d1d5db; padding:4px 4px;"></td>
-      <td style="border:1px solid #d1d5db; padding:4px 4px;"></td>
-      <td style="border:1px solid #d1d5db; padding:4px 4px;"></td>
-      <td style="border:1px solid #d1d5db; padding:4px 4px;"></td>
-      <td style="border:1px solid #d1d5db; padding:4px 4px;"></td>
+      <td style="border:1px solid #d1d5db; padding:6px 4px; text-align:left; font-size:8pt;">{{ row.name }}</td>
+      <td style="border:1px solid #d1d5db; padding:6px 4px; text-align:center; font-size:8pt; font-weight:{% if row.initial %}600{% else %}normal{% endif %}; color:{% if row.initial %}#1a1a1a{% else %}#9ca3af{% endif %};">{{ row.initial|default:"0" }}</td>
+      <td style="border:1px solid #d1d5db; padding:6px 4px; height:26px;"></td>
+      <td style="border:1px solid #d1d5db; padding:6px 4px;"></td>
+      <td style="border:1px solid #d1d5db; padding:6px 4px;"></td>
+      <td style="border:1px solid #d1d5db; padding:6px 4px;"></td>
+      <td style="border:1px solid #d1d5db; padding:6px 4px;"></td>
+      <td style="border:1px solid #d1d5db; padding:6px 4px;"></td>
+      <td style="border:1px solid #d1d5db; padding:6px 4px;"></td>
+      <td style="border:1px solid #d1d5db; padding:6px 4px;"></td>
+      <td style="border:1px solid #d1d5db; padding:6px 4px;"></td>
+      <td style="border:1px solid #d1d5db; padding:6px 4px;"></td>
+      <td style="border:1px solid #d1d5db; padding:6px 4px;"></td>
     </tr>
     {% endfor %}
 
-    <tr style="background:#f3f4f6; font-weight:bold; border-top:2px solid #374151;">
-      <td style="border:1.5px solid #374151; padding:4px 4px; text-align:left;">TOTAL INICIAL</td>
-      <td style="border:1.5px solid #374151; padding:4px 4px; text-align:center; color:#166534;">{{ total_initial }}</td>
-      <td style="border:1px solid #d1d5db; padding:4px 4px;"></td>
-      <td style="border:1px solid #d1d5db; padding:4px 4px;"></td>
-      <td style="border:1px solid #d1d5db; padding:4px 4px;"></td>
-      <td style="border:1px solid #d1d5db; padding:4px 4px;"></td>
-      <td style="border:1px solid #d1d5db; padding:4px 4px;"></td>
-      <td style="border:1px solid #d1d5db; padding:4px 4px;"></td>
-      <td style="border:1px solid #d1d5db; padding:4px 4px;"></td>
-      <td style="border:1px solid #d1d5db; padding:4px 4px;"></td>
-      <td style="border:1px solid #d1d5db; padding:4px 4px;"></td>
-      <td style="border:1.5px solid #374151; padding:4px 6px; text-align:center; font-size:6pt; color:#374151; font-weight:bold; background:#f9fafb; letter-spacing:.3px; text-transform:uppercase;" colspan="2">Total Final: ___________</td>
+    <tr style="background:#f3f4f6; font-weight:bold; border-top:1.2px solid #d1d5db;">
+      <td style="border:1px solid #d1d5db; padding:6px 4px; text-align:left; font-size:8pt;">TOTAL INICIAL</td>
+      <td style="border:1px solid #d1d5db; padding:6px 4px; text-align:center; color:#166534; font-size:8pt;">{{ total_initial }}</td>
+      <td style="border:1px solid #d1d5db; padding:6px 4px;"></td>
+      <td style="border:1px solid #d1d5db; padding:6px 4px;"></td>
+      <td style="border:1px solid #d1d5db; padding:6px 4px;"></td>
+      <td style="border:1px solid #d1d5db; padding:6px 4px;"></td>
+      <td style="border:1px solid #d1d5db; padding:6px 4px;"></td>
+      <td style="border:1px solid #d1d5db; padding:6px 4px;"></td>
+      <td style="border:1px solid #d1d5db; padding:6px 4px;"></td>
+      <td style="border:1px solid #d1d5db; padding:6px 4px;"></td>
+      <td style="border:1px solid #d1d5db; padding:6px 4px;"></td>
+      <td style="border:1px solid #d1d5db; padding:6px 6px; text-align:center; font-size:7pt; color:#374151; font-weight:bold; background:#f9fafb; letter-spacing:.3px; text-transform:uppercase;" colspan="2">Total Final: ___________</td>
     </tr>
   </tbody>
 </table>
 
 <div class="report-footer">
-  <div class="footer-left">Sistema de Gestão de Rebanhos — Ficha de Controle Manual</div>
-  <div class="footer-right">{{ farm.name }} · {{ month_label }}/{{ year }}</div>
+  <div class="footer-left">{{ farm.name }}</div>
+  <div class="footer-right">{{ month_label }}/{{ year }}</div>
 </div>
 
 {% endblock %}
