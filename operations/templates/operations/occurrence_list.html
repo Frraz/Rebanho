@@ -106,7 +106,7 @@
                     <select name="ano" class="block w-full border border-gray-300 rounded-xl py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent">
                         <option value="">Todos os anos</option>
                         {% for ano in anos %}
-                        <option value="{{ ano }}" {% if ano|stringformat:"s" == ano_filtro %}selected{% endif %}>{{ ano }}</option>
+                        <option value="{{ ano }}" {% if ano|stringformat:"s" == ano_filtro %}selected{% endif %}>{{ ano|year_fmt }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -237,10 +237,10 @@
                                 </svg>
                                 <span class="text-gray-900 font-medium">{{ movement.client.name }}</span>
                                 {% if movement.metadata.peso %}
-                                <span class="text-xs text-gray-500">({{ movement.metadata.peso }} kg)</span>
+                                <span class="text-xs text-gray-500">({{ movement.metadata.peso|peso_fmt }} kg)</span>
                                 {% endif %}
                                 {% if movement.metadata.preco_total %}
-                                <span class="text-xs text-green-700 font-semibold">R$ {{ movement.metadata.preco_total }}</span>
+                                <span class="text-xs text-green-700 font-semibold">R$ {{ movement.metadata.preco_total|peso_fmt }}</span>
                                 {% endif %}
                             </div>
                             {% elif movement.death_reason %}

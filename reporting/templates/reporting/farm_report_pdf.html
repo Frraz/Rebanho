@@ -2,19 +2,33 @@
 {% load report_tags %}
 {% load number_filters %}
 
-{% block title %}Relatório — {{ report.farm.name }} — {{ report.period.start|date:"m/Y" }}{% endblock %}
+{% block title %}
+  {% if selected_month == 0 %}
+    Relatório Anual — {{ report.farm.name }} — {{ selected_year|year_fmt }}
+  {% else %}
+    Relatório — {{ report.farm.name }} — {{ report.period.start|date:"m/Y" }}
+  {% endif %}
+{% endblock %}
 
 {% block content %}
 
 <div class="report-header">
   <div class="report-title">Movimentação do Gado — {{ report.farm.name }}</div>
-  <div class="report-subtitle">{{ report.period.start|date:"F" }} / {{ report.period.start|date:"Y" }}</div>
+  <div class="report-subtitle">
+    {% if selected_month == 0 %}
+      Ano Completo / {{ selected_year|year_fmt }}
+    {% else %}
+      {{ report.period.start|date:"F" }} / {{ report.period.start|date:"Y" }}
+    {% endif %}
+  </div>
 </div>
 
 {# ── Estoque Inicial ───────────────────────────────────────────────────────── #}
 <div class="section">
-  <div class="section-title red">Estoque Inicial - Mês Anterior</div>
-
+  <div class="section-title red">
+    {% if selected_month == 0 %}Estoque Inicial — Ano Anterior
+    {% else %}Estoque Inicial — Mês Anterior{% endif %}
+  </div>
   <table class="estoque-table">
     <thead>
       <tr>
@@ -33,9 +47,12 @@
   </table>
 </div>
 
-{# ── Tabela Principal de Movimentações ────────────────────────────────────── #}
+{# ── Tabela Principal ─────────────────────────────────────────────────────── #}
 <div class="section">
-  <div class="section-title blue">{{ report.period.start|date:"F/Y"|upper }}</div>
+  <div class="section-title blue">
+    {% if selected_month == 0 %}{{ selected_year|year_fmt }}
+    {% else %}{{ report.period.start|date:"F/Y"|upper }}{% endif %}
+  </div>
   <table>
     <thead>
       <tr>
@@ -64,51 +81,21 @@
       {% for cat in report.categories %}
       <tr>
         <td class="text-left">{{ cat }}</td>
-
-        {% with v=report.ocorrencias.morte|get_item:cat %}
-        <td class="{% if v %}val-morte{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>
-        {% endwith %}
-        {% with v=report.ocorrencias.venda|get_item:cat %}
-        <td class="{% if v %}val-venda{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>
-        {% endwith %}
-        {% with v=report.ocorrencias.abate|get_item:cat %}
-        <td class="{% if v %}val-abate{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>
-        {% endwith %}
-
-        {% with v=report.entradas.nascimento|get_item:cat %}
-        <td class="{% if v %}val-nasc{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>
-        {% endwith %}
-        {% with v=report.entradas.desmame|get_item:cat %}
-        <td class="{% if v %}val-nasc{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>
-        {% endwith %}
-        {% with v=report.entradas.manejo_in|get_item:cat %}
-        <td class="{% if v %}val-nasc{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>
-        {% endwith %}
-        {% with v=report.entradas.manejo_out|get_item:cat %}
-        <td class="{% if v %}val-morte{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>
-        {% endwith %}
-        {% with v=report.entradas.mudanca_in|get_item:cat %}
-        <td class="{% if v %}val-nasc{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>
-        {% endwith %}
-        {% with v=report.entradas.mudanca_out|get_item:cat %}
-        <td class="{% if v %}val-venda{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>
-        {% endwith %}
-        {% with v=report.entradas.compra|get_item:cat %}
-        <td class="{% if v %}val-nasc{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>
-        {% endwith %}
-        {% with v=report.ocorrencias.doacao|get_item:cat %}
-        <td class="{% if v %}val-abate{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>
-        {% endwith %}
-
-        {% with v=report.consolidado.entradas|get_item:cat %}
-        <td class="{% if v %}val-entrada{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>
-        {% endwith %}
-        {% with v=report.consolidado.saidas|get_item:cat %}
-        <td class="{% if v %}val-saida{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>
-        {% endwith %}
+        {% with v=report.ocorrencias.morte|get_item:cat %}<td class="{% if v %}val-morte{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
+        {% with v=report.ocorrencias.venda|get_item:cat %}<td class="{% if v %}val-venda{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
+        {% with v=report.ocorrencias.abate|get_item:cat %}<td class="{% if v %}val-abate{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
+        {% with v=report.entradas.nascimento|get_item:cat %}<td class="{% if v %}val-nasc{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
+        {% with v=report.entradas.desmame|get_item:cat %}<td class="{% if v %}val-nasc{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
+        {% with v=report.entradas.manejo_in|get_item:cat %}<td class="{% if v %}val-nasc{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
+        {% with v=report.entradas.manejo_out|get_item:cat %}<td class="{% if v %}val-morte{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
+        {% with v=report.entradas.mudanca_in|get_item:cat %}<td class="{% if v %}val-nasc{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
+        {% with v=report.entradas.mudanca_out|get_item:cat %}<td class="{% if v %}val-venda{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
+        {% with v=report.entradas.compra|get_item:cat %}<td class="{% if v %}val-nasc{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
+        {% with v=report.ocorrencias.doacao|get_item:cat %}<td class="{% if v %}val-abate{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
+        {% with v=report.consolidado.entradas|get_item:cat %}<td class="{% if v %}val-entrada{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
+        {% with v=report.consolidado.saidas|get_item:cat %}<td class="{% if v %}val-saida{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
       </tr>
       {% endfor %}
-
       <tr class="total-row">
         <td class="text-left">TOTAL</td>
         <td class="val-morte">{{ report.ocorrencias.morte|sum_values }}</td>
@@ -131,7 +118,10 @@
 
 {# ── Estoque Final ─────────────────────────────────────────────────────────── #}
 <div class="section">
-  <div class="section-title green">Estoque Final do Mês</div>
+  <div class="section-title green">
+    {% if selected_month == 0 %}Estoque Final do Ano
+    {% else %}Estoque Final do Mês{% endif %}
+  </div>
   <table class="estoque-table">
     <thead>
       <tr>
@@ -154,10 +144,9 @@
 <div class="section">
   <div class="section-title gray">Detalhamentos</div>
 
-  {# Linha superior: três colunas iguais — Mortes | Doações | Abates #}
   <div class="details-grid">
 
-    {# Coluna 1 — Causa das Mortes dos Animais #}
+    {# Coluna 1 — Mortes #}
     <div class="details-col">
       <table>
         <thead>
@@ -199,7 +188,8 @@
           <tr>
             <td class="text-left">{{ d.categoria }}</td>
             <td class="text-left">{{ d.cliente }}</td>
-            <td>{{ d.peso|default:"—" }}</td>
+            {# ── CORRIGIDO: peso_fmt formata "1250.80" → "1.250,80" ── #}
+            <td>{{ d.peso|peso_fmt|default:"—" }}</td>
             <td class="val-abate">{{ d.quantidade }}</td>
           </tr>
           {% empty %}
@@ -236,7 +226,7 @@
 
   </div>{# /details-grid #}
 
-  {# Linha inferior: Controle de Vendas em largura total #}
+  {# Vendas — largura total #}
   <table class="vendas-table">
     <thead>
       <tr><th colspan="5">OBS: Controle de Vendas</th></tr>
@@ -254,7 +244,8 @@
         <td>{{ v.data|date:"d/m/Y" }}</td>
         <td class="text-left">{{ v.categoria }}</td>
         <td class="text-left">{{ v.cliente }}</td>
-        <td>{{ v.peso|default:"—" }}</td>
+        {# ── CORRIGIDO: peso_fmt formata "1250.80" → "1.250,80" ── #}
+        <td>{{ v.peso|peso_fmt|default:"—" }}</td>
         <td class="val-nasc">{{ v.quantidade }}</td>
       </tr>
       {% empty %}
@@ -268,7 +259,10 @@
 {# ── Rodapé ────────────────────────────────────────────────────────────────── #}
 <div class="report-footer">
   <div class="footer-left">{{ report.farm.name }}</div>
-  <div class="footer-right">{{ report.period.start|date:"F/Y" }}</div>
+  <div class="footer-right">
+    {% if selected_month == 0 %}{{ selected_year|year_fmt }}
+    {% else %}{{ report.period.start|date:"F/Y" }}{% endif %}
+  </div>
 </div>
 
 {% endblock %}

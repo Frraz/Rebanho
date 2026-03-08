@@ -2,13 +2,14 @@
 {% load report_tags %}
 {% load number_filters %}
 
-{% block title %}Ficha de Controle Manual — {{ farm.name }} — {{ month_label }}/{{ year }}{% endblock %}
+{% block title %}Ficha de Controle Manual — {{ farm.name }} — {{ month_label }}/{{ year|year_fmt }}{% endblock %}
 
 {% block content %}
 
 <div class="report-header">
   <div class="report-title">Ficha de Controle Manual — {{ farm.name }}</div>
-  <div class="report-subtitle">{{ month_label }} / {{ year }}</div>
+  {# ── CORRIGIDO: year_fmt evita "2.026" (USE_THOUSAND_SEPARATOR=True) ── #}
+  <div class="report-subtitle">{{ month_label }} / {{ year|year_fmt }}</div>
 </div>
 
 {# ── OCORRÊNCIAS ─────────────────────────────────────────────── #}
@@ -208,14 +209,16 @@
 
 <div class="report-footer">
   <div class="footer-left">{{ farm.name }}</div>
-  <div class="footer-right">{{ month_label }}/{{ year }}</div>
+  {# ── CORRIGIDO: year_fmt ── #}
+  <div class="footer-right">{{ month_label }}/{{ year|year_fmt }}</div>
 </div>
 
 <div class="page-break"></div>
 
 <div class="report-header">
   <div class="report-title">Ocorrências — {{ farm.name }}</div>
-  <div class="report-subtitle">{{ month_label }} / {{ year }}</div>
+  {# ── CORRIGIDO: year_fmt ── #}
+  <div class="report-subtitle">{{ month_label }} / {{ year|year_fmt }}</div>
 </div>
 
 <div style="margin-bottom:6px; display:table; width:100%;">
@@ -283,7 +286,8 @@
 
 <div class="report-footer">
   <div class="footer-left">{{ farm.name }}</div>
-  <div class="footer-right">{{ month_label }}/{{ year }}</div>
+  {# ── CORRIGIDO: year_fmt ── #}
+  <div class="footer-right">{{ month_label }}/{{ year|year_fmt }}</div>
 </div>
 
 {% endblock %}

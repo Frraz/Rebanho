@@ -32,7 +32,7 @@ def _get_period_from_request(request) -> Tuple[date, date, int, int]:
         (start_date, end_date, month, year)
 
     Regras:
-    - month=0 => ano completo
+    - month=0 => ano inteiro
     - month 1-12 => mês específico
     """
     today = date.today()
@@ -197,7 +197,7 @@ def consolidated_report_view(request):
                 )
                 logger.info(
                     f"Relatório consolidado gerado por {request.user.username}. "
-                    f"Período: {'Ano completo' if month == 0 else f'{month}/{year}'} {year}, "
+                    f"Período: {'Ano inteiro' if month == 0 else f'{month}/{year}'} {year}, "
                     f"Categoria: {category_id or 'Todas'}"
                 )
             except Exception as e:
@@ -257,14 +257,15 @@ def farm_report_pdf_view(request):
         category=category,
     )
 
-    # report.period.start funciona porque FarmReport é um dataclass
     prev_month_label = _get_previous_month_label(report.period.start)
 
     context = {
-        'report':          report,
-        'user':            request.user,
+        'report':           report,
+        'user':             request.user,
         'prev_month_label': prev_month_label,
-        'pdf_filename':    f"relatorio_{farm.name}_{report.period.start.strftime('%m_%Y')}.pdf",
+        'selected_month':   month,   # ← necessário para lógica anual no template
+        'selected_year':    year,
+        'pdf_filename':     f"relatorio_{farm.name}_{report.period.start.strftime('%m_%Y')}.pdf",
     }
     return _render_pdf('reporting/farm_report_pdf.html', context)
 
@@ -294,7 +295,7 @@ def consolidated_report_pdf_view(request):
 
         logger.info(
             f"PDF de relatório consolidado gerado por {request.user.username}. "
-            f"Período: {'Ano completo' if month == 0 else f'{month}/{year}'} {year}, "
+            f"Período: {'Ano inteiro' if month == 0 else f'{month}/{year}'} {year}, "
             f"Arquivo: {filename}"
         )
 

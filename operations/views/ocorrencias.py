@@ -20,6 +20,7 @@ from inventory.services import MovementService
 from inventory.domain import OperationType
 from inventory.models import AnimalMovement
 from farms.models import Farm
+from core.utils.decimal_utils import normalize_pt_br_decimal 
 
 logger = logging.getLogger(__name__)
 
@@ -607,20 +608,42 @@ def occurrence_edit_view(request, pk):
         try:
             quantity = int(request.POST.get('quantity', movement.quantity))
             observacao = request.POST.get('observacao', '').strip()
-            peso = request.POST.get('peso', '').strip()
-            preco_total = request.POST.get('preco_total', '').strip()
             timestamp_str = request.POST.get('timestamp', '').strip()
             client_id = request.POST.get('client_id', '').strip() or None
             death_reason_id = request.POST.get('death_reason_id', '').strip() or None
 
-            # Montar metadata apenas com campos preenchidos
+            # ── Normalização de decimais pt-BR ─────────────────────────────
+            # O template envia "1.250,80" (string pt-BR com máscara).
+            # normalize_pt_br_decimal() converte para Decimal antes de salvar.
+            # Guardamos como str() no metadata para manter compatibilidade
+            # com o restante do sistema (metadata é um JSONField de strings).
+
+            peso_raw = request.POST.get('peso', '').strip()
+            preco_raw = request.POST.get('preco_total', '').strip()
+
+            peso_normalizado = None
+            if peso_raw:
+                try:
+                    peso_normalizado = str(normalize_pt_br_decimal(peso_raw))
+                except Exception:
+                    messages.error(request, f'Peso inválido: "{peso_raw}". Use o formato 1.250,80.')
+                    # Não retorna — deixa o form recarregar com os outros dados
+
+            preco_normalizado = None
+            if preco_raw:
+                try:
+                    preco_normalizado = str(normalize_pt_br_decimal(preco_raw))
+                except Exception:
+                    messages.error(request, f'Preço inválido: "{preco_raw}". Use o formato 15.000,00.')
+
+            # Monta metadata apenas com campos preenchidos
             new_meta = {}
             if observacao:
                 new_meta['observacao'] = observacao
-            if peso:
-                new_meta['peso'] = peso
-            if preco_total:
-                new_meta['preco_total'] = preco_total
+            if peso_normalizado:
+                new_meta['peso'] = peso_normalizado
+            if preco_normalizado:
+                new_meta['preco_total'] = preco_normalizado
 
             data = {
                 'quantity': quantity,

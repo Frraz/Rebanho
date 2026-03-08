@@ -30,6 +30,7 @@ from inventory.domain import OperationType
 from inventory.models import AnimalMovement
 from operations.services import TransferService
 from farms.models import Farm
+from core.utils.decimal_utils import normalize_pt_br_decimal 
 
 logger = logging.getLogger(__name__)
 
@@ -612,11 +613,12 @@ def _render_already_cancelled_row(movement, cancellation) -> str:
 @require_http_methods(["GET", "POST"])
 def movement_edit_view(request, pk):
     """
-    Edita uma movimenta��ão ativa (não cancelada).
+    Edita uma movimentação ativa (não cancelada).
     Operações compostas: apenas timestamp/metadata editáveis.
     Operações simples: quantidade também editável.
     """
     from inventory.models import AnimalMovementCancellation
+    from core.utils.decimal_utils import normalize_pt_br_decimal
 
     movement = get_object_or_404(
         AnimalMovement.objects
@@ -641,16 +643,41 @@ def movement_edit_view(request, pk):
 
     if request.method == 'POST':
         try:
-            quantity = int(request.POST.get('quantity', movement.quantity))
-            observacao = request.POST.get('observacao', '').strip()
-            peso = request.POST.get('peso', '').strip()
+            quantity    = int(request.POST.get('quantity', movement.quantity))
+            observacao  = request.POST.get('observacao', '').strip()
+            peso_raw    = request.POST.get('peso', '').strip()
             timestamp_str = request.POST.get('timestamp', '').strip()
+
+            # ── Normaliza peso pt-BR → Decimal string ──────────────────────
+            # O template envia "1.250,80" (máscara JS).
+            # normalize_pt_br_decimal() converte para Decimal e
+            # str() produz "1250.80" — formato consistente no banco.
+            peso_normalizado = None
+            if peso_raw:
+                try:
+                    peso_normalizado = str(normalize_pt_br_decimal(peso_raw))
+                except Exception:
+                    messages.error(
+                        request,
+                        f'Peso inválido: "{peso_raw}". Use o formato 1.250,80.'
+                    )
+                    # Recarrega o formulário com os dados atuais
+                    return render(request, 'inventory/movement_edit.html', {
+                        'movement':        movement,
+                        'meta':            meta,
+                        'is_composite':    is_composite,
+                        'cancel_url':      reverse('movimentacoes:list'),
+                        'timestamp_value': movement.timestamp.strftime('%Y-%m-%dT%H:%M'),
+                        'operation_label': OPERATION_TYPE_LABELS.get(
+                            movement.operation_type, movement.get_operation_type_display()
+                        ),
+                    })
 
             new_meta = {}
             if observacao:
                 new_meta['observacao'] = observacao
-            if peso:
-                new_meta['peso'] = peso
+            if peso_normalizado:
+                new_meta['peso'] = peso_normalizado
 
             data = {'metadata': new_meta}
             if not is_composite:
@@ -688,10 +715,10 @@ def movement_edit_view(request, pk):
             messages.error(request, "Erro interno ao editar. Tente novamente.")
 
     context = {
-        'movement': movement,
-        'meta': meta,
-        'is_composite': is_composite,
-        'cancel_url': reverse('movimentacoes:list'),
+        'movement':        movement,
+        'meta':            meta,
+        'is_composite':    is_composite,
+        'cancel_url':      reverse('movimentacoes:list'),
         'timestamp_value': movement.timestamp.strftime('%Y-%m-%dT%H:%M'),
         'operation_label': OPERATION_TYPE_LABELS.get(
             movement.operation_type, movement.get_operation_type_display()

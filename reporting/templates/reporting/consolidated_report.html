@@ -1,5 +1,6 @@
 {% extends 'base/base.html' %}
 {% load report_tags %}
+{% load number_filters %}
 
 {% block title %}Fazendas Reunidas{% endblock %}
 
@@ -46,7 +47,7 @@
                     <label class="block text-xs font-medium text-gray-700 mb-1">Ano</label>
                     <select name="year" class="w-full rounded-md border-gray-300 shadow-sm text-sm focus:border-green-500 focus:ring-green-500">
                         {% for y in years %}
-                        <option value="{{ y|stringformat:'d' }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+                        <option value="{{ y|stringformat:'d' }}" {% if y == selected_year %}selected{% endif %}>{{ y|year_fmt }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -79,7 +80,7 @@
         <p class="text-lg font-bold">MOVIMENTAÇÃO DO GADO — FAZENDAS REUNIDAS</p>
         <p class="text-sm">
             {% if selected_month == 0 %}
-                {{ selected_year }}
+                {{ selected_year|year_fmt }}
             {% else %}
                 {{ report.period.start|date:"F/Y"|upper }}
             {% endif %}
@@ -101,7 +102,7 @@
         <div class="px-4 py-3 sm:px-6">
             <h2 class="text-sm font-bold text-blue-600 text-center mb-2 uppercase tracking-wider">
                 {% if selected_month == 0 %}
-                    {{ selected_year }}
+                    {{ selected_year|year_fmt }}
                 {% else %}
                     {{ report.period.start|date:"N/Y"|upper }}
                 {% endif %}

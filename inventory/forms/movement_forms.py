@@ -1,22 +1,30 @@
 """
-Movement Forms - Formulários de Movimentações.
+inventory/forms/movement_forms.py
 
-HTMX URLs centralizadas em /htmx/:
-  /htmx/categorias-saida/   → categorias com saldo > 0
-  /htmx/categorias-entrada/ → todas as categorias
-  /htmx/saldo-atual/        → badge de saldo para o campo quantity
-  /htmx/saldo-desmame/      → saldos de B. Macho e B. Fêmea (novo)
+Formulários de Movimentações.
 
-NOVIDADE v2:
-  - DesmameForm redesenhado com campos separados para machos e fêmeas
-  - Validação de saldo no formulário
+CORREÇÃO MRO (v3):
+    Problema anterior: DecimalFieldsMixin + MovementBaseForm causava
+    "Cannot create a consistent MRO" porque a metaclasse do Django
+    (DeclarativeFieldsMetaclass) não é compatível com herança múltipla
+    quando ambas as bases envolvem forms.Form na cadeia.
+
+    Solução: os clean_*() para campos decimais vivem diretamente em
+    MovementBaseForm. VendaForm e CompraForm herdam normalmente e
+    sobrescrevem apenas o que precisam (ex: peso obrigatório na venda).
+
+CAMPOS DECIMAIS (peso, preço):
+    Usam CharField + type="text" + data-mask="decimal" em vez de
+    DecimalField + type="number". O browser aceita "1.250,80" em
+    type="text"; o clean_*() normaliza para Decimal antes de salvar.
 """
 from django import forms
 from django.core.exceptions import ValidationError
 from inventory.models import AnimalCategory, FarmStockBalance
 from farms.models import Farm
+from core.utils.decimal_utils import normalize_pt_br_decimal
 
-# Classe CSS reutilizável para selects
+# ── Classes CSS reutilizáveis ──────────────────────────────────────────────
 _SELECT_CSS = (
     'mt-1 block w-full rounded-md border-gray-300 shadow-sm '
     'focus:border-green-500 focus:ring-green-500 sm:text-sm'
@@ -27,24 +35,73 @@ _INPUT_CSS = (
 )
 
 
+def _decimal_widget(placeholder='Ex: 1.250,00'):
+    """
+    TextInput configurado para receber decimal pt-BR via máscara JS.
+    Nunca use NumberInput para campos com máscara pt-BR — o browser
+    descarta a vírgula antes do valor chegar ao Django.
+    """
+    return forms.TextInput(attrs={
+        'class':        _INPUT_CSS,
+        'placeholder':  placeholder,
+        'data-mask':    'decimal',   # hook para masks.js
+        'inputmode':    'decimal',   # teclado numérico em mobile
+        'autocomplete': 'off',
+    })
+
+
+def _clean_decimal_optional(form, field_name):
+    """
+    Normaliza um campo decimal opcional: string pt-BR → Decimal ou None.
+    Chamado nos clean_*() das subclasses.
+    """
+    value = form.cleaned_data.get(field_name)
+    if not value:
+        return None
+    # Se já é Decimal/float (raro), retorna direto
+    if hasattr(value, 'is_integer') or hasattr(value, 'as_tuple'):
+        return value
+    try:
+        return normalize_pt_br_decimal(str(value))
+    except (ValidationError, Exception):
+        raise ValidationError('Valor inválido. Use o formato 1.250,80 ou 1250,80.')
+
+
+def _clean_decimal_required(form, field_name):
+    """
+    Normaliza um campo decimal obrigatório: string pt-BR → Decimal.
+    Lança ValidationError se vazio.
+    """
+    value = form.cleaned_data.get(field_name)
+    if not value:
+        raise ValidationError('Este campo é obrigatório.')
+    if hasattr(value, 'is_integer') or hasattr(value, 'as_tuple'):
+        return value
+    try:
+        return normalize_pt_br_decimal(str(value))
+    except (ValidationError, Exception):
+        raise ValidationError('Valor inválido. Use o formato 1.250,80 ou 1250,80.')
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# FORM BASE
+# ═══════════════════════════════════════════════════════════════════════════
+
 class MovementBaseForm(forms.Form):
     """
-    Formulário base para movimentações.
-    O select de fazenda dispara HTMX para carregar categorias.
-    O select de categoria dispara HTMX para mostrar saldo disponível.
+    Base para todas as movimentações e ocorrências.
 
-    Subclasses de SAÍDA devem usar: hx_categoria_endpoint = 'categorias-saida'
-    Subclasses de ENTRADA devem usar: hx_categoria_endpoint = 'categorias-entrada'
+    Inclui clean_peso() que normaliza "1.250,80" → Decimal.
+    Subclasses que precisam de peso obrigatório sobrescrevem clean_peso().
     """
 
-    # Subclasses sobrescrevem este atributo
     hx_categoria_endpoint = 'categorias-saida'
 
     farm = forms.ModelChoiceField(
         queryset=Farm.objects.filter(is_active=True),
         label='Fazenda',
         widget=forms.Select(attrs={
-            'class': _SELECT_CSS,
+            'class':      _SELECT_CSS,
             'hx-get':     '/htmx/categorias-saida/',
             'hx-target':  '#id_animal_category',
             'hx-trigger': 'change',
@@ -57,13 +114,12 @@ class MovementBaseForm(forms.Form):
         queryset=AnimalCategory.objects.filter(is_active=True),
         label='Tipo de Animal',
         widget=forms.Select(attrs={
-            'class': _SELECT_CSS,
-            'id':    'id_animal_category',
+            'class':      _SELECT_CSS,
+            'id':         'id_animal_category',
             'hx-get':     '/htmx/saldo-atual/',
             'hx-target':  '#saldo-badge',
             'hx-trigger': 'change',
             'hx-include': '[name="farm"],[name="animal_category"]',
-            'hx-vals':    'js:{"farm_id": document.querySelector("[name=farm]").value, "category_id": this.value}',
         })
     )
 
@@ -71,9 +127,9 @@ class MovementBaseForm(forms.Form):
         min_value=1,
         label='Quantidade',
         widget=forms.NumberInput(attrs={
-            'class': _INPUT_CSS,
+            'class':       _INPUT_CSS,
             'placeholder': '1',
-            'id': 'id_quantity',
+            'id':          'id_quantity',
         })
     )
 
@@ -97,26 +153,28 @@ class MovementBaseForm(forms.Form):
         })
     )
 
-    peso = forms.DecimalField(
+    # ── Campo decimal com máscara pt-BR ──────────────────────────────────
+    # CharField + type="text" — nunca NumberInput para campos com vírgula
+    peso = forms.CharField(
         label='Peso (kg)',
         required=False,
-        max_digits=8,
-        decimal_places=2,
-        widget=forms.NumberInput(attrs={
-            'class':       _INPUT_CSS,
-            'placeholder': 'Peso em kg (opcional)',
-            'step':        '0.01',
-        })
+        widget=_decimal_widget('Ex: 1.250,00'),
+        help_text='Formato: 1.250,80'
     )
+
+    def clean_peso(self):
+        """Peso opcional — normaliza pt-BR → Decimal ou None."""
+        return _clean_decimal_optional(self, 'peso')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Ajusta o hx-get do farm para o endpoint correto da subclasse
         endpoint = f'/htmx/{self.hx_categoria_endpoint}/'
         self.fields['farm'].widget.attrs['hx-get'] = endpoint
 
 
-# ── Entradas (categorias sem filtro de saldo) ─────────────────────────────────
+# ═══════════════════════════════════════════════════════════════════════════
+# ENTRADAS
+# ═══════════════════════════════════════════════════════════════════════════
 
 class NascimentoForm(MovementBaseForm):
     hx_categoria_endpoint = 'categorias-entrada'
@@ -129,16 +187,11 @@ class SaldoForm(MovementBaseForm):
 class CompraForm(MovementBaseForm):
     hx_categoria_endpoint = 'categorias-entrada'
 
-    preco_unitario = forms.DecimalField(
+    preco_unitario = forms.CharField(
         label='Preço Unitário (R$)',
         required=False,
-        max_digits=10,
-        decimal_places=2,
-        widget=forms.NumberInput(attrs={
-            'class':       _INPUT_CSS,
-            'placeholder': '0.00',
-            'step':        '0.01',
-        })
+        widget=_decimal_widget('Ex: 1.500,00'),
+        help_text='Formato: 1.500,00'
     )
 
     fornecedor = forms.CharField(
@@ -151,14 +204,15 @@ class CompraForm(MovementBaseForm):
         })
     )
 
+    def clean_preco_unitario(self):
+        return _clean_decimal_optional(self, 'preco_unitario')
 
-# ── Manejo (saída + entrada, fazendas diferentes) ─────────────────────────────
+
+# ═══════════════════════════════════════════════════════════════════════════
+# SAÍDAS COMPOSTAS
+# ═══════════════════════════════════════════════════════════════════════════
 
 class ManejoForm(MovementBaseForm):
-    """
-    Farm (origem) → categorias com saldo > 0
-    Target farm (destino) → não filtra categoria (já é a mesma)
-    """
     hx_categoria_endpoint = 'categorias-saida'
 
     target_farm = forms.ModelChoiceField(
@@ -169,20 +223,14 @@ class ManejoForm(MovementBaseForm):
 
     def clean(self):
         cleaned_data = super().clean()
-        farm        = cleaned_data.get('farm')
+        farm = cleaned_data.get('farm')
         target_farm = cleaned_data.get('target_farm')
         if farm and target_farm and farm == target_farm:
             raise ValidationError('A fazenda de origem e destino não podem ser iguais.')
         return cleaned_data
 
 
-# ── Mudança de Categoria (saída + entrada, fazenda igual) ─────────────────────
-
 class MudancaCategoriaForm(MovementBaseForm):
-    """
-    animal_category (origem) → categorias com saldo > 0
-    target_category (destino) → todas MENOS a origem
-    """
     hx_categoria_endpoint = 'categorias-saida'
 
     target_category = forms.ModelChoiceField(
@@ -196,7 +244,6 @@ class MudancaCategoriaForm(MovementBaseForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
         self.fields['animal_category'].widget.attrs.update({
             'hx-get':     '/htmx/categorias-entrada/',
             'hx-target':  '#id_target_category',
@@ -205,39 +252,29 @@ class MudancaCategoriaForm(MovementBaseForm):
         })
 
     def clean(self):
-        cleaned_data    = super().clean()
-        category        = cleaned_data.get('animal_category')
+        cleaned_data = super().clean()
+        category = cleaned_data.get('animal_category')
         target_category = cleaned_data.get('target_category')
         if category and target_category and category == target_category:
             raise ValidationError('A categoria de origem e destino não podem ser iguais.')
         return cleaned_data
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# DESMAME — Formulário específico com campos separados para machos e fêmeas
-# ══════════════════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════════
+# DESMAME
+# ═══════════════════════════════════════════════════════════════════════════
 
 class DesmameForm(forms.Form):
     """
-    Formulário de Desmame.
-
-    NÃO herda de MovementBaseForm porque tem UX completamente diferente:
-    - Não tem seletor de categoria (categorias são fixas por regra de negócio)
-    - Tem dois campos de quantidade (machos e fêmeas)
-    - HTMX busca saldos de B. Macho e B. Fêmea automaticamente ao selecionar fazenda
-
-    Fluxo HTMX:
-    1. Usuário seleciona fazenda
-    2. HTMX dispara GET para /htmx/saldo-desmame/?farm_id=XXX
-    3. Resposta atualiza badges de saldo para B. Macho e B. Fêmea
+    Desmame com campos separados para machos e fêmeas.
+    Não herda de MovementBaseForm (UX completamente diferente).
     """
 
     farm = forms.ModelChoiceField(
         queryset=Farm.objects.filter(is_active=True),
         label='Fazenda',
         widget=forms.Select(attrs={
-            'class': _SELECT_CSS,
-            # Ao mudar a fazenda, atualiza os saldos disponíveis
+            'class':      _SELECT_CSS,
             'hx-get':     '/htmx/saldo-desmame/',
             'hx-target':  '#desmame-saldos',
             'hx-trigger': 'change',
@@ -246,62 +283,47 @@ class DesmameForm(forms.Form):
     )
 
     quantity_males = forms.IntegerField(
-        min_value=0,
-        initial=0,
-        required=False,
+        min_value=0, initial=0, required=False,
         label='B. Macho → Bois - 2A.',
         widget=forms.NumberInput(attrs={
-            'class': _INPUT_CSS,
-            'placeholder': '0',
-            'id': 'id_quantity_males',
-            'min': '0',
+            'class': _INPUT_CSS, 'placeholder': '0',
+            'id': 'id_quantity_males', 'min': '0',
         }),
         help_text='Quantidade de bezerros machos a desmamar'
     )
 
     quantity_females = forms.IntegerField(
-        min_value=0,
-        initial=0,
-        required=False,
+        min_value=0, initial=0, required=False,
         label='B. Fêmea → Nov. - 2A.',
         widget=forms.NumberInput(attrs={
-            'class': _INPUT_CSS,
-            'placeholder': '0',
-            'id': 'id_quantity_females',
-            'min': '0',
+            'class': _INPUT_CSS, 'placeholder': '0',
+            'id': 'id_quantity_females', 'min': '0',
         }),
         help_text='Quantidade de bezerras fêmeas a desmamar'
     )
 
     timestamp = forms.DateTimeField(
         label='Data/Hora',
-        widget=forms.DateTimeInput(attrs={
-            'class': _INPUT_CSS,
-            'type':  'datetime-local',
-        }),
+        widget=forms.DateTimeInput(attrs={'class': _INPUT_CSS, 'type': 'datetime-local'}),
         required=False,
         help_text='Deixe em branco para usar a data/hora atual'
     )
 
     observacao = forms.CharField(
-        label='Observação',
-        required=False,
+        label='Observação', required=False,
         widget=forms.Textarea(attrs={
-            'class':       _INPUT_CSS,
-            'rows':        3,
+            'class': _INPUT_CSS, 'rows': 3,
             'placeholder': 'Observações adicionais (opcional)',
         })
     )
 
     def clean(self):
         cleaned_data = super().clean()
-        qty_males = cleaned_data.get('quantity_males', 0) or 0
+        qty_males   = cleaned_data.get('quantity_males', 0) or 0
         qty_females = cleaned_data.get('quantity_females', 0) or 0
-
         if qty_males == 0 and qty_females == 0:
             raise ValidationError(
                 'Informe a quantidade de pelo menos uma categoria '
                 '(B. Macho ou B. Fêmea) para realizar o desmame.'
             )
-
         return cleaned_data

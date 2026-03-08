@@ -136,28 +136,40 @@
                 </select>
             </div>
             {% endif %}
-
-            {# Peso #}
             <div>
                 <label for="id_peso" class="block text-sm font-semibold text-gray-700 mb-1.5">
                     Peso (kg)
                 </label>
-                <input type="number" id="id_peso" name="peso" step="0.01" min="0"
+                <input type="text"
+                       id="id_peso"
+                       name="peso"
+                       data-mask="decimal"
+                       inputmode="decimal"
+                       autocomplete="off"
                        value="{{ meta.peso|default:'' }}"
+                       placeholder="Ex: 1.250,00"
                        class="block w-full border border-gray-300 rounded-xl py-2.5 px-3 text-sm
                               focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <p class="mt-1 text-xs text-gray-400">Formato: 1.250,80 — opcional</p>
             </div>
 
-            {# Preço Total — Venda #}
+            {# ── PREÇO TOTAL — Venda — mesmo padrão do peso ── #}
             {% if shows_preco %}
             <div>
                 <label for="id_preco_total" class="block text-sm font-semibold text-gray-700 mb-1.5">
                     Preço Total (R$)
                 </label>
-                <input type="number" id="id_preco_total" name="preco_total" step="0.01" min="0"
+                <input type="text"
+                       id="id_preco_total"
+                       name="preco_total"
+                       data-mask="decimal"
+                       inputmode="decimal"
+                       autocomplete="off"
                        value="{{ meta.preco_total|default:'' }}"
+                       placeholder="Ex: 15.000,00"
                        class="block w-full border border-gray-300 rounded-xl py-2.5 px-3 text-sm
                               focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <p class="mt-1 text-xs text-gray-400">Formato: 15.000,00 — opcional</p>
             </div>
             {% endif %}
 
@@ -191,8 +203,6 @@
                       hover:border-gray-400 transition-all">
                 Cancelar
             </a>
-
-            {# Info de auditoria #}
             <span class="ml-auto text-xs text-gray-400">
                 Criado por {{ movement.created_by.username }}
                 em {{ movement.timestamp|date:"d/m/Y \à\s H:i" }}

@@ -48,7 +48,7 @@
                     <label class="block text-xs font-medium text-gray-700 mb-1">Ano</label>
                     <select name="year" class="w-full rounded-md border-gray-300 shadow-sm text-sm focus:border-green-500 focus:ring-green-500">
                         {% for y in years %}
-                        <option value="{{ y|stringformat:'d' }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+                        <option value="{{ y|stringformat:'d' }}" {% if y == selected_year %}selected{% endif %}>{{ y|year_fmt }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -286,7 +286,8 @@
                         <tr class="hover:bg-gray-50">
                             <td class="border px-2 py-1">{{ doacao.categoria }}</td>
                             <td class="border px-2 py-1">{{ doacao.cliente }}</td>
-                            <td class="border px-2 py-1 text-center">{{ doacao.peso }}</td>
+                            {# ── CORRIGIDO: peso_fmt formata "1250.80" → "1.250,80" ── #}
+                            <td class="border px-2 py-1 text-center">{{ doacao.peso|peso_fmt|default:"—" }}</td>
                             <td class="border px-2 py-1 text-center font-semibold text-blue-600">{{ doacao.quantidade }}</td>
                         </tr>
                         {% empty %}
@@ -324,7 +325,6 @@
         </div>
     </div>
 
-    {# Corrigido: condição correta para mostrar controle de vendas #}
     {% if report.detalhamento.vendas %}
     <div class="bg-white shadow sm:rounded-lg print:shadow-none">
         <div class="px-4 py-3 sm:px-6">
@@ -345,7 +345,8 @@
                         <td class="border px-2 py-1 whitespace-nowrap">{{ venda.data|date:"d/m/Y" }}</td>
                         <td class="border px-2 py-1">{{ venda.categoria }}</td>
                         <td class="border px-2 py-1">{{ venda.cliente }}</td>
-                        <td class="border px-2 py-1 text-center">{{ venda.peso }}</td>
+                        {# ── CORRIGIDO: peso_fmt formata "1250.80" → "1.250,80" ── #}
+                        <td class="border px-2 py-1 text-center">{{ venda.peso|peso_fmt|default:"—" }}</td>
                         <td class="border px-2 py-1 text-center font-semibold text-green-600">{{ venda.quantidade }}</td>
                     </tr>
                     {% empty %}

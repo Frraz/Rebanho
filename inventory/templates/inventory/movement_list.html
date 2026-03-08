@@ -142,7 +142,7 @@
                     <select name="ano" class="block w-full border border-gray-300 rounded-xl py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
                         <option value="">Todos os anos</option>
                         {% for ano in anos %}
-                        <option value="{{ ano }}" {% if ano|stringformat:"s" == ano_filtro %}selected{% endif %}>{{ ano }}</option>
+                        <option value="{{ ano }}" {% if ano|stringformat:"s" == ano_filtro %}selected{% endif %}>{{ ano|year_fmt }}</option>
                         {% endfor %}
                     </select>
                 </div>
