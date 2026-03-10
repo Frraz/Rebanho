@@ -5,13 +5,42 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{% block title %}Relatório{% endblock %}</title>
 <style>
+  /* ══════════════════════════════════════════════════════════════
+     PALETA CENTRALIZADA — altere aqui para refletir em tudo
+  ══════════════════════════════════════════════════════════════ */
+  :root {
+    /* Verde corporativo — sóbrio, imprime bem */
+    --green-dark:   #1a5c38;   /* textos verdes fortes */
+    --green-mid:    #2d7a50;   /* badges, bordas verdes */
+    --green-light:  #eaf4ee;   /* fundos verdes suaves */
+    --green-total:  #d4ebdc;   /* fundo célula total verde */
+
+    /* Vermelho controlado — não alarme */
+    --red-dark:     #9b1c1c;   /* textos vermelhos */
+    --red-light:    #fdf1f1;   /* fundos vermelhos suaves */
+
+    /* Azul corporativo */
+    --blue-dark:    #1e3a6e;   /* textos azuis */
+    --blue-light:   #eef2fa;   /* fundos azuis suaves */
+
+    /* Neutros */
+    --border:       #c5cad3;   /* bordas gerais */
+    --border-strong:#6b7280;   /* bordas de cabeçalho */
+    --header-bg:    #f0f2f5;   /* fundo cabeçalho tabela */
+    --row-alt:      #f7f8fa;   /* linha zebrada */
+    --text-main:    #1a1a1a;
+    --text-muted:   #6b7280;
+    --gray-light:   #f4f5f7;   /* fundo seção cinza */
+    --gray-border:  #9ca3af;
+  }
+
   /* ── Redefinição e base ──────────────────────────────────────── */
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   html, body {
     font-family: Arial, Helvetica, sans-serif;
     font-size: 8pt;
-    color: #1a1a1a;
+    color: var(--text-main);
     background: white;
     line-height: 1.4;
     overflow: hidden;
@@ -23,21 +52,19 @@
     margin: 0.7cm 1cm;
   }
 
-  #page-wrapper {
-    width: 100%;
-  }
+  #page-wrapper { width: 100%; }
 
   /* ── Cabeçalho do relatório ──────────────────────────────────── */
   .report-header {
     text-align: center;
     margin-bottom: 6px;
     padding-bottom: 5px;
-    border-bottom: 2px solid #166534;
+    border-bottom: 2px solid var(--green-dark);
   }
   .report-title {
     font-size: 12pt;
     font-weight: bold;
-    color: #166534;
+    color: var(--green-dark);
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
@@ -48,14 +75,13 @@
   }
   .report-meta {
     font-size: 7pt;
-    color: #6b7280;
+    color: var(--text-muted);
     margin-top: 1px;
   }
 
   /* ── Seções ──────────────────────────────────────────────────── */
-  .section {
-    margin-bottom: 6px;
-  }
+  .section { margin-bottom: 6px; }
+
   .section-title {
     font-size: 7pt;
     font-weight: bold;
@@ -65,24 +91,18 @@
     margin-bottom: 3px;
     border-radius: 2px;
   }
-  /* Variantes de cor para os títulos de seção */
-  .section-title.red   { color: #dc2626; background: #fef2f2; border-left: 3px solid #dc2626; }
-  .section-title.blue  { color: #1d4ed8; background: #eff6ff; border-left: 3px solid #1d4ed8; }
-  .section-title.green { color: #16a34a; background: #f0fdf4; border-left: 3px solid #16a34a; }
-  .section-title.gray  { color: #374151; background: #f9fafb; border-left: 3px solid #9ca3af; }
+  .section-title.red   { color: var(--red-dark);   background: var(--red-light);   border-left: 3px solid var(--red-dark);   }
+  .section-title.blue  { color: var(--blue-dark);  background: var(--blue-light);  border-left: 3px solid var(--blue-dark);  }
+  .section-title.green { color: var(--green-dark); background: var(--green-light); border-left: 3px solid var(--green-dark); }
+  .section-title.gray  { color: #374151;            background: var(--gray-light);  border-left: 3px solid var(--gray-border);}
 
   /* ── Tabelas ─────────────────────────────────────────────────── */
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 7.5pt;
-  }
-  th, td {
-    border: 1px solid #d1d5db;
-    padding: 4px 4px;
-  }
+  table { width: 100%; border-collapse: collapse; font-size: 7.5pt; }
+
+  th, td { border: 1px solid var(--border); padding: 4px 4px; }
+
   th {
-    background: #f3f4f6;
+    background: var(--header-bg);
     font-weight: bold;
     text-align: center;
     font-size: 6.5pt;
@@ -92,34 +112,34 @@
   td { text-align: center; }
   td.text-left { text-align: left; }
 
-  /* ── Cores dos grupos de colunas da tabela principal ─────────── */
-  .th-ocorrencias { background: #fef2f2 !important; color: #dc2626 !important; }
-  .th-movimentos  { background: #f0fdf4 !important; color: #16a34a !important; }
-  .th-consolidado { background: #eff6ff !important; color: #1d4ed8 !important; }
+  /* ── Grupos de colunas da tabela principal ───────────────────── */
+  .th-ocorrencias { background: var(--red-light)   !important; color: var(--red-dark)   !important; border-bottom: 2px solid var(--red-dark)   !important; }
+  .th-movimentos  { background: var(--green-light) !important; color: var(--green-dark) !important; border-bottom: 2px solid var(--green-dark) !important; }
+  .th-consolidado { background: var(--blue-light)  !important; color: var(--blue-dark)  !important; border-bottom: 2px solid var(--blue-dark)  !important; }
 
-  /* ── Cores semânticas dos valores ────────────────────────────── */
-  .val-morte   { color: #dc2626; font-weight: 600; }
-  .val-venda   { color: #d97706; font-weight: 600; }
-  .val-abate   { color: #6b7280; font-weight: 600; }
-  .val-nasc    { color: #16a34a; font-weight: 600; }
-  .val-entrada { color: #16a34a; font-weight: bold; background: #f0fdf4; }
-  .val-saida   { color: #dc2626; font-weight: bold; background: #fef2f2; }
-  .val-zero    { color: #d1d5db; }
+  /* ── Valores semânticos ──────────────────────────────────────── */
+  .val-morte   { color: var(--red-dark);   font-weight: 600; }
+  .val-venda   { color: var(--red-dark);   font-weight: 600; }
+  .val-abate   { color: var(--red-dark);   font-weight: 600; }
+  .val-nasc    { color: var(--green-dark); font-weight: 600; }
+  .val-entrada { color: var(--green-dark); font-weight: bold; background: var(--green-light); }
+  .val-saida   { color: var(--red-dark);   font-weight: bold; background: var(--red-light);   }
+  .val-zero    { color: #c5cad3; }
 
   /* ── Linha de totais ─────────────────────────────────────────── */
   tr.total-row td {
-    background: #f3f4f6;
+    background: var(--header-bg);
     font-weight: bold;
-    border-top: 2px solid #9ca3af;
+    border-top: 2px solid var(--border-strong);
     padding: 5px 4px;
   }
 
-  /* ── Tabelas de estoque (inicial e final) ────────────────────── */
-  .estoque-table th { background: #f0fdf4; color: #166534; }
-  .estoque-table td { font-weight: bold; font-size: 8.5pt; padding: 5px 4px; }
-  .estoque-total    { background: #dcfce7 !important; color: #166534; font-size: 9pt; }
+  /* ── Tabelas de estoque ──────────────────────────────────────── */
+  .estoque-table th  { background: var(--green-light); color: var(--green-dark); }
+  .estoque-table td  { font-weight: bold; font-size: 8.5pt; padding: 5px 4px; }
+  .estoque-total     { background: var(--green-total) !important; color: var(--green-dark); font-size: 9pt; }
 
-  /* ── Grade de detalhamentos — linha superior (3 colunas) ─────── */
+  /* ── Grade de detalhamentos ──────────────────────────────────── */
   .details-grid {
     display: table;
     width: 100%;
@@ -136,38 +156,39 @@
   .details-col table th { font-size: 6.5pt; }
   .details-col table td { font-size: 7pt; }
 
-  /* ── Tabela de vendas — linha inferior (largura total) ───────── */
-  .vendas-table {
-    width: 100%;
-    margin-top: 3px;
-  }
+  /* ── Tabela de vendas ────────────────────────────────────────── */
+  .vendas-table { width: 100%; margin-top: 3px; }
   .vendas-table th { font-size: 6.5pt; }
   .vendas-table td { font-size: 7pt; }
 
-  /* ── Rodapé do documento ─────────────────────────────────────── */
+  /* ── Zebra nas linhas de dados ───────────────────────────────── */
+  tbody tr:nth-child(even) td { background-color: var(--row-alt); }
+  tr.total-row td             { background: var(--header-bg) !important; }
+
+  /* ── Rodapé ──────────────────────────────────────────────────── */
   .report-footer {
     margin-top: 5px;
     padding-top: 3px;
-    border-top: 1px solid #e5e7eb;
+    border-top: 1px solid var(--border);
     font-size: 6.5pt;
-    color: #9ca3af;
+    color: var(--text-muted);
     display: table;
     width: 100%;
   }
   .footer-left  { display: table-cell; text-align: left; }
   .footer-right { display: table-cell; text-align: right; }
 
-  /* ── Quebra de página manual ─────────────────────────────────── */
+  /* ── Quebra de página ────────────────────────────────────────── */
   .page-break { page-break-before: always; }
 
-  /* ── Etiqueta de fazenda (usada no Fazendas Reunidas) ─────── */
+  /* ── Badge de fazenda ────────────────────────────────────────── */
   .farm-badge {
-    background: #f0fdf4;
-    border: 1px solid #bbf7d0;
+    background: var(--green-light);
+    border: 1px solid var(--green-mid);
     border-radius: 3px;
     padding: 1px 5px;
     font-size: 7pt;
-    color: #166534;
+    color: var(--green-dark);
     display: inline-block;
     margin: 1px;
   }

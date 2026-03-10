@@ -25,23 +25,23 @@
 
 {# ── Estoque Inicial ───────────────────────────────────────────────────────── #}
 <div class="section">
-  <div class="section-title red">
+  <div class="section-title red" style="font-size:9pt; padding:5px 6px; margin-bottom:4px;">
     {% if selected_month == 0 %}Estoque Inicial — Ano Anterior
     {% else %}Estoque Inicial — Mês Anterior{% endif %}
   </div>
-  <table class="estoque-table">
+  <table class="estoque-table" style="font-size:9.5pt;">
     <thead>
       <tr>
-        {% for cat in report.categories %}<th>{{ cat }}</th>{% endfor %}
-        <th>Total</th>
+        {% for cat in report.categories %}<th style="padding:6px 5px; font-size:9pt;">{{ cat }}</th>{% endfor %}
+        <th style="padding:6px 5px; font-size:9pt;">Total</th>
       </tr>
     </thead>
     <tbody>
       <tr>
         {% for cat in report.categories %}
-        <td>{{ report.estoque_inicial|get_item:cat }}</td>
+        <td style="padding:8px 5px; font-size:9.5pt;">{{ report.estoque_inicial|get_item:cat }}</td>
         {% endfor %}
-        <td class="estoque-total">{{ report.estoque_inicial|sum_values }}</td>
+        <td class="estoque-total" style="padding:8px 5px; font-size:9.5pt;">{{ report.estoque_inicial|sum_values }}</td>
       </tr>
     </tbody>
   </table>
@@ -49,68 +49,68 @@
 
 {# ── Tabela Principal ─────────────────────────────────────────────────────── #}
 <div class="section">
-  <div class="section-title blue">
+  <div class="section-title blue" style="font-size:9pt; padding:5px 6px; margin-bottom:4px;">
     {% if selected_month == 0 %}{{ selected_year|year_fmt }}
     {% else %}{{ report.period.start|date:"F/Y"|upper }}{% endif %}
   </div>
-  <table>
+  <table style="font-size:9pt;">
     <thead>
       <tr>
-        <th rowspan="2" class="text-left">Animais</th>
-        <th colspan="3" class="th-ocorrencias">Ocorrências</th>
-        <th colspan="8" class="th-movimentos">Movimentações</th>
-        <th colspan="2" class="th-consolidado">Consolidado</th>
+        <th rowspan="2" class="text-left" style="padding:6px 6px; font-size:9pt;">Animais</th>
+        <th colspan="3" class="th-ocorrencias" style="padding:6px 5px; font-size:9pt;">Ocorrências</th>
+        <th colspan="8" class="th-movimentos" style="padding:6px 5px; font-size:9pt;">Movimentações</th>
+        <th colspan="2" class="th-consolidado" style="padding:6px 5px; font-size:9pt;">Consolidado</th>
       </tr>
       <tr>
-        <th class="th-ocorrencias">Morte</th>
-        <th class="th-ocorrencias">Venda</th>
-        <th class="th-ocorrencias">Abate</th>
-        <th class="th-movimentos">Nasc.</th>
-        <th class="th-movimentos">Desm.</th>
-        <th class="th-movimentos">Man.(+)</th>
-        <th class="th-movimentos">Man.(−)</th>
-        <th class="th-movimentos">M.Cat.(+)</th>
-        <th class="th-movimentos">M.Cat.(−)</th>
-        <th class="th-movimentos">Compra</th>
-        <th class="th-movimentos">Doação</th>
-        <th class="th-consolidado">Entrada</th>
-        <th class="th-consolidado">Saída</th>
+        <th class="th-ocorrencias" style="padding:5px 4px; font-size:8.5pt;">Morte</th>
+        <th class="th-ocorrencias" style="padding:5px 4px; font-size:8.5pt;">Venda</th>
+        <th class="th-ocorrencias" style="padding:5px 4px; font-size:8.5pt;">Abate</th>
+        <th class="th-movimentos"  style="padding:5px 4px; font-size:8.5pt;">Nasc.</th>
+        <th class="th-movimentos"  style="padding:5px 4px; font-size:8.5pt;">Desm.</th>
+        <th class="th-movimentos"  style="padding:5px 4px; font-size:8.5pt;">Man.(+)</th>
+        <th class="th-movimentos"  style="padding:5px 4px; font-size:8.5pt;">Man.(−)</th>
+        <th class="th-movimentos"  style="padding:5px 4px; font-size:8.5pt;">M.Cat.(+)</th>
+        <th class="th-movimentos"  style="padding:5px 4px; font-size:8.5pt;">M.Cat.(−)</th>
+        <th class="th-movimentos"  style="padding:5px 4px; font-size:8.5pt;">Compra</th>
+        <th class="th-movimentos"  style="padding:5px 4px; font-size:8.5pt;">Doação</th>
+        <th class="th-consolidado" style="padding:5px 4px; font-size:8.5pt;">Entrada</th>
+        <th class="th-consolidado" style="padding:5px 4px; font-size:8.5pt;">Saída</th>
       </tr>
     </thead>
     <tbody>
       {% for cat in report.categories %}
       <tr>
-        <td class="text-left">{{ cat }}</td>
-        {% with v=report.ocorrencias.morte|get_item:cat %}<td class="{% if v %}val-morte{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
-        {% with v=report.ocorrencias.venda|get_item:cat %}<td class="{% if v %}val-venda{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
-        {% with v=report.ocorrencias.abate|get_item:cat %}<td class="{% if v %}val-abate{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
-        {% with v=report.entradas.nascimento|get_item:cat %}<td class="{% if v %}val-nasc{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
-        {% with v=report.entradas.desmame|get_item:cat %}<td class="{% if v %}val-nasc{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
-        {% with v=report.entradas.manejo_in|get_item:cat %}<td class="{% if v %}val-nasc{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
-        {% with v=report.entradas.manejo_out|get_item:cat %}<td class="{% if v %}val-morte{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
-        {% with v=report.entradas.mudanca_in|get_item:cat %}<td class="{% if v %}val-nasc{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
-        {% with v=report.entradas.mudanca_out|get_item:cat %}<td class="{% if v %}val-venda{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
-        {% with v=report.entradas.compra|get_item:cat %}<td class="{% if v %}val-nasc{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
-        {% with v=report.ocorrencias.doacao|get_item:cat %}<td class="{% if v %}val-abate{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
-        {% with v=report.consolidado.entradas|get_item:cat %}<td class="{% if v %}val-entrada{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
-        {% with v=report.consolidado.saidas|get_item:cat %}<td class="{% if v %}val-saida{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
+        <td class="text-left" style="padding:7px 6px; font-size:9pt;">{{ cat }}</td>
+        {% with v=report.ocorrencias.morte|get_item:cat    %}<td style="padding:7px 4px; font-size:9pt;" class="{% if v %}val-morte{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
+        {% with v=report.ocorrencias.venda|get_item:cat    %}<td style="padding:7px 4px; font-size:9pt;" class="{% if v %}val-venda{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
+        {% with v=report.ocorrencias.abate|get_item:cat    %}<td style="padding:7px 4px; font-size:9pt;" class="{% if v %}val-abate{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
+        {% with v=report.entradas.nascimento|get_item:cat  %}<td style="padding:7px 4px; font-size:9pt;" class="{% if v %}val-nasc{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
+        {% with v=report.entradas.desmame|get_item:cat     %}<td style="padding:7px 4px; font-size:9pt;" class="{% if v %}val-nasc{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
+        {% with v=report.entradas.manejo_in|get_item:cat   %}<td style="padding:7px 4px; font-size:9pt;" class="{% if v %}val-nasc{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
+        {% with v=report.entradas.manejo_out|get_item:cat  %}<td style="padding:7px 4px; font-size:9pt;" class="{% if v %}val-morte{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
+        {% with v=report.entradas.mudanca_in|get_item:cat  %}<td style="padding:7px 4px; font-size:9pt;" class="{% if v %}val-nasc{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
+        {% with v=report.entradas.mudanca_out|get_item:cat %}<td style="padding:7px 4px; font-size:9pt;" class="{% if v %}val-venda{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
+        {% with v=report.entradas.compra|get_item:cat      %}<td style="padding:7px 4px; font-size:9pt;" class="{% if v %}val-nasc{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
+        {% with v=report.ocorrencias.doacao|get_item:cat   %}<td style="padding:7px 4px; font-size:9pt;" class="{% if v %}val-abate{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
+        {% with v=report.consolidado.entradas|get_item:cat %}<td style="padding:7px 4px; font-size:9pt;" class="{% if v %}val-entrada{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
+        {% with v=report.consolidado.saidas|get_item:cat   %}<td style="padding:7px 4px; font-size:9pt;" class="{% if v %}val-saida{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
       </tr>
       {% endfor %}
-      <tr class="total-row">
-        <td class="text-left">TOTAL</td>
-        <td class="val-morte">{{ report.ocorrencias.morte|sum_values }}</td>
-        <td class="val-venda">{{ report.ocorrencias.venda|sum_values }}</td>
-        <td class="val-abate">{{ report.ocorrencias.abate|sum_values }}</td>
-        <td class="val-nasc">{{ report.entradas.nascimento|sum_values }}</td>
-        <td class="val-nasc">{{ report.entradas.desmame|sum_values }}</td>
-        <td class="val-nasc">{{ report.entradas.manejo_in|sum_values }}</td>
-        <td class="val-morte">{{ report.entradas.manejo_out|sum_values }}</td>
-        <td class="val-nasc">{{ report.entradas.mudanca_in|sum_values }}</td>
-        <td class="val-venda">{{ report.entradas.mudanca_out|sum_values }}</td>
-        <td class="val-nasc">{{ report.entradas.compra|sum_values }}</td>
-        <td class="val-abate">{{ report.ocorrencias.doacao|sum_values }}</td>
-        <td class="val-entrada">{{ report.consolidado.entradas|sum_values }}</td>
-        <td class="val-saida">{{ report.consolidado.saidas|sum_values }}</td>
+      <tr class="total-row" style="font-size:9.5pt;">
+        <td class="text-left" style="padding:7px 6px;">TOTAL</td>
+        <td class="val-morte"  style="padding:7px 4px;">{{ report.ocorrencias.morte|sum_values }}</td>
+        <td class="val-venda"  style="padding:7px 4px;">{{ report.ocorrencias.venda|sum_values }}</td>
+        <td class="val-abate"  style="padding:7px 4px;">{{ report.ocorrencias.abate|sum_values }}</td>
+        <td class="val-nasc"   style="padding:7px 4px;">{{ report.entradas.nascimento|sum_values }}</td>
+        <td class="val-nasc"   style="padding:7px 4px;">{{ report.entradas.desmame|sum_values }}</td>
+        <td class="val-nasc"   style="padding:7px 4px;">{{ report.entradas.manejo_in|sum_values }}</td>
+        <td class="val-morte"  style="padding:7px 4px;">{{ report.entradas.manejo_out|sum_values }}</td>
+        <td class="val-nasc"   style="padding:7px 4px;">{{ report.entradas.mudanca_in|sum_values }}</td>
+        <td class="val-venda"  style="padding:7px 4px;">{{ report.entradas.mudanca_out|sum_values }}</td>
+        <td class="val-nasc"   style="padding:7px 4px;">{{ report.entradas.compra|sum_values }}</td>
+        <td class="val-abate"  style="padding:7px 4px;">{{ report.ocorrencias.doacao|sum_values }}</td>
+        <td class="val-entrada" style="padding:7px 4px;">{{ report.consolidado.entradas|sum_values }}</td>
+        <td class="val-saida"  style="padding:7px 4px;">{{ report.consolidado.saidas|sum_values }}</td>
       </tr>
     </tbody>
   </table>
@@ -118,54 +118,54 @@
 
 {# ── Estoque Final ─────────────────────────────────────────────────────────── #}
 <div class="section">
-  <div class="section-title green">
+  <div class="section-title green" style="font-size:9pt; padding:5px 6px; margin-bottom:4px;">
     {% if selected_month == 0 %}Estoque Final do Ano
     {% else %}Estoque Final do Mês{% endif %}
   </div>
-  <table class="estoque-table">
+  <table class="estoque-table" style="font-size:9.5pt;">
     <thead>
       <tr>
-        {% for cat in report.categories %}<th>{{ cat }}</th>{% endfor %}
-        <th>Total</th>
+        {% for cat in report.categories %}<th style="padding:6px 5px; font-size:9pt;">{{ cat }}</th>{% endfor %}
+        <th style="padding:6px 5px; font-size:9pt;">Total</th>
       </tr>
     </thead>
     <tbody>
       <tr>
         {% for cat in report.categories %}
-        <td class="val-nasc">{{ report.estoque_final|get_item:cat }}</td>
+        <td class="val-nasc" style="padding:8px 5px; font-size:9.5pt;">{{ report.estoque_final|get_item:cat }}</td>
         {% endfor %}
-        <td class="estoque-total">{{ report.estoque_final|sum_values }}</td>
+        <td class="estoque-total" style="padding:8px 5px; font-size:9.5pt;">{{ report.estoque_final|sum_values }}</td>
       </tr>
     </tbody>
   </table>
 </div>
 
-{# ── Detalhamentos ─────────────────────────────────────────────────────────── #}
-<div class="section">
-  <div class="section-title gray">Detalhamentos</div>
+
+<div class="section" style="page-break-before: always;">
+  <div class="section-title gray" style="font-size:9pt; padding:5px 6px; margin-bottom:6px;">Detalhamentos</div>
 
   <div class="details-grid">
 
     {# Coluna 1 — Mortes #}
     <div class="details-col">
-      <table>
+      <table style="font-size:9.5pt;">
         <thead>
-          <tr><th colspan="3">OBS: Causa das Mortes dos Animais</th></tr>
+          <tr><th colspan="3" style="padding:6px 6px; font-size:9.5pt;">OBS: Causa das Mortes dos Animais</th></tr>
           <tr>
-            <th class="text-left">Animal</th>
-            <th class="text-left">Motivo</th>
-            <th>Qtd</th>
+            <th class="text-left" style="padding:5px 5px; font-size:9pt;">Animal</th>
+            <th class="text-left" style="padding:5px 5px; font-size:9pt;">Motivo</th>
+            <th style="padding:5px 5px; font-size:9pt;">Qtd</th>
           </tr>
         </thead>
         <tbody>
           {% for m in report.detalhamento.mortes %}
           <tr>
-            <td class="text-left">{{ m.categoria }}</td>
-            <td class="text-left">{{ m.motivo }}</td>
-            <td class="val-morte">{{ m.quantidade }}</td>
+            <td class="text-left" style="padding:7px 5px; font-size:9.5pt;">{{ m.categoria }}</td>
+            <td class="text-left" style="padding:7px 5px; font-size:9.5pt;">{{ m.motivo }}</td>
+            <td class="val-morte"  style="padding:7px 5px; font-size:9.5pt;">{{ m.quantidade }}</td>
           </tr>
           {% empty %}
-          <tr><td colspan="3" class="val-zero">Nenhuma morte registrada</td></tr>
+          <tr><td colspan="3" class="val-zero" style="padding:7px 5px; font-size:9.5pt;">Nenhuma morte registrada</td></tr>
           {% endfor %}
         </tbody>
       </table>
@@ -173,27 +173,26 @@
 
     {# Coluna 2 — Doações #}
     <div class="details-col">
-      <table>
+      <table style="font-size:9.5pt;">
         <thead>
-          <tr><th colspan="4">OBS: Doações</th></tr>
+          <tr><th colspan="4" style="padding:6px 6px; font-size:9.5pt;">OBS: Doações</th></tr>
           <tr>
-            <th class="text-left">Animal</th>
-            <th class="text-left">Donatário</th>
-            <th>Peso</th>
-            <th>Qtd</th>
+            <th class="text-left" style="padding:5px 5px; font-size:9pt;">Animal</th>
+            <th class="text-left" style="padding:5px 5px; font-size:9pt;">Donatário</th>
+            <th style="padding:5px 5px; font-size:9pt;">Peso</th>
+            <th style="padding:5px 5px; font-size:9pt;">Qtd</th>
           </tr>
         </thead>
         <tbody>
           {% for d in report.detalhamento.doacoes %}
           <tr>
-            <td class="text-left">{{ d.categoria }}</td>
-            <td class="text-left">{{ d.cliente }}</td>
-            {# ── CORRIGIDO: peso_fmt formata "1250.80" → "1.250,80" ── #}
-            <td>{{ d.peso|peso_fmt|default:"—" }}</td>
-            <td class="val-abate">{{ d.quantidade }}</td>
+            <td class="text-left" style="padding:7px 5px; font-size:9.5pt;">{{ d.categoria }}</td>
+            <td class="text-left" style="padding:7px 5px; font-size:9.5pt;">{{ d.cliente }}</td>
+            <td style="padding:7px 5px; font-size:9.5pt;">{{ d.peso|peso_fmt|default:"—" }}</td>
+            <td class="val-abate" style="padding:7px 5px; font-size:9.5pt;">{{ d.quantidade }}</td>
           </tr>
           {% empty %}
-          <tr><td colspan="4" class="val-zero">Nenhuma doação registrada</td></tr>
+          <tr><td colspan="4" class="val-zero" style="padding:7px 5px; font-size:9.5pt;">Nenhuma doação registrada</td></tr>
           {% endfor %}
         </tbody>
       </table>
@@ -201,24 +200,24 @@
 
     {# Coluna 3 — Abates #}
     <div class="details-col">
-      <table>
+      <table style="font-size:9.5pt;">
         <thead>
-          <tr><th colspan="3">OBS: Abates</th></tr>
+          <tr><th colspan="3" style="padding:6px 6px; font-size:9.5pt;">OBS: Abates</th></tr>
           <tr>
-            <th class="text-left">Animal</th>
-            <th class="text-left">Observação</th>
-            <th>Qtd</th>
+            <th class="text-left" style="padding:5px 5px; font-size:9pt;">Animal</th>
+            <th class="text-left" style="padding:5px 5px; font-size:9pt;">Observação</th>
+            <th style="padding:5px 5px; font-size:9pt;">Qtd</th>
           </tr>
         </thead>
         <tbody>
           {% for a in report.detalhamento.abates %}
           <tr>
-            <td class="text-left">{{ a.categoria }}</td>
-            <td class="text-left">{{ a.observacao|default:"—" }}</td>
-            <td class="val-abate">{{ a.quantidade }}</td>
+            <td class="text-left" style="padding:7px 5px; font-size:9.5pt;">{{ a.categoria }}</td>
+            <td class="text-left" style="padding:7px 5px; font-size:9.5pt;">{{ a.observacao|default:"—" }}</td>
+            <td class="val-abate" style="padding:7px 5px; font-size:9.5pt;">{{ a.quantidade }}</td>
           </tr>
           {% empty %}
-          <tr><td colspan="3" class="val-zero">Nenhum abate registrado</td></tr>
+          <tr><td colspan="3" class="val-zero" style="padding:7px 5px; font-size:9.5pt;">Nenhum abate registrado</td></tr>
           {% endfor %}
         </tbody>
       </table>
@@ -227,29 +226,28 @@
   </div>{# /details-grid #}
 
   {# Vendas — largura total #}
-  <table class="vendas-table">
+  <table class="vendas-table" style="font-size:9.5pt; margin-top:12px;">
     <thead>
-      <tr><th colspan="5">OBS: Controle de Vendas</th></tr>
+      <tr><th colspan="5" style="padding:6px 6px; font-size:9.5pt;">OBS: Controle de Vendas</th></tr>
       <tr>
-        <th>Data</th>
-        <th class="text-left">Animal</th>
-        <th class="text-left">Cliente</th>
-        <th>Peso</th>
-        <th>Qtd</th>
+        <th style="padding:5px 5px; font-size:9pt;">Data</th>
+        <th class="text-left" style="padding:5px 5px; font-size:9pt;">Animal</th>
+        <th class="text-left" style="padding:5px 5px; font-size:9pt;">Cliente</th>
+        <th style="padding:5px 5px; font-size:9pt;">Peso</th>
+        <th style="padding:5px 5px; font-size:9pt;">Qtd</th>
       </tr>
     </thead>
     <tbody>
       {% for v in report.detalhamento.vendas %}
       <tr>
-        <td>{{ v.data|date:"d/m/Y" }}</td>
-        <td class="text-left">{{ v.categoria }}</td>
-        <td class="text-left">{{ v.cliente }}</td>
-        {# ── CORRIGIDO: peso_fmt formata "1250.80" → "1.250,80" ── #}
-        <td>{{ v.peso|peso_fmt|default:"—" }}</td>
-        <td class="val-nasc">{{ v.quantidade }}</td>
+        <td style="padding:7px 5px; font-size:9.5pt;">{{ v.data|date:"d/m/Y" }}</td>
+        <td class="text-left" style="padding:7px 5px; font-size:9.5pt;">{{ v.categoria }}</td>
+        <td class="text-left" style="padding:7px 5px; font-size:9.5pt;">{{ v.cliente }}</td>
+        <td style="padding:7px 5px; font-size:9.5pt;">{{ v.peso|peso_fmt|default:"—" }}</td>
+        <td class="val-nasc" style="padding:7px 5px; font-size:9.5pt;">{{ v.quantidade }}</td>
       </tr>
       {% empty %}
-      <tr><td colspan="5" class="val-zero">Nenhuma venda registrada</td></tr>
+      <tr><td colspan="5" class="val-zero" style="padding:7px 5px; font-size:9.5pt;">Nenhuma venda registrada</td></tr>
       {% endfor %}
     </tbody>
   </table>
