@@ -6,32 +6,34 @@
 <title>{% block title %}Relatório{% endblock %}</title>
 <style>
   /* ══════════════════════════════════════════════════════════════
-     PALETA CENTRALIZADA — altere aqui para refletir em tudo
+     PALETA CORPORATIVA — Azul · Cinza Escuro · Vermelho
   ══════════════════════════════════════════════════════════════ */
   :root {
-    /* Verde corporativo — sóbrio, imprime bem */
-    --green-dark:   #1a5c38;   /* textos verdes fortes */
-    --green-mid:    #2d7a50;   /* badges, bordas verdes */
-    --green-light:  #eaf4ee;   /* fundos verdes suaves */
-    --green-total:  #d4ebdc;   /* fundo célula total verde */
+    /* Azul corporativo vivo — imprime bem, leitura clara */
+    --blue-corp-dark:   #1a4fa3;   /* textos, títulos */
+    --blue-corp-mid:    #2563eb;   /* badges, bordas */
+    --blue-corp-light:  #dbeafe;   /* fundos suaves */
+    --blue-corp-total:  #bfdbfe;   /* fundo célula total */
 
-    /* Vermelho controlado — não alarme */
-    --red-dark:     #9b1c1c;   /* textos vermelhos */
-    --red-light:    #fdf1f1;   /* fundos vermelhos suaves */
+    /* Vermelho controlado */
+    --red-dark:         #b91c1c;   /* textos vermelhos */
+    --red-light:        #fee2e2;   /* fundos vermelhos suaves */
 
-    /* Azul corporativo */
-    --blue-dark:    #1e3a6e;   /* textos azuis */
-    --blue-light:   #eef2fa;   /* fundos azuis suaves */
+    /* Cinza escuro — subtítulos, consolidado */
+    --slate-dark:       #1e293b;
+    --slate-mid:        #475569;
+    --slate-light:      #f1f5f9;
+    --slate-total:      #e2e8f0;
 
     /* Neutros */
-    --border:       #c5cad3;   /* bordas gerais */
-    --border-strong:#6b7280;   /* bordas de cabeçalho */
-    --header-bg:    #f0f2f5;   /* fundo cabeçalho tabela */
-    --row-alt:      #f7f8fa;   /* linha zebrada */
-    --text-main:    #1a1a1a;
-    --text-muted:   #6b7280;
-    --gray-light:   #f4f5f7;   /* fundo seção cinza */
-    --gray-border:  #9ca3af;
+    --border:           #cbd5e1;
+    --border-strong:    #475569;
+    --header-bg:        #f1f5f9;
+    --row-alt:          #f8fafc;
+    --text-main:        #0f172a;
+    --text-muted:       #64748b;
+    --gray-light:       #f1f5f9;
+    --gray-border:      #94a3b8;   /* zeros / valores ausentes */
   }
 
   /* ── Redefinição e base ──────────────────────────────────────── */
@@ -59,18 +61,18 @@
     text-align: center;
     margin-bottom: 6px;
     padding-bottom: 5px;
-    border-bottom: 2px solid var(--green-dark);
+    border-bottom: 2px solid var(--blue-corp-dark);
   }
   .report-title {
     font-size: 12pt;
     font-weight: bold;
-    color: var(--green-dark);
+    color: var(--blue-corp-dark);
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
   .report-subtitle {
     font-size: 9pt;
-    color: #374151;
+    color: var(--slate-mid);
     margin-top: 2px;
   }
   .report-meta {
@@ -91,10 +93,14 @@
     margin-bottom: 3px;
     border-radius: 2px;
   }
-  .section-title.red   { color: var(--red-dark);   background: var(--red-light);   border-left: 3px solid var(--red-dark);   }
-  .section-title.blue  { color: var(--blue-dark);  background: var(--blue-light);  border-left: 3px solid var(--blue-dark);  }
-  .section-title.green { color: var(--green-dark); background: var(--green-light); border-left: 3px solid var(--green-dark); }
-  .section-title.gray  { color: #374151;            background: var(--gray-light);  border-left: 3px solid var(--gray-border);}
+  /* red   → vermelho (ocorrências)                       */
+  /* blue  → azul corporativo (tabela principal)          */
+  /* green → azul corporativo (estoque final, moviment.) */
+  /* gray  → cinza escuro (detalhamentos)                */
+  .section-title.red   { color: var(--red-dark);        background: var(--red-light);        border-left: 3px solid var(--red-dark);       }
+  .section-title.blue  { color: var(--blue-corp-dark);  background: var(--blue-corp-light);  border-left: 3px solid var(--blue-corp-dark); }
+  .section-title.green { color: var(--blue-corp-dark);  background: var(--blue-corp-light);  border-left: 3px solid var(--blue-corp-mid);  }
+  .section-title.gray  { color: var(--slate-dark);      background: var(--slate-light);      border-left: 3px solid var(--slate-mid);      }
 
   /* ── Tabelas ─────────────────────────────────────────────────── */
   table { width: 100%; border-collapse: collapse; font-size: 7.5pt; }
@@ -107,37 +113,56 @@
     text-align: center;
     font-size: 6.5pt;
     text-transform: uppercase;
-    color: #374151;
+    color: var(--slate-dark);
   }
   td { text-align: center; }
   td.text-left { text-align: left; }
 
-  /* ── Grupos de colunas da tabela principal ───────────────────── */
-  .th-ocorrencias { background: var(--red-light)   !important; color: var(--red-dark)   !important; border-bottom: 2px solid var(--red-dark)   !important; }
-  .th-movimentos  { background: var(--green-light) !important; color: var(--green-dark) !important; border-bottom: 2px solid var(--green-dark) !important; }
-  .th-consolidado { background: var(--blue-light)  !important; color: var(--blue-dark)  !important; border-bottom: 2px solid var(--blue-dark)  !important; }
+  /* ── Grupos de colunas ───────────────────────────────────────── */
+  /* Ocorrências → vermelho */
+  .th-ocorrencias {
+    background:    var(--red-light)       !important;
+    color:         var(--red-dark)        !important;
+    border-bottom: 2px solid var(--red-dark) !important;
+  }
+  /* Movimentações → azul corporativo */
+  .th-movimentos {
+    background:    var(--blue-corp-light) !important;
+    color:         var(--blue-corp-dark)  !important;
+    border-bottom: 2px solid var(--blue-corp-dark) !important;
+  }
+  /* Consolidado → cinza escuro */
+  .th-consolidado {
+    background:    var(--slate-light)     !important;
+    color:         var(--slate-dark)      !important;
+    border-bottom: 2px solid var(--slate-mid) !important;
+  }
 
   /* ── Valores semânticos ──────────────────────────────────────── */
-  .val-morte   { color: var(--red-dark);   font-weight: 600; }
-  .val-venda   { color: var(--red-dark);   font-weight: 600; }
-  .val-abate   { color: var(--red-dark);   font-weight: 600; }
-  .val-nasc    { color: var(--green-dark); font-weight: 600; }
-  .val-entrada { color: var(--green-dark); font-weight: bold; background: var(--green-light); }
-  .val-saida   { color: var(--red-dark);   font-weight: bold; background: var(--red-light);   }
-  .val-zero    { color: #c5cad3; }
+  /* Ocorrências — vermelho */
+  .val-morte   { color: var(--red-dark);       font-weight: 600; }
+  .val-venda   { color: var(--red-dark);       font-weight: 600; }
+  .val-abate   { color: var(--red-dark);       font-weight: 600; }
+  /* Movimentações — azul */
+  .val-nasc    { color: var(--blue-corp-dark); font-weight: 600; }
+  /* Consolidado — preto neutro, sem fundo colorido */
+  .val-entrada { color: var(--text-main);      font-weight: bold; }
+  .val-saida   { color: var(--text-main);      font-weight: bold; }
+  /* Zeros / valores ausentes — cinza suave, sem peso visual */
+  .val-zero    { color: var(--gray-border); }
 
   /* ── Linha de totais ─────────────────────────────────────────── */
   tr.total-row td {
-    background: var(--header-bg);
+    background:  var(--header-bg);
     font-weight: bold;
-    border-top: 2px solid var(--border-strong);
-    padding: 5px 4px;
+    border-top:  2px solid var(--border-strong);
+    padding:     5px 4px;
   }
 
   /* ── Tabelas de estoque ──────────────────────────────────────── */
-  .estoque-table th  { background: var(--green-light); color: var(--green-dark); }
-  .estoque-table td  { font-weight: bold; font-size: 8.5pt; padding: 5px 4px; }
-  .estoque-total     { background: var(--green-total) !important; color: var(--green-dark); font-size: 9pt; }
+  .estoque-table th { background: var(--blue-corp-light); color: var(--blue-corp-dark); }
+  .estoque-table td { font-weight: bold; font-size: 8.5pt; padding: 5px 4px; }
+  .estoque-total    { background: var(--blue-corp-total) !important; color: var(--blue-corp-dark); font-size: 9pt; }
 
   /* ── Grade de detalhamentos ──────────────────────────────────── */
   .details-grid {
@@ -153,13 +178,13 @@
     padding-right: 4px;
   }
   .details-col:last-child { padding-right: 0; }
-  .details-col table th { font-size: 6.5pt; }
-  .details-col table td { font-size: 7pt; }
+  .details-col table th   { font-size: 6.5pt; }
+  .details-col table td   { font-size: 7pt; }
 
   /* ── Tabela de vendas ────────────────────────────────────────── */
-  .vendas-table { width: 100%; margin-top: 3px; }
-  .vendas-table th { font-size: 6.5pt; }
-  .vendas-table td { font-size: 7pt; }
+  .vendas-table          { width: 100%; margin-top: 3px; }
+  .vendas-table th       { font-size: 6.5pt; }
+  .vendas-table td       { font-size: 7pt; }
 
   /* ── Zebra nas linhas de dados ───────────────────────────────── */
   tbody tr:nth-child(even) td { background-color: var(--row-alt); }
@@ -167,13 +192,13 @@
 
   /* ── Rodapé ──────────────────────────────────────────────────── */
   .report-footer {
-    margin-top: 5px;
-    padding-top: 3px;
-    border-top: 1px solid var(--border);
-    font-size: 6.5pt;
-    color: var(--text-muted);
-    display: table;
-    width: 100%;
+    margin-top:   5px;
+    padding-top:  3px;
+    border-top:   1px solid var(--border);
+    font-size:    6.5pt;
+    color:        var(--text-muted);
+    display:      table;
+    width:        100%;
   }
   .footer-left  { display: table-cell; text-align: left; }
   .footer-right { display: table-cell; text-align: right; }
@@ -183,14 +208,14 @@
 
   /* ── Badge de fazenda ────────────────────────────────────────── */
   .farm-badge {
-    background: var(--green-light);
-    border: 1px solid var(--green-mid);
+    background:    var(--blue-corp-light);
+    border:        1px solid var(--blue-corp-mid);
     border-radius: 3px;
-    padding: 1px 5px;
-    font-size: 7pt;
-    color: var(--green-dark);
-    display: inline-block;
-    margin: 1px;
+    padding:       1px 5px;
+    font-size:     7pt;
+    color:         var(--blue-corp-dark);
+    display:       inline-block;
+    margin:        1px;
   }
 </style>
 </head>
@@ -202,26 +227,20 @@
 
 <script>
 (function () {
-  var MM   = 96 / 25.4;
+  var MM     = 96 / 25.4;
   var availW = (297 - 20) * MM;
   var availH = (210 - 14) * MM;
-
   var wrapper = document.getElementById('page-wrapper');
-
   wrapper.style.zoom  = '1';
   wrapper.style.width = availW + 'px';
-
   requestAnimationFrame(function () {
     var contentH = wrapper.scrollHeight;
     var contentW = wrapper.scrollWidth;
-
     var zoomX = availW / (contentW || 1);
     var zoomY = availH / (contentH || 1);
     var zoom  = Math.min(zoomX, zoomY);
-
     zoom = Math.min(zoom, 1.55);
     zoom = Math.max(zoom, 0.48);
-
     if (Math.abs(zoom - 1) > 0.01) {
       wrapper.style.width = (availW / zoom) + 'px';
       wrapper.style.zoom  = zoom;
@@ -229,6 +248,5 @@
   });
 })();
 </script>
-
 </body>
 </html>

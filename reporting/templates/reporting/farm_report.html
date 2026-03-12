@@ -36,7 +36,7 @@
             <form method="get" class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
                 <div>
                     <label class="block text-xs font-medium text-gray-600 mb-1">Mês</label>
-                    <select name="month" class="w-full rounded-md border-gray-300 shadow-sm text-sm focus:border-emerald-500 focus:ring-emerald-500">
+                    <select name="month" class="w-full rounded-md border-gray-300 shadow-sm text-sm focus:border-blue-500 focus:ring-blue-500">
                         <option value="0" {% if selected_month == 0 %}selected{% endif %}>Todos os meses</option>
                         {% for num, nome in months %}
                         <option value="{{ num }}" {% if num == selected_month %}selected{% endif %}>{{ nome }}</option>
@@ -45,7 +45,7 @@
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-gray-600 mb-1">Ano</label>
-                    <select name="year" class="w-full rounded-md border-gray-300 shadow-sm text-sm focus:border-emerald-500 focus:ring-emerald-500">
+                    <select name="year" class="w-full rounded-md border-gray-300 shadow-sm text-sm focus:border-blue-500 focus:ring-blue-500">
                         {% for y in years %}
                         <option value="{{ y|stringformat:'d' }}" {% if y == selected_year %}selected{% endif %}>{{ y|year_fmt }}</option>
                         {% endfor %}
@@ -53,7 +53,7 @@
                 </div>
                 <div class="col-span-2 sm:col-span-1 lg:col-span-2">
                     <label class="block text-xs font-medium text-gray-600 mb-1">Fazenda <span class="text-rose-600">*</span></label>
-                    <select name="farm" required class="w-full rounded-md border-gray-300 shadow-sm text-sm focus:border-emerald-500 focus:ring-emerald-500">
+                    <select name="farm" required class="w-full rounded-md border-gray-300 shadow-sm text-sm focus:border-blue-500 focus:ring-blue-500">
                         <option value="">Selecione...</option>
                         {% for farm in farms %}
                         <option value="{{ farm.id }}" {% if farm.id|stringformat:'s' == selected_farm_id %}selected{% endif %}>{{ farm.name }}</option>
@@ -62,7 +62,7 @@
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-gray-600 mb-1">Categoria</label>
-                    <select name="category" class="w-full rounded-md border-gray-300 shadow-sm text-sm focus:border-emerald-500 focus:ring-emerald-500">
+                    <select name="category" class="w-full rounded-md border-gray-300 shadow-sm text-sm focus:border-blue-500 focus:ring-blue-500">
                         <option value="">Todas</option>
                         {% for cat in categories %}
                         <option value="{{ cat.id }}" {% if cat.id|stringformat:'s' == selected_category_id %}selected{% endif %}>{{ cat.name }}</option>
@@ -70,7 +70,7 @@
                     </select>
                 </div>
                 <div class="flex items-end">
-                    <button type="submit" class="w-full px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 transition-colors">
+                    <button type="submit" class="w-full px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-700 hover:bg-blue-800 transition-colors">
                         Gerar
                     </button>
                 </div>
@@ -91,15 +91,15 @@
     <!-- 1. ESTOQUE INICIAL -->
     <div class="bg-white shadow sm:rounded-lg print:shadow-none">
         <div class="px-4 py-3 sm:px-6">
-            <h2 class="text-sm font-bold text-rose-700 text-center mb-2 uppercase tracking-wider">Estoque Inicial</h2>
+            <h2 class="text-sm font-bold text-blue-800 text-center mb-2 uppercase tracking-wider">Estoque Inicial</h2>
             <div class="overflow-x-auto">
                 <table class="min-w-full border border-gray-200 text-sm">
                     <thead>
-                        <tr class="bg-gray-50">
+                        <tr class="bg-blue-50">
                             {% for category in report.categories %}
-                            <th class="border border-gray-200 px-3 py-2 text-center text-xs font-semibold text-gray-600 uppercase">{{ category }}</th>
+                            <th class="border border-gray-200 px-3 py-2 text-center text-xs font-semibold text-blue-700 uppercase">{{ category }}</th>
                             {% endfor %}
-                            <th class="border border-gray-200 px-3 py-2 text-center text-xs font-bold text-emerald-800 bg-emerald-50 uppercase">Total</th>
+                            <th class="border border-gray-200 px-3 py-2 text-center text-xs font-bold text-blue-800 bg-blue-100 uppercase">Total</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -107,7 +107,7 @@
                             {% for category in report.categories %}
                             <td class="border border-gray-200 px-3 py-2 text-center font-semibold text-gray-800">{{ report.estoque_inicial|get_item:category }}</td>
                             {% endfor %}
-                            <td class="border border-gray-200 px-3 py-2 text-center font-bold text-emerald-700 bg-emerald-50">{{ report.estoque_inicial|sum_values }}</td>
+                            <td class="border border-gray-200 px-3 py-2 text-center font-bold text-blue-800 bg-blue-50">{{ report.estoque_inicial|sum_values }}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -128,23 +128,23 @@
                         <tr>
                             <th class="border border-gray-200 px-2 py-1.5 bg-gray-50" rowspan="2">Animais</th>
                             <th class="border border-gray-200 px-2 py-1.5 text-center text-rose-700 font-bold bg-rose-50" colspan="3">Ocorrências</th>
-                            <th class="border border-gray-200 px-2 py-1.5 text-center text-emerald-700 font-bold bg-emerald-50" colspan="8">Movimentações</th>
-                            <th class="border border-gray-200 px-2 py-1.5 text-center text-blue-800 font-bold bg-blue-50" colspan="2">Consolidado</th>
+                            <th class="border border-gray-200 px-2 py-1.5 text-center text-blue-800 font-bold bg-blue-50" colspan="8">Movimentações</th>
+                            <th class="border border-gray-200 px-2 py-1.5 text-center text-gray-700 font-bold bg-gray-100" colspan="2">Consolidado</th>
                         </tr>
                         <tr>
                             <th class="border border-gray-200 px-2 py-1.5 text-center text-rose-600 bg-rose-50">Morte</th>
                             <th class="border border-gray-200 px-2 py-1.5 text-center text-rose-600 bg-rose-50">Venda</th>
                             <th class="border border-gray-200 px-2 py-1.5 text-center text-rose-600 bg-rose-50">Abate</th>
-                            <th class="border border-gray-200 px-2 py-1.5 text-center text-emerald-600 bg-emerald-50">Nasc.</th>
-                            <th class="border border-gray-200 px-2 py-1.5 text-center text-emerald-600 bg-emerald-50">Desm.</th>
-                            <th class="border border-gray-200 px-2 py-1.5 text-center text-emerald-700 bg-emerald-50">Man.(+)</th>
-                            <th class="border border-gray-200 px-2 py-1.5 text-center text-rose-600 bg-emerald-50">Man.(-)</th>
-                            <th class="border border-gray-200 px-2 py-1.5 text-center text-blue-700 bg-emerald-50">M.Cat.(+)</th>
-                            <th class="border border-gray-200 px-2 py-1.5 text-center text-blue-700 bg-emerald-50">M.Cat.(-)</th>
-                            <th class="border border-gray-200 px-2 py-1.5 text-center text-emerald-600 bg-emerald-50">Compra</th>
-                            <th class="border border-gray-200 px-2 py-1.5 text-center text-rose-600 bg-emerald-50">Doação</th>
-                            <th class="border border-gray-200 px-2 py-1.5 text-center text-emerald-700 bg-blue-50">Entrada</th>
-                            <th class="border border-gray-200 px-2 py-1.5 text-center text-rose-700 bg-blue-50">Saída</th>
+                            <th class="border border-gray-200 px-2 py-1.5 text-center text-blue-700 bg-blue-50">Nasc.</th>
+                            <th class="border border-gray-200 px-2 py-1.5 text-center text-blue-700 bg-blue-50">Desm.</th>
+                            <th class="border border-gray-200 px-2 py-1.5 text-center text-blue-700 bg-blue-50">Man.(+)</th>
+                            <th class="border border-gray-200 px-2 py-1.5 text-center text-blue-700 bg-blue-50">Man.(-)</th>
+                            <th class="border border-gray-200 px-2 py-1.5 text-center text-blue-700 bg-blue-50">M.Cat.(+)</th>
+                            <th class="border border-gray-200 px-2 py-1.5 text-center text-blue-700 bg-blue-50">M.Cat.(-)</th>
+                            <th class="border border-gray-200 px-2 py-1.5 text-center text-blue-700 bg-blue-50">Compra</th>
+                            <th class="border border-gray-200 px-2 py-1.5 text-center text-blue-700 bg-blue-50">Doação</th>
+                            <th class="border border-gray-200 px-2 py-1.5 text-center text-gray-600 bg-gray-100">Entrada</th>
+                            <th class="border border-gray-200 px-2 py-1.5 text-center text-gray-600 bg-gray-100">Saída</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
@@ -152,35 +152,35 @@
                         <tr class="hover:bg-gray-50 transition-colors">
                             <td class="border border-gray-200 px-2 py-1.5 font-medium text-gray-800 whitespace-nowrap">{{ category }}</td>
                             <td class="border border-gray-200 px-2 py-1.5 text-center font-semibold text-rose-700">{% with v=report.ocorrencias.morte|get_item:category %}{% if v %}{{ v }}{% else %}<span class="text-gray-300">—</span>{% endif %}{% endwith %}</td>
-                            <td class="border border-gray-200 px-2 py-1.5 text-center font-semibold text-rose-600">{% with v=report.ocorrencias.venda|get_item:category %}{% if v %}{{ v }}{% else %}<span class="text-gray-300">—</span>{% endif %}{% endwith %}</td>
-                            <td class="border border-gray-200 px-2 py-1.5 text-center font-semibold text-rose-600">{% with v=report.ocorrencias.abate|get_item:category %}{% if v %}{{ v }}{% else %}<span class="text-gray-300">—</span>{% endif %}{% endwith %}</td>
-                            <td class="border border-gray-200 px-2 py-1.5 text-center font-semibold text-emerald-700">{% with v=report.entradas.nascimento|get_item:category %}{% if v %}{{ v }}{% else %}<span class="text-gray-300">—</span>{% endif %}{% endwith %}</td>
-                            <td class="border border-gray-200 px-2 py-1.5 text-center font-semibold text-emerald-600">{% with v=report.entradas.desmame|get_item:category %}{% if v %}{{ v }}{% else %}<span class="text-gray-300">—</span>{% endif %}{% endwith %}</td>
-                            <td class="border border-gray-200 px-2 py-1.5 text-center font-semibold text-emerald-700">{% with v=report.entradas.manejo_in|get_item:category %}{% if v %}{{ v }}{% else %}<span class="text-gray-300">—</span>{% endif %}{% endwith %}</td>
-                            <td class="border border-gray-200 px-2 py-1.5 text-center font-semibold text-rose-700">{% with v=report.entradas.manejo_out|get_item:category %}{% if v %}{{ v }}{% else %}<span class="text-gray-300">—</span>{% endif %}{% endwith %}</td>
+                            <td class="border border-gray-200 px-2 py-1.5 text-center font-semibold text-rose-700">{% with v=report.ocorrencias.venda|get_item:category %}{% if v %}{{ v }}{% else %}<span class="text-gray-300">—</span>{% endif %}{% endwith %}</td>
+                            <td class="border border-gray-200 px-2 py-1.5 text-center font-semibold text-rose-700">{% with v=report.ocorrencias.abate|get_item:category %}{% if v %}{{ v }}{% else %}<span class="text-gray-300">—</span>{% endif %}{% endwith %}</td>
+                            <td class="border border-gray-200 px-2 py-1.5 text-center font-semibold text-blue-700">{% with v=report.entradas.nascimento|get_item:category %}{% if v %}{{ v }}{% else %}<span class="text-gray-300">—</span>{% endif %}{% endwith %}</td>
+                            <td class="border border-gray-200 px-2 py-1.5 text-center font-semibold text-blue-700">{% with v=report.entradas.desmame|get_item:category %}{% if v %}{{ v }}{% else %}<span class="text-gray-300">—</span>{% endif %}{% endwith %}</td>
+                            <td class="border border-gray-200 px-2 py-1.5 text-center font-semibold text-blue-700">{% with v=report.entradas.manejo_in|get_item:category %}{% if v %}{{ v }}{% else %}<span class="text-gray-300">—</span>{% endif %}{% endwith %}</td>
+                            <td class="border border-gray-200 px-2 py-1.5 text-center font-semibold text-blue-700">{% with v=report.entradas.manejo_out|get_item:category %}{% if v %}{{ v }}{% else %}<span class="text-gray-300">—</span>{% endif %}{% endwith %}</td>
                             <td class="border border-gray-200 px-2 py-1.5 text-center font-semibold text-blue-700">{% with v=report.entradas.mudanca_in|get_item:category %}{% if v %}{{ v }}{% else %}<span class="text-gray-300">—</span>{% endif %}{% endwith %}</td>
-                            <td class="border border-gray-200 px-2 py-1.5 text-center font-semibold text-blue-600">{% with v=report.entradas.mudanca_out|get_item:category %}{% if v %}{{ v }}{% else %}<span class="text-gray-300">—</span>{% endif %}{% endwith %}</td>
-                            <td class="border border-gray-200 px-2 py-1.5 text-center font-semibold text-emerald-600">{% with v=report.entradas.compra|get_item:category %}{% if v %}{{ v }}{% else %}<span class="text-gray-300">—</span>{% endif %}{% endwith %}</td>
-                            <td class="border border-gray-200 px-2 py-1.5 text-center font-semibold text-rose-600">{% with v=report.ocorrencias.doacao|get_item:category %}{% if v %}{{ v }}{% else %}<span class="text-gray-300">—</span>{% endif %}{% endwith %}</td>
-                            <td class="border border-gray-200 px-2 py-1.5 text-center font-bold text-emerald-700 bg-emerald-50">{% with v=report.consolidado.entradas|get_item:category %}{% if v %}{{ v }}{% else %}<span class="text-gray-300">—</span>{% endif %}{% endwith %}</td>
-                            <td class="border border-gray-200 px-2 py-1.5 text-center font-bold text-rose-700 bg-rose-50">{% with v=report.consolidado.saidas|get_item:category %}{% if v %}{{ v }}{% else %}<span class="text-gray-300">—</span>{% endif %}{% endwith %}</td>
+                            <td class="border border-gray-200 px-2 py-1.5 text-center font-semibold text-blue-700">{% with v=report.entradas.mudanca_out|get_item:category %}{% if v %}{{ v }}{% else %}<span class="text-gray-300">—</span>{% endif %}{% endwith %}</td>
+                            <td class="border border-gray-200 px-2 py-1.5 text-center font-semibold text-blue-700">{% with v=report.entradas.compra|get_item:category %}{% if v %}{{ v }}{% else %}<span class="text-gray-300">—</span>{% endif %}{% endwith %}</td>
+                            <td class="border border-gray-200 px-2 py-1.5 text-center font-semibold text-blue-700">{% with v=report.ocorrencias.doacao|get_item:category %}{% if v %}{{ v }}{% else %}<span class="text-gray-300">—</span>{% endif %}{% endwith %}</td>
+                            <td class="border border-gray-200 px-2 py-1.5 text-center font-bold text-gray-800">{% with v=report.consolidado.entradas|get_item:category %}{% if v %}{{ v }}{% else %}<span class="text-gray-300">—</span>{% endif %}{% endwith %}</td>
+                            <td class="border border-gray-200 px-2 py-1.5 text-center font-bold text-gray-800">{% with v=report.consolidado.saidas|get_item:category %}{% if v %}{{ v }}{% else %}<span class="text-gray-300">—</span>{% endif %}{% endwith %}</td>
                         </tr>
                         {% endfor %}
                         <tr class="bg-gray-100 font-bold border-t-2 border-gray-400">
                             <td class="border border-gray-200 px-2 py-1.5 text-gray-800">TOTAL</td>
                             <td class="border border-gray-200 px-2 py-1.5 text-center text-rose-700">{{ report.ocorrencias.morte|sum_values }}</td>
-                            <td class="border border-gray-200 px-2 py-1.5 text-center text-rose-600">{{ report.ocorrencias.venda|sum_values }}</td>
-                            <td class="border border-gray-200 px-2 py-1.5 text-center text-rose-600">{{ report.ocorrencias.abate|sum_values }}</td>
-                            <td class="border border-gray-200 px-2 py-1.5 text-center text-emerald-700">{{ report.entradas.nascimento|sum_values }}</td>
-                            <td class="border border-gray-200 px-2 py-1.5 text-center text-emerald-600">{{ report.entradas.desmame|sum_values }}</td>
-                            <td class="border border-gray-200 px-2 py-1.5 text-center text-emerald-700">{{ report.entradas.manejo_in|sum_values }}</td>
-                            <td class="border border-gray-200 px-2 py-1.5 text-center text-rose-700">{{ report.entradas.manejo_out|sum_values }}</td>
+                            <td class="border border-gray-200 px-2 py-1.5 text-center text-rose-700">{{ report.ocorrencias.venda|sum_values }}</td>
+                            <td class="border border-gray-200 px-2 py-1.5 text-center text-rose-700">{{ report.ocorrencias.abate|sum_values }}</td>
+                            <td class="border border-gray-200 px-2 py-1.5 text-center text-blue-700">{{ report.entradas.nascimento|sum_values }}</td>
+                            <td class="border border-gray-200 px-2 py-1.5 text-center text-blue-700">{{ report.entradas.desmame|sum_values }}</td>
+                            <td class="border border-gray-200 px-2 py-1.5 text-center text-blue-700">{{ report.entradas.manejo_in|sum_values }}</td>
+                            <td class="border border-gray-200 px-2 py-1.5 text-center text-blue-700">{{ report.entradas.manejo_out|sum_values }}</td>
                             <td class="border border-gray-200 px-2 py-1.5 text-center text-blue-700">{{ report.entradas.mudanca_in|sum_values }}</td>
-                            <td class="border border-gray-200 px-2 py-1.5 text-center text-blue-600">{{ report.entradas.mudanca_out|sum_values }}</td>
-                            <td class="border border-gray-200 px-2 py-1.5 text-center text-emerald-600">{{ report.entradas.compra|sum_values }}</td>
-                            <td class="border border-gray-200 px-2 py-1.5 text-center text-rose-600">{{ report.ocorrencias.doacao|sum_values }}</td>
-                            <td class="border border-gray-200 px-2 py-1.5 text-center text-emerald-700 bg-emerald-100">{{ report.consolidado.entradas|sum_values }}</td>
-                            <td class="border border-gray-200 px-2 py-1.5 text-center text-rose-700 bg-rose-100">{{ report.consolidado.saidas|sum_values }}</td>
+                            <td class="border border-gray-200 px-2 py-1.5 text-center text-blue-700">{{ report.entradas.mudanca_out|sum_values }}</td>
+                            <td class="border border-gray-200 px-2 py-1.5 text-center text-blue-700">{{ report.entradas.compra|sum_values }}</td>
+                            <td class="border border-gray-200 px-2 py-1.5 text-center text-blue-700">{{ report.ocorrencias.doacao|sum_values }}</td>
+                            <td class="border border-gray-200 px-2 py-1.5 text-center text-gray-800">{{ report.consolidado.entradas|sum_values }}</td>
+                            <td class="border border-gray-200 px-2 py-1.5 text-center text-gray-800">{{ report.consolidado.saidas|sum_values }}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -191,25 +191,25 @@
     <!-- 3. ESTOQUE FINAL -->
     <div class="bg-white shadow sm:rounded-lg print:shadow-none">
         <div class="px-4 py-3 sm:px-6">
-            <h2 class="text-sm font-bold text-emerald-700 text-center mb-2 uppercase tracking-wider">
+            <h2 class="text-sm font-bold text-blue-800 text-center mb-2 uppercase tracking-wider">
                 {% if selected_month == 0 %}Estoque Final do Ano{% else %}Estoque Final do Mês{% endif %}
             </h2>
             <div class="overflow-x-auto">
                 <table class="min-w-full border border-gray-200 text-sm">
                     <thead>
-                        <tr class="bg-emerald-50">
+                        <tr class="bg-blue-50">
                             {% for category in report.categories %}
-                            <th class="border border-gray-200 px-3 py-2 text-center text-xs font-semibold text-emerald-700 uppercase">{{ category }}</th>
+                            <th class="border border-gray-200 px-3 py-2 text-center text-xs font-semibold text-blue-700 uppercase">{{ category }}</th>
                             {% endfor %}
-                            <th class="border border-gray-200 px-3 py-2 text-center text-xs font-bold text-emerald-800 bg-emerald-100 uppercase">Total</th>
+                            <th class="border border-gray-200 px-3 py-2 text-center text-xs font-bold text-blue-800 bg-blue-100 uppercase">Total</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr class="bg-white">
                             {% for category in report.categories %}
-                            <td class="border border-gray-200 px-3 py-2 text-center font-bold text-emerald-700">{{ report.estoque_final|get_item:category }}</td>
+                            <td class="border border-gray-200 px-3 py-2 text-center font-bold text-blue-700">{{ report.estoque_final|get_item:category }}</td>
                             {% endfor %}
-                            <td class="border border-gray-200 px-3 py-2 text-center text-lg font-bold text-emerald-800 bg-emerald-50">{{ report.estoque_final|sum_values }}</td>
+                            <td class="border border-gray-200 px-3 py-2 text-center text-lg font-bold text-blue-800 bg-blue-50">{{ report.estoque_final|sum_values }}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -289,7 +289,7 @@
                         {% for abate in report.detalhamento.abates %}
                         <tr class="hover:bg-gray-50">
                             <td class="border border-gray-200 px-2 py-1 text-gray-700">{{ abate.categoria }}</td>
-                            <td class="border border-gray-200 px-2 py-1 text-center font-semibold text-rose-600">{{ abate.quantidade }}</td>
+                            <td class="border border-gray-200 px-2 py-1 text-center font-semibold text-rose-700">{{ abate.quantidade }}</td>
                             <td class="border border-gray-200 px-2 py-1 text-gray-700">{{ abate.observacao|default:"-" }}</td>
                         </tr>
                         {% empty %}
@@ -323,7 +323,7 @@
                         <td class="border border-gray-200 px-2 py-1 text-gray-700">{{ venda.categoria }}</td>
                         <td class="border border-gray-200 px-2 py-1 text-gray-700">{{ venda.cliente }}</td>
                         <td class="border border-gray-200 px-2 py-1 text-center text-gray-700">{{ venda.peso|peso_fmt|default:"—" }}</td>
-                        <td class="border border-gray-200 px-2 py-1 text-center font-semibold text-emerald-700">{{ venda.quantidade }}</td>
+                        <td class="border border-gray-200 px-2 py-1 text-center font-semibold text-rose-700">{{ venda.quantidade }}</td>
                     </tr>
                     {% empty %}
                     <tr><td colspan="5" class="border border-gray-200 px-2 py-2 text-center text-gray-400 italic">Nenhuma venda</td></tr>
