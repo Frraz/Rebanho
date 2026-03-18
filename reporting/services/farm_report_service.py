@@ -22,6 +22,7 @@ from farms.models import Farm
 from inventory.models import AnimalMovement, AnimalCategory
 from inventory.domain import OperationType
 from inventory.domain.value_objects import MovementType
+from reporting.services.category_utils import sort_categories
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -126,8 +127,10 @@ class FarmReportService:
         if animal_category_id:
             categories = list(AnimalCategory.objects.filter(id=animal_category_id))
         else:
-            categories = list(
-                AnimalCategory.objects.filter(is_active=True).order_by('name')
+            # Ordenação canônica zootécnica definida em category_utils.py.
+            # Não usar order_by('name') — a ordem é controlada por sort_categories().
+            categories = sort_categories(
+                list(AnimalCategory.objects.filter(is_active=True))
             )
 
         estoque_inicial = FarmReportService._calculate_initial_stock(
@@ -296,7 +299,7 @@ class FarmReportService:
             "manejo_in":  dict(zero),
             "manejo_out": dict(zero),
             "mudanca_in": dict(zero),
-            "mudanca_out":dict(zero),
+            "mudanca_out": dict(zero),
         }
 
         for m in movements:

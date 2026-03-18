@@ -6,37 +6,19 @@
 <title>{% block title %}Relatório{% endblock %}</title>
 <style>
   /* ══════════════════════════════════════════════════════════════
-     PALETA CORPORATIVA — Azul · Cinza Escuro · Vermelho
+     ESTILO P&B — SEM CORES, APENAS PRETO, BRANCO E CINZA
   ══════════════════════════════════════════════════════════════ */
   :root {
-    /* Azul corporativo vivo — imprime bem, leitura clara */
-    --blue-corp-dark:   #1a4fa3;   /* textos, títulos */
-    --blue-corp-mid:    #2563eb;   /* badges, bordas */
-    --blue-corp-light:  #dbeafe;   /* fundos suaves */
-    --blue-corp-total:  #bfdbfe;   /* fundo célula total */
-
-    /* Vermelho controlado */
-    --red-dark:         #b91c1c;   /* textos vermelhos */
-    --red-light:        #fee2e2;   /* fundos vermelhos suaves */
-
-    /* Cinza escuro — subtítulos, consolidado */
-    --slate-dark:       #1e293b;
-    --slate-mid:        #475569;
-    --slate-light:      #f1f5f9;
-    --slate-total:      #e2e8f0;
-
-    /* Neutros */
-    --border:           #cbd5e1;
-    --border-strong:    #475569;
-    --header-bg:        #f1f5f9;
-    --row-alt:          #f8fafc;
-    --text-main:        #0f172a;
-    --text-muted:       #64748b;
-    --gray-light:       #f1f5f9;
-    --gray-border:      #94a3b8;   /* zeros / valores ausentes */
+    --black:        #000000;
+    --text-main:    #0f172a;
+    --text-muted:   #4b5563;
+    --gray-header:  #e5e7eb;   /* fundo cabeçalhos */
+    --gray-alt:     #f9fafb;   /* zebra linhas pares */
+    --gray-total:   #e5e7eb;   /* fundo linha TOTAL */
+    --border:       #9ca3af;   /* borda padrão */
+    --border-strong:#374151;   /* borda espessa */
   }
 
-  /* ── Redefinição e base ──────────────────────────────────────── */
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   html, body {
@@ -48,7 +30,6 @@
     overflow: hidden;
   }
 
-  /* ── Configuração da página ──────────────────────────────────── */
   @page {
     size: A4 landscape;
     margin: 0.7cm 1cm;
@@ -61,24 +42,19 @@
     text-align: center;
     margin-bottom: 6px;
     padding-bottom: 5px;
-    border-bottom: 2px solid var(--blue-corp-dark);
+    border-bottom: 2px solid var(--black);
   }
   .report-title {
     font-size: 12pt;
     font-weight: bold;
-    color: var(--blue-corp-dark);
+    color: var(--black);
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
   .report-subtitle {
     font-size: 9pt;
-    color: var(--slate-mid);
-    margin-top: 2px;
-  }
-  .report-meta {
-    font-size: 7pt;
     color: var(--text-muted);
-    margin-top: 1px;
+    margin-top: 2px;
   }
 
   /* ── Seções ──────────────────────────────────────────────────── */
@@ -92,77 +68,67 @@
     padding: 3px 5px;
     margin-bottom: 3px;
     border-radius: 2px;
+    /* P&B: fundo cinza claro, texto preto, borda esquerda preta */
+    color:       var(--black);
+    background:  var(--gray-header);
+    border-left: 3px solid var(--black);
   }
-  /* red   → vermelho (ocorrências)                       */
-  /* blue  → azul corporativo (tabela principal)          */
-  /* green → azul corporativo (estoque final, moviment.) */
-  /* gray  → cinza escuro (detalhamentos)                */
-  .section-title.red   { color: var(--red-dark);        background: var(--red-light);        border-left: 3px solid var(--red-dark);       }
-  .section-title.blue  { color: var(--blue-corp-dark);  background: var(--blue-corp-light);  border-left: 3px solid var(--blue-corp-dark); }
-  .section-title.green { color: var(--blue-corp-dark);  background: var(--blue-corp-light);  border-left: 3px solid var(--blue-corp-mid);  }
-  .section-title.gray  { color: var(--slate-dark);      background: var(--slate-light);      border-left: 3px solid var(--slate-mid);      }
+  /* mantemos as classes para não quebrar templates existentes */
+  .section-title.red   { color: var(--black); background: var(--gray-header); border-left: 3px solid var(--black); }
+  .section-title.blue  { color: var(--black); background: var(--gray-header); border-left: 3px solid var(--black); }
+  .section-title.green { color: var(--black); background: var(--gray-header); border-left: 3px solid var(--black); }
+  .section-title.gray  { color: var(--black); background: var(--gray-header); border-left: 3px solid var(--border-strong); }
 
   /* ── Tabelas ─────────────────────────────────────────────────── */
   table { width: 100%; border-collapse: collapse; font-size: 7.5pt; }
 
-  th, td { border: 1px solid var(--border); padding: 4px 4px; }
+  th, td { border: 1px solid var(--border); padding: 3px 4px; }
 
   th {
-    background: var(--header-bg);
-    font-weight: bold;
-    text-align: center;
-    font-size: 6.5pt;
+    background:     var(--gray-header);
+    font-weight:    bold;
+    text-align:     center;
+    font-size:      6.5pt;
     text-transform: uppercase;
-    color: var(--slate-dark);
+    color:          var(--black);
   }
-  td { text-align: center; }
+  td { text-align: center; color: var(--text-main); }
   td.text-left { text-align: left; }
 
-  /* ── Grupos de colunas ───────────────────────────────────────── */
-  /* Ocorrências → vermelho */
-  .th-ocorrencias {
-    background:    var(--red-light)       !important;
-    color:         var(--red-dark)        !important;
-    border-bottom: 2px solid var(--red-dark) !important;
-  }
-  /* Movimentações → azul corporativo */
-  .th-movimentos {
-    background:    var(--blue-corp-light) !important;
-    color:         var(--blue-corp-dark)  !important;
-    border-bottom: 2px solid var(--blue-corp-dark) !important;
-  }
-  /* Consolidado → cinza escuro */
+  /* ── Grupos de colunas — P&B uniforme ───────────────────────── */
+  .th-ocorrencias,
+  .th-movimentos,
   .th-consolidado {
-    background:    var(--slate-light)     !important;
-    color:         var(--slate-dark)      !important;
-    border-bottom: 2px solid var(--slate-mid) !important;
+    background:    var(--gray-header) !important;
+    color:         var(--black)       !important;
+    border-bottom: 2px solid var(--black) !important;
   }
 
-  /* ── Valores semânticos ──────────────────────────────────────── */
-  /* Ocorrências — vermelho */
-  .val-morte   { color: var(--red-dark);       font-weight: 600; }
-  .val-venda   { color: var(--red-dark);       font-weight: 600; }
-  .val-abate   { color: var(--red-dark);       font-weight: 600; }
-  /* Movimentações — azul */
-  .val-nasc    { color: var(--blue-corp-dark); font-weight: 600; }
-  /* Consolidado — preto neutro, sem fundo colorido */
-  .val-entrada { color: var(--text-main);      font-weight: bold; }
-  .val-saida   { color: var(--text-main);      font-weight: bold; }
-  /* Zeros / valores ausentes — cinza suave, sem peso visual */
-  .val-zero    { color: var(--gray-border); }
+  /* ── Valores semânticos — todos pretos ──────────────────────── */
+  .val-morte   { color: var(--text-main); font-weight: 600; }
+  .val-venda   { color: var(--text-main); font-weight: 600; }
+  .val-abate   { color: var(--text-main); font-weight: 600; }
+  .val-nasc    { color: var(--text-main); font-weight: 600; }
+  .val-entrada { color: var(--text-main); font-weight: bold; }
+  .val-saida   { color: var(--text-main); font-weight: bold; }
+  .val-zero    { color: #9ca3af; }   /* cinza suave para zeros */
 
   /* ── Linha de totais ─────────────────────────────────────────── */
   tr.total-row td {
-    background:  var(--header-bg);
+    background:  var(--gray-total) !important;
     font-weight: bold;
     border-top:  2px solid var(--border-strong);
-    padding:     5px 4px;
+    padding:     4px 4px;
   }
 
   /* ── Tabelas de estoque ──────────────────────────────────────── */
-  .estoque-table th { background: var(--blue-corp-light); color: var(--blue-corp-dark); }
+  .estoque-table th { background: var(--gray-header); color: var(--black); }
   .estoque-table td { font-weight: bold; font-size: 8.5pt; padding: 5px 4px; }
-  .estoque-total    { background: var(--blue-corp-total) !important; color: var(--blue-corp-dark); font-size: 9pt; }
+  .estoque-total    { background: var(--gray-total) !important; font-size: 9pt; font-weight: bold; }
+
+  /* ── Zebra nas linhas de dados ───────────────────────────────── */
+  tbody tr:nth-child(even) td { background-color: var(--gray-alt); }
+  tr.total-row td             { background: var(--gray-total) !important; }
 
   /* ── Grade de detalhamentos ──────────────────────────────────── */
   .details-grid {
@@ -182,23 +148,19 @@
   .details-col table td   { font-size: 7pt; }
 
   /* ── Tabela de vendas ────────────────────────────────────────── */
-  .vendas-table          { width: 100%; margin-top: 3px; }
-  .vendas-table th       { font-size: 6.5pt; }
-  .vendas-table td       { font-size: 7pt; }
-
-  /* ── Zebra nas linhas de dados ───────────────────────────────── */
-  tbody tr:nth-child(even) td { background-color: var(--row-alt); }
-  tr.total-row td             { background: var(--header-bg) !important; }
+  .vendas-table    { width: 100%; margin-top: 3px; }
+  .vendas-table th { font-size: 6.5pt; }
+  .vendas-table td { font-size: 7pt; }
 
   /* ── Rodapé ──────────────────────────────────────────────────── */
   .report-footer {
-    margin-top:   5px;
-    padding-top:  3px;
-    border-top:   1px solid var(--border);
-    font-size:    6.5pt;
-    color:        var(--text-muted);
-    display:      table;
-    width:        100%;
+    margin-top:  5px;
+    padding-top: 3px;
+    border-top:  1px solid var(--border);
+    font-size:   6.5pt;
+    color:       var(--text-muted);
+    display:     table;
+    width:       100%;
   }
   .footer-left  { display: table-cell; text-align: left; }
   .footer-right { display: table-cell; text-align: right; }
@@ -206,14 +168,14 @@
   /* ── Quebra de página ────────────────────────────────────────── */
   .page-break { page-break-before: always; }
 
-  /* ── Badge de fazenda ────────────────────────────────────────── */
+  /* ── Badge de fazenda — P&B ──────────────────────────────────── */
   .farm-badge {
-    background:    var(--blue-corp-light);
-    border:        1px solid var(--blue-corp-mid);
+    background:    var(--gray-alt);
+    border:        1px solid var(--border);
     border-radius: 3px;
     padding:       1px 5px;
     font-size:     7pt;
-    color:         var(--blue-corp-dark);
+    color:         var(--black);
     display:       inline-block;
     margin:        1px;
   }

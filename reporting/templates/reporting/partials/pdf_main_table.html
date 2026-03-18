@@ -3,8 +3,10 @@
 
 {# Estoque Inicial #}
 <div class="section">
-  <div class="section-title red">Estoque Inicial - Mês Anterior</div>
-
+  <div class="section-title blue">
+    {% if selected_month == 0 %}Estoque Inicial — Ano Anterior
+    {% else %}Estoque Inicial — Mês Anterior{% endif %}
+  </div>
   <table class="estoque-table">
     <thead>
       <tr>
@@ -60,11 +62,11 @@
         {% with v=r.entradas.nascimento|get_item:cat  %}<td class="{% if v %}val-nasc{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
         {% with v=r.entradas.desmame|get_item:cat     %}<td class="{% if v %}val-nasc{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
         {% with v=r.entradas.manejo_in|get_item:cat   %}<td class="{% if v %}val-nasc{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
-        {% with v=r.entradas.manejo_out|get_item:cat  %}<td class="{% if v %}val-morte{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
+        {% with v=r.entradas.manejo_out|get_item:cat  %}<td class="{% if v %}val-nasc{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
         {% with v=r.entradas.mudanca_in|get_item:cat  %}<td class="{% if v %}val-nasc{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
-        {% with v=r.entradas.mudanca_out|get_item:cat %}<td class="{% if v %}val-venda{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
+        {% with v=r.entradas.mudanca_out|get_item:cat %}<td class="{% if v %}val-nasc{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
         {% with v=r.entradas.compra|get_item:cat      %}<td class="{% if v %}val-nasc{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
-        {% with v=r.ocorrencias.doacao|get_item:cat   %}<td class="{% if v %}val-abate{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
+        {% with v=r.ocorrencias.doacao|get_item:cat   %}<td class="{% if v %}val-nasc{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
         {% with v=r.consolidado.entradas|get_item:cat %}<td class="{% if v %}val-entrada{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
         {% with v=r.consolidado.saidas|get_item:cat   %}<td class="{% if v %}val-saida{% else %}val-zero{% endif %}">{% if v %}{{ v }}{% else %}—{% endif %}</td>{% endwith %}
       </tr>
@@ -77,11 +79,11 @@
         <td class="val-nasc">{{ r.entradas.nascimento|sum_values }}</td>
         <td class="val-nasc">{{ r.entradas.desmame|sum_values }}</td>
         <td class="val-nasc">{{ r.entradas.manejo_in|sum_values }}</td>
-        <td class="val-morte">{{ r.entradas.manejo_out|sum_values }}</td>
+        <td class="val-nasc">{{ r.entradas.manejo_out|sum_values }}</td>
         <td class="val-nasc">{{ r.entradas.mudanca_in|sum_values }}</td>
-        <td class="val-venda">{{ r.entradas.mudanca_out|sum_values }}</td>
+        <td class="val-nasc">{{ r.entradas.mudanca_out|sum_values }}</td>
         <td class="val-nasc">{{ r.entradas.compra|sum_values }}</td>
-        <td class="val-abate">{{ r.ocorrencias.doacao|sum_values }}</td>
+        <td class="val-nasc">{{ r.ocorrencias.doacao|sum_values }}</td>
         <td class="val-entrada">{{ r.consolidado.entradas|sum_values }}</td>
         <td class="val-saida">{{ r.consolidado.saidas|sum_values }}</td>
       </tr>
@@ -102,7 +104,7 @@
     <tbody>
       <tr>
         {% for cat in r.categories %}
-        <td class="val-nasc">{{ r.estoque_final|get_item:cat }}</td>
+        <td>{{ r.estoque_final|get_item:cat }}</td>
         {% endfor %}
         <td class="estoque-total">{{ r.estoque_final|sum_values }}</td>
       </tr>
