@@ -1,5 +1,8 @@
 """
-Operations Ocorrências Views - Morte, Abate, Venda, Doação.
+operations/views/ocorrencias.py
+
+Views de Ocorrências: Morte, Abate, Venda, Doação.
+Inclui listagem, criação, edição, cancelamento e exportação PDF.
 """
 
 from django.shortcuts import render, redirect, get_object_or_404
@@ -16,11 +19,12 @@ import logging
 
 from operations.forms import MorteForm, AbateForm, VendaForm, DoacaoForm
 from operations.services.occurrence_service import OccurrenceService
+from operations.services.occurrence_pdf_service import OccurrencePDFService
 from inventory.services import MovementService
 from inventory.domain import OperationType
 from inventory.models import AnimalMovement
 from farms.models import Farm
-from core.utils.decimal_utils import normalize_pt_br_decimal 
+from core.utils.decimal_utils import normalize_pt_br_decimal
 
 logger = logging.getLogger(__name__)
 
@@ -95,10 +99,6 @@ def occurrence_list_view(request):
     try:
         filters = _build_filters_context(request)
 
-        # ── CORREÇÃO: prefetch_related('cancellation') é obrigatório para que
-        # movement.cancellation_id funcione no template e a linha apareça
-        # como cancelada. Sem isso, o ORM não carrega o relacionamento OneToOne
-        # e cancellation_id é sempre None.
         queryset = (
             AnimalMovement.objects
             .filter(operation_type__in=OCCURRENCE_TYPES)
@@ -451,8 +451,6 @@ def occurrence_cancel_view(request, pk):
 
     is_htmx = request.headers.get('HX-Request') == 'true'
 
-    # Verificação rápida antes de chamar o service
-    # Usamos try/except para evitar RelatedObjectDoesNotExist
     try:
         c = movement.cancellation
         error_msg = (
@@ -570,6 +568,9 @@ def _render_already_cancelled_row(movement, cancellation) -> str:
     </tr>"""
 
 
+# ══════════════════════════════════════════════════════════════════════════════
+# EDIÇÃO DE OCORRÊNCIA
+# ══════════════════════════════════════════════════════════════════════════════
 
 @login_required
 @require_http_methods(["GET", "POST"])
@@ -580,6 +581,9 @@ def occurrence_edit_view(request, pk):
     POST → processa edição via OccurrenceService.edit_occurrence
     """
     from operations.models import Client, DeathReason
+    from inventory.models import AnimalMovementCancellation
+    from django.utils.dateparse import parse_datetime
+    from django.utils import timezone as tz
 
     movement = get_object_or_404(
         AnimalMovement.objects
@@ -595,8 +599,6 @@ def occurrence_edit_view(request, pk):
         operation_type__in=OCCURRENCE_TYPES,
     )
 
-    # Bloquear edição de canceladas — sem try/except: acessamos o manager direto
-    from inventory.models import AnimalMovementCancellation
     if AnimalMovementCancellation.objects.filter(movement_id=pk).exists():
         messages.warning(request, "Ocorrências canceladas não podem ser editadas.")
         return redirect('ocorrencias:list')
@@ -612,12 +614,6 @@ def occurrence_edit_view(request, pk):
             client_id = request.POST.get('client_id', '').strip() or None
             death_reason_id = request.POST.get('death_reason_id', '').strip() or None
 
-            # ── Normalização de decimais pt-BR ─────────────────────────────
-            # O template envia "1.250,80" (string pt-BR com máscara).
-            # normalize_pt_br_decimal() converte para Decimal antes de salvar.
-            # Guardamos como str() no metadata para manter compatibilidade
-            # com o restante do sistema (metadata é um JSONField de strings).
-
             peso_raw = request.POST.get('peso', '').strip()
             preco_raw = request.POST.get('preco_total', '').strip()
 
@@ -627,7 +623,6 @@ def occurrence_edit_view(request, pk):
                     peso_normalizado = str(normalize_pt_br_decimal(peso_raw))
                 except Exception:
                     messages.error(request, f'Peso inválido: "{peso_raw}". Use o formato 1.250,80.')
-                    # Não retorna — deixa o form recarregar com os outros dados
 
             preco_normalizado = None
             if preco_raw:
@@ -636,7 +631,6 @@ def occurrence_edit_view(request, pk):
                 except Exception:
                     messages.error(request, f'Preço inválido: "{preco_raw}". Use o formato 15.000,00.')
 
-            # Monta metadata apenas com campos preenchidos
             new_meta = {}
             if observacao:
                 new_meta['observacao'] = observacao
@@ -651,10 +645,8 @@ def occurrence_edit_view(request, pk):
             }
 
             if timestamp_str:
-                from django.utils.dateparse import parse_datetime
                 ts = parse_datetime(timestamp_str)
                 if ts:
-                    from django.utils import timezone as tz
                     if tz.is_naive(ts):
                         ts = tz.make_aware(ts)
                     data['timestamp'] = ts
@@ -672,9 +664,10 @@ def occurrence_edit_view(request, pk):
 
             messages.success(
                 request,
-                f"Ocorrência atualizada. "
-                f"Quantidade: {result['quantity_before']} → {result['quantity_after']}."
-                if result['quantity_before'] != result['quantity_after']
+                (
+                    f"Ocorrência atualizada. "
+                    f"Quantidade: {result['quantity_before']} → {result['quantity_after']}."
+                ) if result['quantity_before'] != result['quantity_after']
                 else "Ocorrência atualizada com sucesso."
             )
             return redirect('ocorrencias:list')
@@ -688,7 +681,6 @@ def occurrence_edit_view(request, pk):
             logger.error(f"Erro ao editar ocorrência {pk}: {e}", exc_info=True)
             messages.error(request, "Erro interno ao editar. Tente novamente.")
 
-    # Contexto para o template
     clients = Client.objects.filter(is_active=True).order_by('name')
     death_reasons = DeathReason.objects.filter(is_active=True).order_by('name')
 
@@ -706,3 +698,79 @@ def occurrence_edit_view(request, pk):
     }
 
     return render(request, 'operations/occurrence_edit.html', context)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# EXPORTAÇÃO PDF
+# ══════════════════════════════════════════════════════════════════════════════
+
+@login_required
+@require_http_methods(["GET"])
+def occurrence_pdf_view(request):
+    """
+    Gera e retorna o PDF do histórico de ocorrências respeitando
+    exatamente os mesmos filtros da listagem.
+
+    - Reutiliza _build_filters_context e _apply_occurrence_filters (DRY total)
+    - Sem lógica de negócio na view — tudo delegado ao OccurrencePDFService
+    - Sem arquivo em disco — streaming direto via HttpResponse (io.BytesIO)
+    - Nome do arquivo inclui timestamp para evitar cache no browser
+    """
+    try:
+        filters = _build_filters_context(request)
+
+        # Enriquecer filtros com nome legível da fazenda (usado no cabeçalho do PDF)
+        farm_name = ''
+        if filters['farm_id']:
+            try:
+                farm_obj = Farm.objects.get(pk=filters['farm_id'])
+                farm_name = farm_obj.name
+            except Farm.DoesNotExist:
+                pass
+        filters['farm_name'] = farm_name
+
+        queryset = (
+            AnimalMovement.objects
+            .filter(operation_type__in=OCCURRENCE_TYPES)
+            .select_related(
+                'farm_stock_balance__farm',
+                'farm_stock_balance__animal_category',
+                'client',
+                'death_reason',
+                'created_by',
+            )
+            .prefetch_related(
+                'cancellation',
+                'cancellation__cancelled_by',
+            )
+            .order_by('-timestamp', '-created_at')
+        )
+
+        queryset = _apply_occurrence_filters(queryset, filters)
+
+        pdf_bytes = OccurrencePDFService.generate(
+            queryset=queryset,
+            filters=filters,
+            generated_by=request.user.username,
+        )
+
+        timestamp_str = timezone.localtime(timezone.now()).strftime('%Y%m%d_%H%M%S')
+        filename = f'ocorrencias_{timestamp_str}.pdf'
+
+        logger.info(
+            f"PDF de ocorrências gerado por {request.user.username}. "
+            f"Filtros ativos: {filters['has_filters']} | Arquivo: {filename}"
+        )
+
+        response = HttpResponse(pdf_bytes, content_type='application/pdf')
+        response['Content-Disposition'] = f'inline; filename="{filename}"'
+        response['Content-Length'] = len(pdf_bytes)
+        return response
+
+    except Exception as e:
+        logger.error(
+            f"Erro ao gerar PDF de ocorrências. Usuário: {request.user.username}",
+            exc_info=True,
+        )
+        messages.error(request, f'Erro ao gerar PDF: {str(e)}')
+        return redirect('ocorrencias:list')

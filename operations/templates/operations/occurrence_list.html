@@ -6,6 +6,7 @@
 {% block content %}
 <div class="space-y-6">
 
+    {# ══ Cabeçalho + botões de criação ══ #}
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div class="flex items-center gap-4">
             <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-lg flex-shrink-0">
@@ -58,8 +59,11 @@
         </div>
     </div>
 
+    {# ══ Card de filtros + botão PDF ══ #}
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
         <form method="get" action="" class="space-y-4">
+
+            {# Busca textual #}
             <div class="relative">
                 <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                     <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -73,6 +77,7 @@
                        class="block w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all">
             </div>
 
+            {# Selects de filtro #}
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1.5">Tipo de Ocorrência</label>
@@ -112,7 +117,10 @@
                 </div>
             </div>
 
+            {# ── Rodapé do form: Filtrar · Limpar · [count] · Exportar PDF ── #}
             <div class="flex flex-wrap items-center gap-3 pt-3 border-t border-gray-100">
+
+                {# Botão Filtrar #}
                 <button type="submit"
                         class="inline-flex items-center gap-2 px-6 py-2.5 bg-orange-600 hover:bg-orange-700 text-white text-sm font-semibold rounded-xl transition-all shadow-sm hover:shadow">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -120,6 +128,8 @@
                     </svg>
                     Filtrar
                 </button>
+
+                {# Botão Limpar (só quando há filtros) #}
                 {% if filtros_ativos %}
                 <a href="{% url 'ocorrencias:list' %}"
                    class="inline-flex items-center gap-2 px-6 py-2.5 border-2 border-gray-300 text-gray-600 text-sm font-medium rounded-xl hover:bg-gray-50 hover:border-gray-400 transition-all">
@@ -133,10 +143,80 @@
                     resultado{{ total_count|pluralize }} encontrado{{ total_count|pluralize }}
                 </span>
                 {% endif %}
+
+                <div class="ml-auto"
+                     x-data="{
+                         loading: false,
+                         buildPdfUrl() {
+                             const base = '{% url 'ocorrencias:pdf' %}';
+                             const params = new URLSearchParams();
+                             const q    = document.querySelector('input[name=q]');
+                             const tipo = document.querySelector('select[name=tipo]');
+                             const farm = document.querySelector('select[name=farm]');
+                             const mes  = document.querySelector('select[name=mes]');
+                             const ano  = document.querySelector('select[name=ano]');
+                             if (q    && q.value.trim())    params.set('q',    q.value.trim());
+                             if (tipo && tipo.value)        params.set('tipo', tipo.value);
+                             if (farm && farm.value)        params.set('farm', farm.value);
+                             if (mes  && mes.value)         params.set('mes',  mes.value);
+                             if (ano  && ano.value)         params.set('ano',  ano.value);
+                             const qs = params.toString();
+                             return qs ? base + '?' + qs : base;
+                         },
+                        exportPdf() {
+                            this.loading = true;
+                            window.open(this.buildPdfUrl(), '_blank');
+                            setTimeout(() => { this.loading = false; }, 1500);
+                        }
+                     }">
+
+                    <button type="button"
+                            @click="exportPdf()"
+                            :disabled="loading"
+                            title="Exportar para PDF com os filtros atuais"
+                            class="inline-flex items-center gap-2 px-5 py-2.5
+                                   bg-white border-2 border-red-200 text-red-700
+                                   hover:bg-red-50 hover:border-red-300
+                                   disabled:opacity-60 disabled:cursor-not-allowed
+                                   text-sm font-semibold rounded-xl
+                                   shadow-sm hover:shadow transition-all
+                                   focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-1">
+
+                        {# Spinner quando gerando #}
+                        <template x-if="loading">
+                            <svg class="animate-spin w-4 h-4 text-red-500" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                            </svg>
+                        </template>
+
+                        {# Ícone PDF quando idle #}
+                        <template x-if="!loading">
+                            <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M9 13h6m-3-3v6"/>
+                            </svg>
+                        </template>
+
+                        <span x-text="loading ? 'Gerando PDF...' : 'Exportar PDF'"></span>
+
+                        {# Badge com total de registros que serão exportados #}
+                        {% if total_count %}
+                        <span class="ml-0.5 px-1.5 py-0.5 text-xs font-bold
+                                     bg-red-100 text-red-600 rounded-md leading-none">
+                            {{ total_count }}
+                        </span>
+                        {% endif %}
+                    </button>
+                </div>
+
             </div>
         </form>
     </div>
 
+    {# ══ Tabela de ocorrências ══ #}
     {% if page_obj %}
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div class="overflow-x-auto">
@@ -260,34 +340,33 @@
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                             {{ movement.created_by.username|default:"Sistema" }}
                         </td>
+
                         <td class="px-6 py-4 whitespace-nowrap text-center">
                             {% if movement.cancellation %}
 
-                            {# ── Estado cancelado: apenas ícone visual, sem ação ── #}
                             <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-gray-100 text-gray-300 cursor-default"
-                                title="Cancelada em {{ movement.cancellation.cancelled_at|date:'d/m/Y' }}">
+                                  title="Cancelada em {{ movement.cancellation.cancelled_at|date:'d/m/Y' }}">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
+                                          d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
                                 </svg>
                             </span>
 
                             {% else %}
 
-                            {# ── Estado ativo: editar + cancelar lado a lado ── #}
                             <div class="flex items-center justify-center gap-1.5">
 
                                 {# Botão Editar #}
                                 <a href="{% url 'ocorrencias:editar' movement.id %}"
-                                title="Editar esta ocorrência"
-                                class="inline-flex items-center justify-center w-8 h-8 rounded-lg
-                                        bg-blue-50 hover:bg-blue-100 text-blue-500 hover:text-blue-700
-                                        border border-blue-200 hover:border-blue-300 transition-all
-                                        focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-1">
+                                   title="Editar esta ocorrência"
+                                   class="inline-flex items-center justify-center w-8 h-8 rounded-lg
+                                          bg-blue-50 hover:bg-blue-100 text-blue-500 hover:text-blue-700
+                                          border border-blue-200 hover:border-blue-300 transition-all
+                                          focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-1">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5
-                                                m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5
+                                                 m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                                     </svg>
                                 </a>
 
@@ -303,43 +382,46 @@
                                     <button @click="open = true"
                                             type="button"
                                             title="Cancelar e estornar esta ocorrência"
-                                            class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 hover:text-red-700 border border-red-200 hover:border-red-300 transition-all focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-1">
+                                            class="inline-flex items-center justify-center w-8 h-8 rounded-lg
+                                                   bg-red-50 hover:bg-red-100 text-red-500 hover:text-red-700
+                                                   border border-red-200 hover:border-red-300 transition-all
+                                                   focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-1">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                                         </svg>
                                     </button>
 
-                                    {# Modal de confirmação de cancelamento #}
+                                    {# Modal de confirmação #}
                                     <div x-show="open"
-                                        x-cloak
-                                        @keydown.escape.window="if(!loading) open = false"
-                                        class="fixed inset-0 z-50 flex items-center justify-center p-4"
-                                        style="display:none">
+                                         x-cloak
+                                         @keydown.escape.window="if(!loading) open = false"
+                                         class="fixed inset-0 z-50 flex items-center justify-center p-4"
+                                         style="display:none">
 
                                         <div class="absolute inset-0 bg-black/50 backdrop-blur-sm"
-                                            @click="if(!loading) open = false"
-                                            x-transition:enter="transition ease-out duration-200"
-                                            x-transition:enter-start="opacity-0"
-                                            x-transition:enter-end="opacity-100"
-                                            x-transition:leave="transition ease-in duration-150"
-                                            x-transition:leave-start="opacity-100"
-                                            x-transition:leave-end="opacity-0">
+                                             @click="if(!loading) open = false"
+                                             x-transition:enter="transition ease-out duration-200"
+                                             x-transition:enter-start="opacity-0"
+                                             x-transition:enter-end="opacity-100"
+                                             x-transition:leave="transition ease-in duration-150"
+                                             x-transition:leave-start="opacity-100"
+                                             x-transition:leave-end="opacity-0">
                                         </div>
 
                                         <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 z-10"
-                                            x-transition:enter="transition ease-out duration-200"
-                                            x-transition:enter-start="opacity-0 scale-95"
-                                            x-transition:enter-end="opacity-100 scale-100"
-                                            x-transition:leave="transition ease-in duration-150"
-                                            x-transition:leave-start="opacity-100 scale-100"
-                                            x-transition:leave-end="opacity-0 scale-95">
+                                             x-transition:enter="transition ease-out duration-200"
+                                             x-transition:enter-start="opacity-0 scale-95"
+                                             x-transition:enter-end="opacity-100 scale-100"
+                                             x-transition:leave="transition ease-in duration-150"
+                                             x-transition:leave-start="opacity-100 scale-100"
+                                             x-transition:leave-end="opacity-0 scale-95">
 
                                             <div class="flex items-start gap-4 mb-5">
                                                 <div class="flex-shrink-0 w-12 h-12 rounded-xl bg-red-100 flex items-center justify-center">
                                                     <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                                              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
                                                     </svg>
                                                 </div>
                                                 <div>
@@ -370,7 +452,7 @@
                                             <div class="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-5">
                                                 <svg class="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                                 </svg>
                                                 <p class="text-xs text-amber-700">O registro original será mantido no histórico para auditoria,<br>
                                                     marcado como cancelado com data e responsável.</p>
@@ -401,7 +483,7 @@
                                                     <template x-if="!loading">
                                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                                                         </svg>
                                                     </template>
                                                     <span x-text="loading ? 'Cancelando...' : 'Sim, cancelar'"></span>
@@ -422,6 +504,7 @@
         </div>
     </div>
 
+    {# ══ Paginação ══ #}
     {% if is_paginated %}
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 px-6 py-4">
         <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -459,6 +542,7 @@
     {% endif %}
 
     {% else %}
+    {# ══ Estado vazio ══ #}
     <div class="bg-white rounded-2xl border border-gray-200 text-center py-16 px-6">
         <div class="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gray-100 mb-6">
             <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

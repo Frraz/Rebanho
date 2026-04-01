@@ -47,10 +47,17 @@ urlpatterns = [
 
     # ── Cancelamento (estorno) ────────────────────────────────────────────────
     # POST only — @require_http_methods(["POST"]) na view
-    # UUID garante que apenas IDs válidos chegam ao banco
     path(
         '<uuid:pk>/cancelar/',
         ocorrencias.occurrence_cancel_view,
         name='cancelar'
+    ),
+
+    # ── Exportação PDF ────────────────────────────────────────────────────────
+    # GET — respeita os mesmos query params da listagem
+    path(
+        'exportar/pdf/',
+        ocorrencias.occurrence_pdf_view,
+        name='pdf'
     ),
 ]
