@@ -9,7 +9,28 @@ from typing import Dict, List, Any, Optional
 from farms.models import Farm
 from inventory.models import AnimalCategory
 from reporting.services.farm_report_service import FarmReportService
-from reporting.services.category_utils import sort_categories  # ← NOVO
+from reporting.services.category_utils import sort_categories
+from reporting.services.farm_utils import sort_farms, FARM_ORDER
+
+
+# ── Helper para ordenar farm_reports (dataclass ou dict) ──────────────────────
+
+_FARM_POSITIONS = {name: i for i, name in enumerate(FARM_ORDER)}
+
+
+def _sort_farm_reports(reports):
+    """
+    Ordena lista de relatórios individuais na ordem canônica das fazendas.
+    Aceita tanto dataclass (report.farm.name) quanto dict (report['farm'].name).
+    """
+    max_pos = len(_FARM_POSITIONS)
+
+    def key(r):
+        farm = r.farm if hasattr(r, 'farm') else r.get('farm')
+        name = farm.name if hasattr(farm, 'name') else str(farm)
+        return (_FARM_POSITIONS.get(name.strip().upper(), max_pos), name)
+
+    return sorted(reports, key=key)
 
 
 class ConsolidatedReportService:
@@ -38,11 +59,10 @@ class ConsolidatedReportService:
         Returns:
             Dicionário com dados consolidados
         """
-        # Obter fazendas
         if farm_ids:
-            farms = Farm.objects.filter(id__in=farm_ids, is_active=True)
+            farms = sort_farms(Farm.objects.filter(id__in=farm_ids, is_active=True))
         else:
-            farms = Farm.objects.filter(is_active=True)
+            farms = sort_farms(Farm.objects.filter(is_active=True))
 
         # Gerar relatório individual de cada fazenda
         farm_reports = []
@@ -54,6 +74,9 @@ class ConsolidatedReportService:
                 animal_category_id=animal_category_id
             )
             farm_reports.append(report)
+
+        # Ordenar farm_reports na ordem canônica das fazendas
+        farm_reports = _sort_farm_reports(farm_reports)
 
         # Consolidar dados
         consolidated_data = ConsolidatedReportService._consolidate_reports(
@@ -74,7 +97,7 @@ class ConsolidatedReportService:
             'consolidado': consolidated_data['consolidado'],
             'detalhamento': consolidated_data['detalhamento'],
             'estoque_final': consolidated_data['estoque_final'],
-            'farm_reports': farm_reports,  # Relatórios individuais
+            'farm_reports': farm_reports,
         }
 
     @staticmethod
@@ -116,30 +139,24 @@ class ConsolidatedReportService:
             'estoque_final': {}
         }
 
-        # Consolidar cada relatório
         for report in farm_reports:
-            # Categorias — acumula nomes em um set para deduplicar
             consolidated['categories'].update(report.categories)
 
-            # Estoque inicial
             for category, qty in report.estoque_inicial.items():
                 consolidated['estoque_inicial'][category] = \
                     consolidated['estoque_inicial'].get(category, 0) + qty
 
-            # Ocorrências
             for op_type in ['morte', 'venda', 'abate', 'doacao']:
                 for category, qty in getattr(report.ocorrencias, op_type).items():
                     consolidated['ocorrencias'][op_type][category] = \
                         consolidated['ocorrencias'][op_type].get(category, 0) + qty
 
-            # Entradas
             for op_type in ['nascimento', 'desmame', 'compra', 'saldo',
                             'manejo_in', 'manejo_out', 'mudanca_in', 'mudanca_out']:
                 for category, qty in getattr(report.entradas, op_type).items():
                     consolidated['entradas'][op_type][category] = \
                         consolidated['entradas'][op_type].get(category, 0) + qty
 
-            # Consolidado
             for category, qty in report.consolidado.entradas.items():
                 consolidated['consolidado']['entradas'][category] = \
                     consolidated['consolidado']['entradas'].get(category, 0) + qty
@@ -148,28 +165,21 @@ class ConsolidatedReportService:
                 consolidated['consolidado']['saidas'][category] = \
                     consolidated['consolidado']['saidas'].get(category, 0) + qty
 
-            # Detalhamento (concatenar listas)
             consolidated['detalhamento']['mortes'].extend(report.detalhamento.mortes)
             consolidated['detalhamento']['vendas'].extend(report.detalhamento.vendas)
             consolidated['detalhamento']['abates'].extend(report.detalhamento.abates)
             consolidated['detalhamento']['doacoes'].extend(report.detalhamento.doacoes)
 
-            # Estoque final
             for category, qty in report.estoque_final.items():
                 consolidated['estoque_final'][category] = \
                     consolidated['estoque_final'].get(category, 0) + qty
 
-        # ── ORDENAÇÃO CANÔNICA ──────────────────────────────────────────────
-        # Substituído sorted() alfabético por sort_categories(), que respeita
-        # a sequência zootécnica definida em CATEGORY_ORDER (category_utils.py).
-        # As strings do set são passadas diretamente — sort_categories() aceita
-        # tanto strings quanto objetos com .name.
+        # Ordenação canônica das categorias
         consolidated['categories'] = sort_categories(
             list(consolidated['categories'])
         )
-        # ───────────────────────────────────────────────────────────────────
 
-        # Ordenar detalhamentos por data
+        # Ordenar detalhamentos por data (mais recente primeiro)
         for key in ['mortes', 'vendas', 'abates', 'doacoes']:
             consolidated['detalhamento'][key].sort(key=lambda x: x['data'], reverse=True)
 

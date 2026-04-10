@@ -1,9 +1,9 @@
 """
 Utilitários de ordenação de categorias de animais para relatórios.
 
-A ordem canônica segue a sequência zootécnica do rebanho:
-touros e vacas primeiro, bezerros, novilhos, primíparas,
-bois, descartes e rufião por último.
+Ordem canônica definida pelo cliente:
+Touros > Vacas > B. Macho > B. Fêmea > Nov. - 2A. > Nov. - 3A. >
+V. Primip > Bois - 2A. > Rufião
 """
 
 CATEGORY_ORDER = [
@@ -12,15 +12,27 @@ CATEGORY_ORDER = [
     "B. MACHO",
     "B. FÊMEA",
     "NOV - 2 A.",
+    "NOV. - 2A.",
     "NOV - 3 A.",
+    "NOV. - 3A.",
     "V. PRIMIP",
     "BOIS - 2 A.",
-    "BOIS - 2-3 A.",
-    "DESC. VACAS",
-    "DESC. NOV",
-    "DESC. BOIS",
+    "BOIS - 2A.",
     "RUFIÃO",
 ]
+
+# Posições canônicas (variantes ocupam a mesma posição)
+_CANONICAL_POSITIONS = {}
+_counter = 0
+for _name in CATEGORY_ORDER:
+    _key = " ".join(_name.strip().upper().split())
+    if _key not in _CANONICAL_POSITIONS:
+        _CANONICAL_POSITIONS[_key] = _counter
+        _counter += 1
+
+
+def _normalize_name(name: str) -> str:
+    return " ".join(name.strip().upper().split())
 
 
 def sort_categories(categories):
@@ -30,20 +42,13 @@ def sort_categories(categories):
     Aceita tanto objetos ORM com atributo `.name` quanto strings puras.
     Categorias não presentes na lista canônica aparecem ao final,
     em ordem alfabética.
-
-    Uso:
-        # QuerySet de objetos ORM
-        categories = sort_categories(list(AnimalCategory.objects.filter(is_active=True)))
-
-        # Lista de strings
-        categories = sort_categories(["VACAS", "TOUROS", "RUFIÃO"])
     """
+    max_pos = len(_CANONICAL_POSITIONS)
+
     def sort_key(cat):
         name = cat.name if hasattr(cat, "name") else str(cat)
-        name_upper = name.strip().upper()
-        try:
-            return (CATEGORY_ORDER.index(name_upper), name_upper)
-        except ValueError:
-            return (len(CATEGORY_ORDER), name_upper)
+        name_upper = _normalize_name(name)
+        pos = _CANONICAL_POSITIONS.get(name_upper, max_pos)
+        return (pos, name_upper)
 
     return sorted(categories, key=sort_key)

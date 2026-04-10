@@ -9,13 +9,14 @@ from django.views.decorators.http import require_http_methods
 from django.http import HttpResponse, Http404
 from datetime import date
 import calendar
-from typing import Tuple, Dict, List, Optional
+from typing import Tuple, List, Optional
 import logging
 
 from farms.models import Farm
 from inventory.models import AnimalCategory
 from reporting.services.farm_report_service import FarmReportService
 from reporting.services.consolidated_report_service import ConsolidatedReportService
+from reporting.services.farm_utils import sort_farms
 
 logger = logging.getLogger(__name__)
 
@@ -127,7 +128,7 @@ def farm_report_view(request):
     Relatório por fazenda com filtros na mesma página.
     """
     try:
-        farms      = Farm.objects.filter(is_active=True).order_by('name')
+        farms      = sort_farms(Farm.objects.filter(is_active=True))
         categories = AnimalCategory.objects.filter(is_active=True).order_by('name')
 
         today = date.today()
@@ -212,7 +213,7 @@ def consolidated_report_view(request):
             'categories':          categories,
             'report':              report,
             'selected_category_id': category_id,
-            'selected_month':      month,    # 0 = todos os meses
+            'selected_month':      month,
             'selected_year':       year,
             'months':              months,
             'years':               years,
@@ -263,7 +264,7 @@ def farm_report_pdf_view(request):
         'report':           report,
         'user':             request.user,
         'prev_month_label': prev_month_label,
-        'selected_month':   month,   # ← necessário para lógica anual no template
+        'selected_month':   month,
         'selected_year':    year,
         'pdf_filename':     f"relatorio_{farm.name}_{report.period.start.strftime('%m_%Y')}.pdf",
     }
@@ -302,9 +303,9 @@ def consolidated_report_pdf_view(request):
         return _render_pdf('reporting/consolidated_report_pdf.html', {
             'report':         report,
             'user':           request.user,
-            'pdf_filename':   filename,
             'selected_month': month,
             'selected_year':  year,
+            'pdf_filename':   filename,
         })
 
     except Exception as e:
@@ -333,7 +334,7 @@ def report_index_view(request):
     months, years = _get_period_selects(today)
 
     context = {
-        'farms':            Farm.objects.filter(is_active=True).order_by('name'),
+        'farms':            sort_farms(Farm.objects.filter(is_active=True)),
         'categories':       AnimalCategory.objects.filter(is_active=True).order_by('name'),
         'months':           months,
         'years':            years,
