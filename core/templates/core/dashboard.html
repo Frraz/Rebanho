@@ -1179,8 +1179,7 @@ Gestão de Rebanhos{% endblock %} {% block extra_head %}
                 <span
                   class="text-xs sm:text-sm font-bold {% if mov.movement_type == 'ENTRADA' %}text-green-600{% else %}text-red-600{% endif %}"
                 >
-                  {% if mov.movement_type == 'ENTRADA' %}+{% else %}-{% endif
-                  %}{{ mov.quantity }}
+                  {% if mov.movement_type == 'ENTRADA' %}+{% else %}-{% endif %}{{ mov.quantity }}
                 </span>
               </td>
               <td class="col-usuario px-4 sm:px-6 py-3 sm:py-4">

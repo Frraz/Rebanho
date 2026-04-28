@@ -1,0 +1,3 @@
+# Templates Django — Prettier quebra tags de template
+**/templates/**/*.html
+templates/**/*.html
