@@ -6,7 +6,7 @@
 
 {% block extra_head %}
 <style>
-    /* Custom styles para campos de formulário */
+    /* ✅ ALTERADO: removido input[type="datetime-local"] — não usado no sistema */
     input[type="text"],
     input[type="email"],
     input[type="number"],
@@ -15,11 +15,10 @@
     input[type="url"],
     input[type="date"],
     input[type="time"],
-    input[type="datetime-local"],
     textarea,
     select {
-        @apply block w-full px-4 py-3 border border-gray-300 rounded-xl text-sm placeholder-gray-400 
-               focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent 
+        @apply block w-full px-4 py-3 border border-gray-300 rounded-xl text-sm placeholder-gray-400
+               focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent
                transition-all duration-200;
     }
 
@@ -50,9 +49,9 @@
     }
 
     input[type="file"] {
-        @apply block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 
-               file:rounded-lg file:border-0 file:text-sm file:font-semibold 
-               file:bg-green-50 file:text-green-700 hover:file:bg-green-100 
+        @apply block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4
+               file:rounded-lg file:border-0 file:text-sm file:font-semibold
+               file:bg-green-50 file:text-green-700 hover:file:bg-green-100
                file:cursor-pointer cursor-pointer;
     }
 </style>
@@ -67,7 +66,7 @@
     <div class="flex items-center justify-between">
         <div class="flex items-center gap-4">
             {% if show_back_button %}
-            <a href="{{ cancel_url|default:request.META.HTTP_REFERER }}" 
+            <a href="{{ cancel_url|default:request.META.HTTP_REFERER }}"
                class="inline-flex items-center justify-center w-10 h-10 rounded-xl border border-gray-300 text-gray-600 hover:bg-gray-50 transition-all"
                title="Voltar">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -96,7 +95,7 @@
     <!-- ══════════════════════════════════════════════════════════
          FORM
     ══════════════════════════════════════════════════════════ -->
-    <form method="post" 
+    <form method="post"
           enctype="{% if form.is_multipart %}multipart/form-data{% else %}application/x-www-form-urlencoded{% endif %}"
           class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
           x-data="formHandler()">
@@ -178,7 +177,7 @@
                 </div>
 
                 <div class="flex items-center gap-3">
-                    <a href="{{ cancel_url|default:request.META.HTTP_REFERER }}" 
+                    <a href="{{ cancel_url|default:request.META.HTTP_REFERER }}"
                        class="inline-flex items-center gap-2 px-5 py-3 border-2 border-gray-300 rounded-xl text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-400 transition-all">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
@@ -186,7 +185,7 @@
                         Cancelar
                     </a>
 
-                    <button type="submit" 
+                    <button type="submit"
                             class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
                             :disabled="submitting"
                             x-bind:class="{ 'opacity-50 cursor-not-allowed': submitting }">

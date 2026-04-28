@@ -9,28 +9,33 @@ Este módulo gerencia todas as movimentações de estoque:
 - Cancelamento/estorno de movimentações
 """
 
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib import messages
-from django.contrib.auth.decorators import login_required
-from django.views.decorators.http import require_http_methods
-from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from django.db.models import Q, Count, Sum
-from django.http import HttpResponse
-from django.urls import reverse
-from django.utils import timezone
-from django.core.exceptions import ValidationError
 import logging
 
-from inventory.forms import (
-    NascimentoForm, DesmameForm, SaldoForm, CompraForm,
-    ManejoForm, MudancaCategoriaForm,
-)
-from inventory.services import MovementService
-from inventory.domain import OperationType
-from inventory.models import AnimalMovement
-from operations.services import TransferService
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ValidationError
+from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
+from django.db.models import Count, Q, Sum
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+from django.utils import timezone
+from django.views.decorators.http import require_http_methods
+
+from core.utils.decimal_utils import normalize_pt_br_decimal
 from farms.models import Farm
-from core.utils.decimal_utils import normalize_pt_br_decimal 
+from inventory.domain import OperationType
+from inventory.forms import (
+    CompraForm,
+    DesmameForm,
+    ManejoForm,
+    MudancaCategoriaForm,
+    NascimentoForm,
+    SaldoForm,
+)
+from inventory.models import AnimalMovement
+from inventory.services import MovementService
+from operations.services import TransferService
 
 logger = logging.getLogger(__name__)
 
@@ -44,18 +49,18 @@ OCCURRENCE_TYPES = {
 
 # Labels para tipos de movimentação
 OPERATION_TYPE_LABELS = {
-    OperationType.NASCIMENTO.value: 'Nascimento',
-    OperationType.COMPRA.value: 'Compra',
-    OperationType.DESMAME_IN.value: 'Desmame (+)',
-    OperationType.DESMAME_OUT.value: 'Desmame (-)',
-    OperationType.SALDO.value: 'Ajuste de Saldo',
-    OperationType.MANEJO_IN.value: 'Manejo (Entrada)',
-    OperationType.MANEJO_OUT.value: 'Manejo (Saída)',
-    OperationType.MUDANCA_CATEGORIA_IN.value: 'Mudança Categoria (+)',
-    OperationType.MUDANCA_CATEGORIA_OUT.value: 'Mudança Categoria (-)',
+    OperationType.NASCIMENTO.value: "Nascimento",
+    OperationType.COMPRA.value: "Compra",
+    OperationType.DESMAME_IN.value: "Desmame (+)",
+    OperationType.DESMAME_OUT.value: "Desmame (-)",
+    OperationType.SALDO.value: "Ajuste de Saldo",
+    OperationType.MANEJO_IN.value: "Manejo (Entrada)",
+    OperationType.MANEJO_OUT.value: "Manejo (Saída)",
+    OperationType.MUDANCA_CATEGORIA_IN.value: "Mudança Categoria (+)",
+    OperationType.MUDANCA_CATEGORIA_OUT.value: "Mudança Categoria (-)",
 }
 
-# Operações compostas (não permitem edição de quantidade)
+# Operações compostas: edição de quantidade bloqueada
 COMPOSITE_OPERATIONS = {
     OperationType.MANEJO_IN.value,
     OperationType.MANEJO_OUT.value,
@@ -70,42 +75,43 @@ COMPOSITE_OPERATIONS = {
 # HELPERS
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 def _build_filters_context(request) -> dict:
-    search = request.GET.get('q', '').strip()
-    farm_id = request.GET.get('farm', '').strip()
-    tipo = request.GET.get('tipo', '').strip()
-    mes_str = request.GET.get('mes', '').strip()
-    ano_str = request.GET.get('ano', '').strip()
+    search = request.GET.get("q", "").strip()
+    farm_id = request.GET.get("farm", "").strip()
+    tipo = request.GET.get("tipo", "").strip()
+    mes_str = request.GET.get("mes", "").strip()
+    ano_str = request.GET.get("ano", "").strip()
 
     return {
-        'search': search,
-        'farm_id': farm_id,
-        'tipo': tipo,
-        'mes': mes_str,
-        'ano': ano_str,
-        'has_filters': any([search, farm_id, tipo, mes_str, ano_str]),
+        "search": search,
+        "farm_id": farm_id,
+        "tipo": tipo,
+        "mes": mes_str,
+        "ano": ano_str,
+        "has_filters": any([search, farm_id, tipo, mes_str, ano_str]),
     }
 
 
 def _apply_movement_filters(queryset, filters: dict):
-    if filters['farm_id']:
-        queryset = queryset.filter(farm_stock_balance__farm_id=filters['farm_id'])
+    if filters["farm_id"]:
+        queryset = queryset.filter(farm_stock_balance__farm_id=filters["farm_id"])
 
-    if filters['tipo']:
-        queryset = queryset.filter(operation_type=filters['tipo'])
+    if filters["tipo"]:
+        queryset = queryset.filter(operation_type=filters["tipo"])
 
-    if filters['mes'] and filters['mes'].isdigit():
-        queryset = queryset.filter(timestamp__month=int(filters['mes']))
+    if filters["mes"] and filters["mes"].isdigit():
+        queryset = queryset.filter(timestamp__month=int(filters["mes"]))
 
-    if filters['ano'] and filters['ano'].isdigit():
-        queryset = queryset.filter(timestamp__year=int(filters['ano']))
+    if filters["ano"] and filters["ano"].isdigit():
+        queryset = queryset.filter(timestamp__year=int(filters["ano"]))
 
-    if filters['search']:
+    if filters["search"]:
         queryset = queryset.filter(
-            Q(farm_stock_balance__farm__name__icontains=filters['search']) |
-            Q(farm_stock_balance__animal_category__name__icontains=filters['search']) |
-            Q(created_by__username__icontains=filters['search']) |
-            Q(metadata__observacao__icontains=filters['search'])
+            Q(farm_stock_balance__farm__name__icontains=filters["search"])
+            | Q(farm_stock_balance__animal_category__name__icontains=filters["search"])
+            | Q(created_by__username__icontains=filters["search"])
+            | Q(metadata__observacao__icontains=filters["search"])
         )
 
     return queryset
@@ -115,6 +121,7 @@ def _apply_movement_filters(queryset, filters: dict):
 # LISTAGEM
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 @login_required
 @require_http_methods(["GET"])
 def movement_list_view(request):
@@ -122,22 +129,21 @@ def movement_list_view(request):
         filters = _build_filters_context(request)
 
         queryset = (
-            AnimalMovement.objects
-            .exclude(operation_type__in=OCCURRENCE_TYPES)
+            AnimalMovement.objects.exclude(operation_type__in=OCCURRENCE_TYPES)
             .select_related(
-                'farm_stock_balance__farm',
-                'farm_stock_balance__animal_category',
-                'created_by',
-                'cancellation',
-                'cancellation__cancelled_by',
+                "farm_stock_balance__farm",
+                "farm_stock_balance__animal_category",
+                "created_by",
+                "cancellation",
+                "cancellation__cancelled_by",
             )
-            .order_by('-timestamp', '-created_at')
+            .order_by("-timestamp", "-created_at")
         )
 
         queryset = _apply_movement_filters(queryset, filters)
 
         paginator = Paginator(queryset, 25)
-        page_number = request.GET.get('page', 1)
+        page_number = request.GET.get("page", 1)
 
         try:
             page_obj = paginator.page(page_number)
@@ -147,384 +153,446 @@ def movement_list_view(request):
             page_obj = paginator.page(paginator.num_pages)
 
         tipos_disponiveis = (
-            AnimalMovement.objects
-            .exclude(operation_type__in=OCCURRENCE_TYPES)
-            .values_list('operation_type', flat=True)
+            AnimalMovement.objects.exclude(operation_type__in=OCCURRENCE_TYPES)
+            .values_list("operation_type", flat=True)
             .distinct()
-            .order_by('operation_type')
+            .order_by("operation_type")
         )
 
         tipos_disponiveis_com_label = [
-            {'value': tipo, 'label': OPERATION_TYPE_LABELS.get(tipo, tipo)}
+            {"value": tipo, "label": OPERATION_TYPE_LABELS.get(tipo, tipo)}
             for tipo in tipos_disponiveis
         ]
 
+        # timezone.now() mantido aqui — serve apenas para calcular o ano atual
         ano_atual = timezone.now().year
         anos = list(range(ano_atual, ano_atual - 6, -1))
         meses = [
-            ('1', 'Janeiro'), ('2', 'Fevereiro'), ('3', 'Março'),
-            ('4', 'Abril'), ('5', 'Maio'), ('6', 'Junho'),
-            ('7', 'Julho'), ('8', 'Agosto'), ('9', 'Setembro'),
-            ('10', 'Outubro'), ('11', 'Novembro'), ('12', 'Dezembro'),
+            ("1", "Janeiro"),
+            ("2", "Fevereiro"),
+            ("3", "Março"),
+            ("4", "Abril"),
+            ("5", "Maio"),
+            ("6", "Junho"),
+            ("7", "Julho"),
+            ("8", "Agosto"),
+            ("9", "Setembro"),
+            ("10", "Outubro"),
+            ("11", "Novembro"),
+            ("12", "Dezembro"),
         ]
 
         stats = None
-        if not filters['has_filters']:
+        if not filters["has_filters"]:
             stats = queryset.aggregate(
-                total_movimentacoes=Count('id'),
-                total_quantidade=Sum('quantity'),
+                total_movimentacoes=Count("id"),
+                total_quantidade=Sum("quantity"),
             )
 
         context = {
-            'page_obj': page_obj,
-            'paginator': paginator,
-            'total_count': paginator.count,
-            'search_term': filters['search'],
-            'farm_filtro': filters['farm_id'],
-            'tipo_filtro': filters['tipo'],
-            'mes_filtro': filters['mes'],
-            'ano_filtro': filters['ano'],
-            'filtros_ativos': filters['has_filters'],
-            'farms': Farm.objects.filter(is_active=True).order_by('name'),
-            'tipos_disponiveis': tipos_disponiveis_com_label,
-            'anos': anos,
-            'meses': meses,
-            'stats': stats,
+            "page_obj": page_obj,
+            "paginator": paginator,
+            "total_count": paginator.count,
+            "search_term": filters["search"],
+            "farm_filtro": filters["farm_id"],
+            "tipo_filtro": filters["tipo"],
+            "mes_filtro": filters["mes"],
+            "ano_filtro": filters["ano"],
+            "filtros_ativos": filters["has_filters"],
+            "farms": Farm.objects.filter(is_active=True).order_by("name"),
+            "tipos_disponiveis": tipos_disponiveis_com_label,
+            "anos": anos,
+            "meses": meses,
+            "stats": stats,
         }
 
-        return render(request, 'inventory/movement_list.html', context)
+        return render(request, "inventory/movement_list.html", context)
 
     except Exception as e:
         logger.error(f"Erro na listagem de movimentações: {str(e)}", exc_info=True)
-        messages.error(request, 'Erro ao carregar movimentações. Por favor, tente novamente.')
-        return render(request, 'inventory/movement_list.html', {
-            'page_obj': None,
-            'total_count': 0,
-        })
+        messages.error(
+            request, "Erro ao carregar movimentações. Por favor, tente novamente."
+        )
+        return render(
+            request,
+            "inventory/movement_list.html",
+            {
+                "page_obj": None,
+                "total_count": 0,
+            },
+        )
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # CADASTRO DE MOVIMENTAÇÕES
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 @login_required
 @require_http_methods(["GET", "POST"])
 def nascimento_create_view(request):
-    if request.method == 'POST':
+    if request.method == "POST":
         form = NascimentoForm(request.POST)
         if form.is_valid():
             try:
-                metadata = {'observacao': form.cleaned_data.get('observacao', '')}
-                if form.cleaned_data.get('peso'):
-                    metadata['peso'] = str(form.cleaned_data['peso'])
+                metadata = {"observacao": form.cleaned_data.get("observacao", "")}
+                if form.cleaned_data.get("peso"):
+                    metadata["peso"] = str(form.cleaned_data["peso"])
 
                 movement = MovementService.execute_entrada(
-                    farm_id=str(form.cleaned_data['farm'].id),
-                    animal_category_id=str(form.cleaned_data['animal_category'].id),
+                    farm_id=str(form.cleaned_data["farm"].id),
+                    animal_category_id=str(form.cleaned_data["animal_category"].id),
                     operation_type=OperationType.NASCIMENTO,
-                    quantity=form.cleaned_data['quantity'],
+                    quantity=form.cleaned_data["quantity"],
                     user=request.user,
-                    timestamp=form.cleaned_data.get('timestamp'),
+                    timestamp=form.cleaned_data.get("timestamp"),
                     metadata=metadata,
-                    ip_address=request.META.get('REMOTE_ADDR'),
+                    ip_address=request.META.get("REMOTE_ADDR"),
                 )
 
                 messages.success(
                     request,
-                    f'Nascimento registrado com sucesso! '
-                    f'{movement.quantity} {movement.farm_stock_balance.animal_category.name} '
-                    f'em {movement.farm_stock_balance.farm.name}.'
+                    f"Nascimento registrado com sucesso! "
+                    f"{movement.quantity} {movement.farm_stock_balance.animal_category.name} "
+                    f"em {movement.farm_stock_balance.farm.name}.",
                 )
-                return redirect('movimentacoes:list')
+                return redirect("movimentacoes:list")
 
             except Exception as e:
                 logger.error(f"Erro ao registrar nascimento: {str(e)}", exc_info=True)
-                messages.error(request, f'Erro ao registrar nascimento: {str(e)}')
+                messages.error(request, f"Erro ao registrar nascimento: {str(e)}")
     else:
         form = NascimentoForm()
 
-    return render(request, 'shared/generic_form.html', {
-        'form': form,
-        'form_title': 'Registrar Nascimento',
-        'form_description': 'Registre o nascimento de novos animais',
-        'submit_button_text': 'Registrar Nascimento',
-        'cancel_url': reverse('movimentacoes:list'),
-        'show_back_button': True,
-    })
+    return render(
+        request,
+        "shared/generic_form.html",
+        {
+            "form": form,
+            "form_title": "Registrar Nascimento",
+            "form_description": "Registre o nascimento de novos animais",
+            "submit_button_text": "Registrar Nascimento",
+            "cancel_url": reverse("movimentacoes:list"),
+            "show_back_button": True,
+        },
+    )
 
 
 @login_required
 @require_http_methods(["GET", "POST"])
 def desmame_create_view(request):
-    if request.method == 'POST':
+    if request.method == "POST":
         form = DesmameForm(request.POST)
         if form.is_valid():
             try:
-                qty_males = form.cleaned_data.get('quantity_males', 0) or 0
-                qty_females = form.cleaned_data.get('quantity_females', 0) or 0
+                qty_males = form.cleaned_data.get("quantity_males", 0) or 0
+                qty_females = form.cleaned_data.get("quantity_females", 0) or 0
 
                 TransferService.execute_desmame(
-                    farm_id=str(form.cleaned_data['farm'].id),
+                    farm_id=str(form.cleaned_data["farm"].id),
                     quantity_males=qty_males,
                     quantity_females=qty_females,
                     user=request.user,
-                    timestamp=form.cleaned_data.get('timestamp'),
-                    metadata={'observacao': form.cleaned_data.get('observacao', '')},
-                    ip_address=request.META.get('REMOTE_ADDR'),
+                    timestamp=form.cleaned_data.get("timestamp"),
+                    metadata={"observacao": form.cleaned_data.get("observacao", "")},
+                    ip_address=request.META.get("REMOTE_ADDR"),
                 )
 
                 partes = []
                 if qty_males > 0:
-                    partes.append(f'{qty_males} B. Macho para Bois - 2A.')
+                    partes.append(f"{qty_males} B. Macho para Bois - 2A.")
                 if qty_females > 0:
-                    partes.append(f'{qty_females} B. Femea para Nov. - 2A.')
+                    partes.append(f"{qty_females} B. Femea para Nov. - 2A.")
 
                 messages.success(
                     request,
-                    f'Desmame realizado com sucesso em {form.cleaned_data["farm"].name}! '
-                    f'{" e ".join(partes)}.'
+                    f"Desmame realizado com sucesso em {form.cleaned_data['farm'].name}! "
+                    f"{' e '.join(partes)}.",
                 )
-                return redirect('movimentacoes:list')
+                return redirect("movimentacoes:list")
 
             except Exception as e:
                 logger.error(f"Erro ao registrar desmame: {str(e)}", exc_info=True)
-                messages.error(request, f'Erro ao registrar desmame: {str(e)}')
+                messages.error(request, f"Erro ao registrar desmame: {str(e)}")
     else:
         form = DesmameForm()
 
-    return render(request, 'shared/generic_form.html', {
-        'form': form,
-        'form_title': 'Registrar Desmame',
-        'form_description': 'O desmame transfere automaticamente: B. Macho para Bois - 2A. e B. Femea para Nov. - 2A.',
-        'submit_button_text': 'Registrar Desmame',
-        'cancel_url': reverse('movimentacoes:list'),
-        'show_back_button': True,
-    })
+    return render(
+        request,
+        "shared/generic_form.html",
+        {
+            "form": form,
+            "form_title": "Registrar Desmame",
+            "form_description": "O desmame transfere automaticamente: B. Macho para Bois - 2A. e B. Femea para Nov. - 2A.",
+            "submit_button_text": "Registrar Desmame",
+            "cancel_url": reverse("movimentacoes:list"),
+            "show_back_button": True,
+        },
+    )
 
 
 @login_required
 @require_http_methods(["GET", "POST"])
 def saldo_create_view(request):
-    if request.method == 'POST':
+    if request.method == "POST":
         form = SaldoForm(request.POST)
         if form.is_valid():
             try:
                 movement = MovementService.execute_entrada(
-                    farm_id=str(form.cleaned_data['farm'].id),
-                    animal_category_id=str(form.cleaned_data['animal_category'].id),
+                    farm_id=str(form.cleaned_data["farm"].id),
+                    animal_category_id=str(form.cleaned_data["animal_category"].id),
                     operation_type=OperationType.SALDO,
-                    quantity=form.cleaned_data['quantity'],
+                    quantity=form.cleaned_data["quantity"],
                     user=request.user,
-                    timestamp=form.cleaned_data.get('timestamp'),
-                    metadata={'observacao': form.cleaned_data.get('observacao', '')},
-                    ip_address=request.META.get('REMOTE_ADDR'),
+                    timestamp=form.cleaned_data.get("timestamp"),
+                    metadata={"observacao": form.cleaned_data.get("observacao", "")},
+                    ip_address=request.META.get("REMOTE_ADDR"),
                 )
 
-                messages.success(request, f'Saldo ajustado com sucesso! {movement.quantity} unidades adicionadas.')
-                return redirect('movimentacoes:list')
+                messages.success(
+                    request,
+                    f"Saldo ajustado com sucesso! {movement.quantity} unidades adicionadas.",
+                )
+                return redirect("movimentacoes:list")
 
             except Exception as e:
                 logger.error(f"Erro ao ajustar saldo: {str(e)}", exc_info=True)
-                messages.error(request, f'Erro ao ajustar saldo: {str(e)}')
+                messages.error(request, f"Erro ao ajustar saldo: {str(e)}")
     else:
         form = SaldoForm()
 
-    return render(request, 'shared/generic_form.html', {
-        'form': form,
-        'form_title': 'Ajustar Saldo de Estoque',
-        'form_description': 'Ajuste manual de saldo para correção de inventário',
-        'submit_button_text': 'Confirmar Ajuste',
-        'cancel_url': reverse('movimentacoes:list'),
-        'show_back_button': True,
-        'form_badge': 'Atenção',
-        'form_badge_color': 'yellow',
-        'show_additional_info': True,
-        'additional_info_text': 'Este ajuste deve ser usado apenas para correções de inventário ou reconciliações autorizadas. Todas as alterações são auditadas.',
-    })
+    return render(
+        request,
+        "shared/generic_form.html",
+        {
+            "form": form,
+            "form_title": "Ajustar Saldo de Estoque",
+            "form_description": "Ajuste manual de saldo para correção de inventário",
+            "submit_button_text": "Confirmar Ajuste",
+            "cancel_url": reverse("movimentacoes:list"),
+            "show_back_button": True,
+            "form_badge": "Atenção",
+            "form_badge_color": "yellow",
+            "show_additional_info": True,
+            "additional_info_text": "Este ajuste deve ser usado apenas para correções de inventário ou reconciliações autorizadas. Todas as alterações são auditadas.",
+        },
+    )
 
 
 @login_required
 @require_http_methods(["GET", "POST"])
 def compra_create_view(request):
-    if request.method == 'POST':
+    if request.method == "POST":
         form = CompraForm(request.POST)
         if form.is_valid():
             try:
-                metadata = {'observacao': form.cleaned_data.get('observacao', '')}
-                if form.cleaned_data.get('peso'):
-                    metadata['peso'] = str(form.cleaned_data['peso'])
-                if form.cleaned_data.get('preco_unitario'):
-                    metadata['preco_unitario'] = str(form.cleaned_data['preco_unitario'])
-                if form.cleaned_data.get('fornecedor'):
-                    metadata['fornecedor'] = form.cleaned_data['fornecedor']
+                metadata = {"observacao": form.cleaned_data.get("observacao", "")}
+                if form.cleaned_data.get("peso"):
+                    metadata["peso"] = str(form.cleaned_data["peso"])
+                if form.cleaned_data.get("preco_unitario"):
+                    metadata["preco_unitario"] = str(
+                        form.cleaned_data["preco_unitario"]
+                    )
+                if form.cleaned_data.get("fornecedor"):
+                    metadata["fornecedor"] = form.cleaned_data["fornecedor"]
 
                 movement = MovementService.execute_entrada(
-                    farm_id=str(form.cleaned_data['farm'].id),
-                    animal_category_id=str(form.cleaned_data['animal_category'].id),
+                    farm_id=str(form.cleaned_data["farm"].id),
+                    animal_category_id=str(form.cleaned_data["animal_category"].id),
                     operation_type=OperationType.COMPRA,
-                    quantity=form.cleaned_data['quantity'],
+                    quantity=form.cleaned_data["quantity"],
                     user=request.user,
-                    timestamp=form.cleaned_data.get('timestamp'),
+                    timestamp=form.cleaned_data.get("timestamp"),
                     metadata=metadata,
-                    ip_address=request.META.get('REMOTE_ADDR'),
+                    ip_address=request.META.get("REMOTE_ADDR"),
                 )
 
                 messages.success(
                     request,
-                    f'Compra registrada com sucesso! {movement.quantity} '
-                    f'{movement.farm_stock_balance.animal_category.name} adquiridos.'
+                    f"Compra registrada com sucesso! {movement.quantity} "
+                    f"{movement.farm_stock_balance.animal_category.name} adquiridos.",
                 )
-                return redirect('movimentacoes:list')
+                return redirect("movimentacoes:list")
 
             except Exception as e:
                 logger.error(f"Erro ao registrar compra: {str(e)}", exc_info=True)
-                messages.error(request, f'Erro ao registrar compra: {str(e)}')
+                messages.error(request, f"Erro ao registrar compra: {str(e)}")
     else:
         form = CompraForm()
 
-    return render(request, 'shared/generic_form.html', {
-        'form': form,
-        'form_title': 'Registrar Compra',
-        'form_description': 'Registre a aquisição de novos animais',
-        'submit_button_text': 'Registrar Compra',
-        'cancel_url': reverse('movimentacoes:list'),
-        'show_back_button': True,
-    })
+    return render(
+        request,
+        "shared/generic_form.html",
+        {
+            "form": form,
+            "form_title": "Registrar Compra",
+            "form_description": "Registre a aquisição de novos animais",
+            "submit_button_text": "Registrar Compra",
+            "cancel_url": reverse("movimentacoes:list"),
+            "show_back_button": True,
+        },
+    )
 
 
 @login_required
 @require_http_methods(["GET", "POST"])
 def manejo_create_view(request):
-    if request.method == 'POST':
+    if request.method == "POST":
         form = ManejoForm(request.POST)
         if form.is_valid():
             try:
-                if form.cleaned_data['farm'] == form.cleaned_data['target_farm']:
-                    messages.error(request, 'Fazenda de origem e destino não podem ser as mesmas!')
-                    return render(request, 'shared/generic_form.html', {
-                        'form': form,
-                        'form_title': 'Registrar Manejo',
-                    })
+                if form.cleaned_data["farm"] == form.cleaned_data["target_farm"]:
+                    messages.error(
+                        request, "Fazenda de origem e destino não podem ser as mesmas!"
+                    )
+                    return render(
+                        request,
+                        "shared/generic_form.html",
+                        {
+                            "form": form,
+                            "form_title": "Registrar Manejo",
+                        },
+                    )
 
                 saida, entrada = TransferService.execute_manejo(
-                    source_farm_id=str(form.cleaned_data['farm'].id),
-                    target_farm_id=str(form.cleaned_data['target_farm'].id),
-                    animal_category_id=str(form.cleaned_data['animal_category'].id),
-                    quantity=form.cleaned_data['quantity'],
+                    source_farm_id=str(form.cleaned_data["farm"].id),
+                    target_farm_id=str(form.cleaned_data["target_farm"].id),
+                    animal_category_id=str(form.cleaned_data["animal_category"].id),
+                    quantity=form.cleaned_data["quantity"],
                     user=request.user,
-                    timestamp=form.cleaned_data.get('timestamp'),
-                    metadata={'observacao': form.cleaned_data.get('observacao', '')},
-                    ip_address=request.META.get('REMOTE_ADDR'),
+                    timestamp=form.cleaned_data.get("timestamp"),
+                    metadata={"observacao": form.cleaned_data.get("observacao", "")},
+                    ip_address=request.META.get("REMOTE_ADDR"),
                 )
 
                 messages.success(
                     request,
-                    f'Manejo realizado com sucesso! {saida.quantity} '
-                    f'{saida.farm_stock_balance.animal_category.name} transferidos de '
-                    f'{saida.farm_stock_balance.farm.name} para {entrada.farm_stock_balance.farm.name}.'
+                    f"Manejo realizado com sucesso! {saida.quantity} "
+                    f"{saida.farm_stock_balance.animal_category.name} transferidos de "
+                    f"{saida.farm_stock_balance.farm.name} para {entrada.farm_stock_balance.farm.name}.",
                 )
-                return redirect('movimentacoes:list')
+                return redirect("movimentacoes:list")
 
             except Exception as e:
                 logger.error(f"Erro ao executar manejo: {str(e)}", exc_info=True)
-                messages.error(request, f'Erro no manejo: {str(e)}')
+                messages.error(request, f"Erro no manejo: {str(e)}")
     else:
         form = ManejoForm()
 
-    return render(request, 'shared/generic_form.html', {
-        'form': form,
-        'form_title': 'Registrar Manejo',
-        'form_description': 'Transfira animais entre fazendas',
-        'submit_button_text': 'Executar Manejo',
-        'cancel_url': reverse('movimentacoes:list'),
-        'show_back_button': True,
-    })
+    return render(
+        request,
+        "shared/generic_form.html",
+        {
+            "form": form,
+            "form_title": "Registrar Manejo",
+            "form_description": "Transfira animais entre fazendas",
+            "submit_button_text": "Executar Manejo",
+            "cancel_url": reverse("movimentacoes:list"),
+            "show_back_button": True,
+        },
+    )
 
 
 @login_required
 @require_http_methods(["GET", "POST"])
 def mudanca_categoria_create_view(request):
-    if request.method == 'POST':
+    if request.method == "POST":
         form = MudancaCategoriaForm(request.POST)
         if form.is_valid():
             try:
-                if form.cleaned_data['animal_category'] == form.cleaned_data['target_category']:
-                    messages.error(request, 'Categoria de origem e destino não podem ser as mesmas!')
-                    return render(request, 'shared/generic_form.html', {
-                        'form': form,
-                        'form_title': 'Mudança de Categoria',
-                    })
+                if (
+                    form.cleaned_data["animal_category"]
+                    == form.cleaned_data["target_category"]
+                ):
+                    messages.error(
+                        request,
+                        "Categoria de origem e destino não podem ser as mesmas!",
+                    )
+                    return render(
+                        request,
+                        "shared/generic_form.html",
+                        {
+                            "form": form,
+                            "form_title": "Mudança de Categoria",
+                        },
+                    )
 
                 saida, entrada = TransferService.execute_mudanca_categoria(
-                    farm_id=str(form.cleaned_data['farm'].id),
-                    source_category_id=str(form.cleaned_data['animal_category'].id),
-                    target_category_id=str(form.cleaned_data['target_category'].id),
-                    quantity=form.cleaned_data['quantity'],
+                    farm_id=str(form.cleaned_data["farm"].id),
+                    source_category_id=str(form.cleaned_data["animal_category"].id),
+                    target_category_id=str(form.cleaned_data["target_category"].id),
+                    quantity=form.cleaned_data["quantity"],
                     user=request.user,
-                    timestamp=form.cleaned_data.get('timestamp'),
-                    metadata={'observacao': form.cleaned_data.get('observacao', '')},
-                    ip_address=request.META.get('REMOTE_ADDR'),
+                    timestamp=form.cleaned_data.get("timestamp"),
+                    metadata={"observacao": form.cleaned_data.get("observacao", "")},
+                    ip_address=request.META.get("REMOTE_ADDR"),
                 )
 
                 messages.success(
                     request,
-                    f'Mudança de categoria realizada com sucesso! {saida.quantity} animais '
-                    f'mudaram de {saida.farm_stock_balance.animal_category.name} para '
-                    f'{entrada.farm_stock_balance.animal_category.name}.'
+                    f"Mudança de categoria realizada com sucesso! {saida.quantity} animais "
+                    f"mudaram de {saida.farm_stock_balance.animal_category.name} para "
+                    f"{entrada.farm_stock_balance.animal_category.name}.",
                 )
-                return redirect('movimentacoes:list')
+                return redirect("movimentacoes:list")
 
             except Exception as e:
-                logger.error(f"Erro ao executar mudança de categoria: {str(e)}", exc_info=True)
-                messages.error(request, f'Erro na mudança de categoria: {str(e)}')
+                logger.error(
+                    f"Erro ao executar mudança de categoria: {str(e)}", exc_info=True
+                )
+                messages.error(request, f"Erro na mudança de categoria: {str(e)}")
     else:
         form = MudancaCategoriaForm()
 
-    return render(request, 'shared/generic_form.html', {
-        'form': form,
-        'form_title': 'Mudança de Categoria',
-        'form_description': 'Mude animais de uma categoria para outra',
-        'submit_button_text': 'Executar Mudança',
-        'cancel_url': reverse('movimentacoes:list'),
-        'show_back_button': True,
-    })
+    return render(
+        request,
+        "shared/generic_form.html",
+        {
+            "form": form,
+            "form_title": "Mudança de Categoria",
+            "form_description": "Mude animais de uma categoria para outra",
+            "submit_button_text": "Executar Mudança",
+            "cancel_url": reverse("movimentacoes:list"),
+            "show_back_button": True,
+        },
+    )
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # CANCELAMENTO DE MOVIMENTAÇÃO (ESTORNO)
-# ══════════════════════════════════════���═══════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════════════
+
 
 @login_required
 @require_http_methods(["POST"])
 def movement_cancel_view(request, pk):
-    from inventory.models import AnimalMovementCancellation
     from inventory.domain import InsufficientStockError
+    from inventory.models import AnimalMovementCancellation
 
     movement = get_object_or_404(
-        AnimalMovement.objects
-        .select_related(
-            'farm_stock_balance__farm',
-            'farm_stock_balance__animal_category',
-        )
-        .prefetch_related(
-            'cancellation',
-            'cancellation__cancelled_by',
+        AnimalMovement.objects.select_related(
+            "farm_stock_balance__farm",
+            "farm_stock_balance__animal_category",
+        ).prefetch_related(
+            "cancellation",
+            "cancellation__cancelled_by",
         ),
         pk=pk,
     )
 
-    is_htmx = request.headers.get('HX-Request') == 'true'
+    is_htmx = request.headers.get("HX-Request") == "true"
 
     try:
         c = movement.cancellation
+        # cancelled_at é DateTimeField de auditoria — mantém hora na mensagem interna
         error_msg = (
             f"Esta movimentação já foi cancelada em "
-            f"{c.cancelled_at.strftime('%d/%m/%Y às %H:%M')} por {c.cancelled_by.username}."
+            f"{c.cancelled_at.strftime('%d/%m/%Y')} por {c.cancelled_by.username}."  # ✅ Removido "às %H:%M"
         )
         if is_htmx:
             return HttpResponse(_render_already_cancelled_row(movement, c), status=200)
         messages.warning(request, error_msg)
-        return redirect('movimentacoes:list')
+        return redirect("movimentacoes:list")
     except AnimalMovementCancellation.DoesNotExist:
         pass
 
@@ -532,53 +600,57 @@ def movement_cancel_view(request, pk):
         result = MovementService.cancel_movement(
             movement_id=str(pk),
             cancelled_by=request.user,
-            notes=request.POST.get('notes', ''),
+            notes=request.POST.get("notes", ""),
         )
 
         if is_htmx:
             return HttpResponse(_render_cancelled_row(result), status=200)
 
-        composite_msg = ' (operação composta — ambos os lados cancelados)' if result.get('is_composite') else ''
+        composite_msg = (
+            " (operação composta — ambos os lados cancelados)"
+            if result.get("is_composite")
+            else ""
+        )
         messages.success(
             request,
             f"Movimentação estornada com sucesso.{composite_msg} "
-            f"Saldo de {result['category']} em {result['farm']} revertido."
+            f"Saldo de {result['category']} em {result['farm']} revertido.",
         )
 
     except (ValidationError, InsufficientStockError) as e:
-        error_msg = e.message if hasattr(e, 'message') else str(e)
+        error_msg = e.message if hasattr(e, "message") else str(e)
         if is_htmx:
             return HttpResponse(
                 f'<tr id="movement-row-{pk}"><td colspan="7" class="px-6 py-4 text-center">'
                 f'<span class="text-red-600 text-xs font-medium px-3 py-2 bg-red-50 rounded-lg inline-block">{error_msg}</span>'
-                f'</td></tr>',
+                f"</td></tr>",
                 status=200,
             )
         messages.error(request, error_msg)
 
     except Exception:
         logger.error(
-            f"Erro inesperado no cancelamento de movimentação. Usuário: {request.user.username} | Movement: {pk}",
+            f"Erro inesperado no cancelamento. Usuário: {request.user.username} | Movement: {pk}",
             exc_info=True,
         )
         if is_htmx:
             return HttpResponse(
                 f'<tr id="movement-row-{pk}"><td colspan="7" class="px-6 py-4 text-center">'
                 '<span class="text-red-600 text-xs font-medium px-3 py-2 bg-red-50 rounded-lg inline-block">Erro interno. Tente novamente.</span>'
-                '</td></tr>',
+                "</td></tr>",
                 status=200,
             )
         messages.error(request, "Erro interno ao cancelar. Tente novamente.")
 
-    return redirect('movimentacoes:list')
+    return redirect("movimentacoes:list")
 
 
 def _render_cancelled_row(result: dict) -> str:
-    qty = result['quantity_restored']
-    category = result['category']
-    farm = result['farm']
-    op = result['operation_display']
-    composite = ' (operação composta)' if result.get('is_composite') else ''
+    qty = result["quantity_restored"]
+    category = result["category"]
+    farm = result["farm"]
+    op = result["operation_display"]
+    composite = " (operação composta)" if result.get("is_composite") else ""
 
     return f"""<tr class="bg-amber-50 transition-all duration-500">
         <td colspan="7" class="px-6 py-4">
@@ -595,102 +667,100 @@ def _render_cancelled_row(result: dict) -> str:
 
 
 def _render_already_cancelled_row(movement, cancellation) -> str:
+    # cancelled_at é DateTimeField de auditoria — exibe apenas a data ao usuário
     return f"""<tr class="bg-gray-50 opacity-60">
         <td colspan="7" class="px-6 py-4">
             <div class="text-sm text-gray-500">
-                Já cancelada em {cancellation.cancelled_at.strftime('%d/%m/%Y às %H:%M')}
+                Já cancelada em {cancellation.cancelled_at.strftime("%d/%m/%Y")}
                 por {cancellation.cancelled_by.username}
             </div>
         </td>
-    </tr>"""
+    </tr>"""  # ✅ Removido "às %H:%M"
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # EDIÇÃO DE MOVIMENTAÇÃO
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 @login_required
 @require_http_methods(["GET", "POST"])
 def movement_edit_view(request, pk):
     """
     Edita uma movimentação ativa (não cancelada).
-    Operações compostas: apenas timestamp/metadata editáveis.
+    Operações compostas: apenas data e metadata editáveis.
     Operações simples: quantidade também editável.
     """
     from inventory.models import AnimalMovementCancellation
-    from core.utils.decimal_utils import normalize_pt_br_decimal
 
     movement = get_object_or_404(
-        AnimalMovement.objects
-        .select_related(
-            'farm_stock_balance__farm',
-            'farm_stock_balance__animal_category',
-            'created_by',
-        )
-        .filter(cancellation__isnull=True),
+        AnimalMovement.objects.select_related(
+            "farm_stock_balance__farm",
+            "farm_stock_balance__animal_category",
+            "created_by",
+        ).filter(cancellation__isnull=True),
         pk=pk,
     )
 
     if AnimalMovementCancellation.objects.filter(movement_id=pk).exists():
         messages.warning(request, "Movimentações canceladas não podem ser editadas.")
-        return redirect('movimentacoes:list')
+        return redirect("movimentacoes:list")
 
     if movement.operation_type in OCCURRENCE_TYPES:
-        return redirect('ocorrencias:list')
+        return redirect("ocorrencias:list")
 
     is_composite = movement.operation_type in COMPOSITE_OPERATIONS
     meta = movement.metadata or {}
 
-    if request.method == 'POST':
+    if request.method == "POST":
         try:
-            quantity    = int(request.POST.get('quantity', movement.quantity))
-            observacao  = request.POST.get('observacao', '').strip()
-            peso_raw    = request.POST.get('peso', '').strip()
-            timestamp_str = request.POST.get('timestamp', '').strip()
+            quantity = int(request.POST.get("quantity", movement.quantity))
+            observacao = request.POST.get("observacao", "").strip()
+            peso_raw = request.POST.get("peso", "").strip()
+            timestamp_str = request.POST.get("timestamp", "").strip()
 
-            # ── Normaliza peso pt-BR → Decimal string ──────────────────────
-            # O template envia "1.250,80" (máscara JS).
-            # normalize_pt_br_decimal() converte para Decimal e
-            # str() produz "1250.80" — formato consistente no banco.
+            # Normaliza peso pt-BR → Decimal string ("1.250,80" → "1250.80")
             peso_normalizado = None
             if peso_raw:
                 try:
                     peso_normalizado = str(normalize_pt_br_decimal(peso_raw))
                 except Exception:
                     messages.error(
-                        request,
-                        f'Peso inválido: "{peso_raw}". Use o formato 1.250,80.'
+                        request, f'Peso inválido: "{peso_raw}". Use o formato 1.250,80.'
                     )
-                    # Recarrega o formulário com os dados atuais
-                    return render(request, 'inventory/movement_edit.html', {
-                        'movement':        movement,
-                        'meta':            meta,
-                        'is_composite':    is_composite,
-                        'cancel_url':      reverse('movimentacoes:list'),
-                        'timestamp_value': movement.timestamp.strftime('%Y-%m-%dT%H:%M'),
-                        'operation_label': OPERATION_TYPE_LABELS.get(
-                            movement.operation_type, movement.get_operation_type_display()
-                        ),
-                    })
+                    return render(
+                        request,
+                        "inventory/movement_edit.html",
+                        {
+                            "movement": movement,
+                            "meta": meta,
+                            "is_composite": is_composite,
+                            "cancel_url": reverse("movimentacoes:list"),
+                            "timestamp_value": movement.timestamp.isoformat(),  # ✅ era: strftime('%Y-%m-%dT%H:%M')
+                            "operation_label": OPERATION_TYPE_LABELS.get(
+                                movement.operation_type,
+                                movement.get_operation_type_display(),
+                            ),
+                        },
+                    )
 
             new_meta = {}
             if observacao:
-                new_meta['observacao'] = observacao
+                new_meta["observacao"] = observacao
             if peso_normalizado:
-                new_meta['peso'] = peso_normalizado
+                new_meta["peso"] = peso_normalizado
 
-            data = {'metadata': new_meta}
+            data = {"metadata": new_meta}
             if not is_composite:
-                data['quantity'] = quantity
+                data["quantity"] = quantity
 
+            # ✅ ALTERADO: parse_datetime → parse_date (timestamp agora é DateField)
             if timestamp_str:
-                from django.utils.dateparse import parse_datetime
-                from django.utils import timezone as tz
-                ts = parse_datetime(timestamp_str)
-                if ts and tz.is_naive(ts):
-                    ts = tz.make_aware(ts)
-                if ts:
-                    data['timestamp'] = ts
+                from django.utils.dateparse import parse_date
+
+                parsed_date = parse_date(timestamp_str)  # espera "YYYY-MM-DD"
+                if parsed_date:
+                    data["timestamp"] = parsed_date
 
             result = MovementService.edit_movement(
                 movement_id=str(pk),
@@ -701,13 +771,13 @@ def movement_edit_view(request, pk):
             messages.success(
                 request,
                 f"Movimentação atualizada. Quantidade: {result['quantity_before']} → {result['quantity_after']}."
-                if result['quantity_before'] != result['quantity_after']
-                else "Movimentação atualizada com sucesso."
+                if result["quantity_before"] != result["quantity_after"]
+                else "Movimentação atualizada com sucesso.",
             )
-            return redirect('movimentacoes:list')
+            return redirect("movimentacoes:list")
 
         except ValidationError as e:
-            messages.error(request, e.message if hasattr(e, 'message') else str(e))
+            messages.error(request, e.message if hasattr(e, "message") else str(e))
         except (ValueError, TypeError) as e:
             messages.error(request, f"Dado inválido: {e}")
         except Exception as e:
@@ -715,14 +785,14 @@ def movement_edit_view(request, pk):
             messages.error(request, "Erro interno ao editar. Tente novamente.")
 
     context = {
-        'movement':        movement,
-        'meta':            meta,
-        'is_composite':    is_composite,
-        'cancel_url':      reverse('movimentacoes:list'),
-        'timestamp_value': movement.timestamp.strftime('%Y-%m-%dT%H:%M'),
-        'operation_label': OPERATION_TYPE_LABELS.get(
+        "movement": movement,
+        "meta": meta,
+        "is_composite": is_composite,
+        "cancel_url": reverse("movimentacoes:list"),
+        "timestamp_value": movement.timestamp.isoformat(),  # ✅ era: strftime('%Y-%m-%dT%H:%M') — isoformat() em DateField retorna "YYYY-MM-DD"
+        "operation_label": OPERATION_TYPE_LABELS.get(
             movement.operation_type, movement.get_operation_type_display()
         ),
     }
 
-    return render(request, 'inventory/movement_edit.html', context)
+    return render(request, "inventory/movement_edit.html", context)

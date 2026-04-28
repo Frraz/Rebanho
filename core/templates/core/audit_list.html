@@ -157,13 +157,14 @@
 
     {% if movements %}
 
-    {# Mobile cards #}
+    {# ══ Mobile cards ══ #}
     <div class="flex flex-col gap-3 md:hidden">
         {% for m in movements %}
         <div class="bg-white rounded-2xl border {% if m.cancellation %}border-gray-200 opacity-80{% else %}border-gray-200{% endif %} overflow-hidden">
             <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
                 <div>
-                    <div class="text-sm font-bold text-gray-900">{{ m.obj.timestamp|date:"d/m/Y H:i" }}</div>
+                    {# ✅ ALTERADO: removido H:i #}
+                    <div class="text-sm font-bold text-gray-900">{{ m.obj.timestamp|date:"d/m/Y" }}</div>
                     <div class="text-xs text-gray-500">{{ m.obj.farm_stock_balance.farm.name }} · {{ m.obj.farm_stock_balance.animal_category.name }}</div>
                 </div>
                 <div class="text-right">
@@ -196,11 +197,13 @@
 
                 {% if m.cancellation %}
                 <div class="text-xs text-amber-700">
-                    Estornada em {{ m.cancellation.cancelled_at|date:"d/m/Y H:i" }} por {{ m.cancellation.cancelled_by.username }}
+                    {# ✅ ALTERADO: removido H:i do cancelled_at #}
+                    Estornada em {{ m.cancellation.cancelled_at|date:"d/m/Y" }} por {{ m.cancellation.cancelled_by.username }}
                 </div>
                 {% elif m.edited and m.history_date %}
                 <div class="text-xs text-indigo-700">
-                    Editada em {{ m.history_date|date:"d/m/Y H:i" }}{% if m.history_user %} por {{ m.history_user.username }}{% endif %}
+                    {# ✅ ALTERADO: removido H:i do history_date #}
+                    Editada em {{ m.history_date|date:"d/m/Y" }}{% if m.history_user %} por {{ m.history_user.username }}{% endif %}
                 </div>
                 {% endif %}
             </div>
@@ -208,13 +211,14 @@
         {% endfor %}
     </div>
 
-    {# Desktop table #}
+    {# ══ Desktop table ══ #}
     <div class="hidden md:block bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
         <div class="overflow-x-auto">
             <table class="min-w-full">
                 <thead>
                     <tr class="bg-gray-50 border-b border-gray-200">
-                        <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Data/Hora</th>
+                        {# ✅ ALTERADO: "Data/Hora" → "Data" #}
+                        <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Data</th>
                         <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Usuário</th>
                         <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Fazenda</th>
                         <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Categoria</th>
@@ -228,10 +232,14 @@
                 <tbody class="divide-y divide-gray-100">
                     {% for m in movements %}
                     <tr class="{% if m.cancellation %}bg-gray-50/60{% else %}hover:bg-indigo-50/30{% endif %} transition-colors">
+
+                        {# ✅ ALTERADO: removido div de H:i — mantido só d/m/Y #}
                         <td class="px-4 py-3 whitespace-nowrap">
-                            <div class="text-sm font-semibold {% if m.cancellation %}text-gray-400 line-through{% else %}text-gray-900{% endif %}">{{ m.obj.timestamp|date:"d/m/Y" }}</div>
-                            <div class="text-xs text-gray-400">{{ m.obj.timestamp|date:"H:i" }}</div>
+                            <div class="text-sm font-semibold {% if m.cancellation %}text-gray-400 line-through{% else %}text-gray-900{% endif %}">
+                                {{ m.obj.timestamp|date:"d/m/Y" }}
+                            </div>
                         </td>
+
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
                             {{ m.obj.created_by.get_full_name|default:m.obj.created_by.username }}
                         </td>
@@ -258,12 +266,14 @@
                             {% if m.cancellation %}
                             <div class="text-xs">
                                 <span class="inline-flex items-center px-2 py-0.5 rounded-full font-bold bg-amber-100 text-amber-700 border border-amber-200">Estornada</span>
-                                <div class="text-gray-400 mt-1">{{ m.cancellation.cancelled_at|date:"d/m/Y H:i" }} · {{ m.cancellation.cancelled_by.username }}</div>
+                                {# ✅ ALTERADO: removido H:i do cancelled_at #}
+                                <div class="text-gray-400 mt-1">{{ m.cancellation.cancelled_at|date:"d/m/Y" }} · {{ m.cancellation.cancelled_by.username }}</div>
                             </div>
                             {% elif m.edited and m.history_date %}
                             <div class="text-xs">
                                 <span class="inline-flex items-center px-2 py-0.5 rounded-full font-bold bg-indigo-100 text-indigo-700 border border-indigo-200">Editada</span>
-                                <div class="text-gray-400 mt-1">{{ m.history_date|date:"d/m/Y H:i" }}{% if m.history_user %} · {{ m.history_user.username }}{% endif %}</div>
+                                {# ✅ ALTERADO: removido H:i do history_date #}
+                                <div class="text-gray-400 mt-1">{{ m.history_date|date:"d/m/Y" }}{% if m.history_user %} · {{ m.history_user.username }}{% endif %}</div>
                             </div>
                             {% else %}
                             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">Ativa</span>
