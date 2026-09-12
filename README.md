@@ -2,7 +2,6 @@
 
 > Sistema profissional de controle de rebanhos bovinos com rastreabilidade completa, integridade de estoque garantida, controle financeiro por cliente e relatórios gerenciais avançados.
 
-[![Deploy](https://github.com/Frraz/Rebanho/actions/workflows/deploy.yml/badge.svg)](https://github.com/Frraz/Rebanho/actions/workflows/deploy.yml)
 ![Python](https://img.shields.io/badge/Python-3.12-3776AB?style=flat&logo=python&logoColor=white)
 ![Django](https://img.shields.io/badge/Django-4.2-092E20?style=flat&logo=django&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-14+-336791?style=flat&logo=postgresql&logoColor=white)
@@ -27,7 +26,7 @@
 - [Regras de Negócio](#-regras-de-negócio)
 - [Comandos de Manutenção](#-comandos-de-manutenção)
 - [Testes](#-testes)
-- [CI/CD](#️-cicd)
+- [Atualização em Produção](#-atualização-em-produção)
 - [Segurança](#-segurança)
 
 ---
@@ -45,7 +44,7 @@ A arquitetura garante que o **saldo de animais nunca fique negativo**, todas as 
 - **Operações Compostas Atômicas** — manejo e mudança de categoria executam múltiplas escritas em uma única transação
 - **Extrato financeiro por cliente** — vendas, pagamentos e ajustes num único ledger, com o saldo calculado por agregação (sem snapshot a divergir)
 - **Dashboard Dual** — interface minimalista com toggle para painel completo de métricas e gráficos
-- **CI/CD com GitHub Actions** — deploy automático a cada push na branch `main`
+- **Atualização segura em produção** — um comando no servidor faz backup, migra e só troca a versão no ar se tudo passar
 - **Fluxo de aprovação** — novos cadastros aguardam aprovação de um administrador antes de acessar o sistema
 
 ---
@@ -291,7 +290,6 @@ Internet (HTTPS 443)
 | Reatividade | Alpine.js | 3.x |
 | Interação Server | HTMX | 1.9 |
 | Gráficos | Chart.js | 4.4 |
-| CI/CD | GitHub Actions | — |
 
 > **Dois geradores de PDF, de propósito.** Os relatórios são HTML → PDF via
 > WeasyPrint, o que permite reaproveitar o mesmo layout da tela. O PDF de
@@ -383,11 +381,11 @@ O projeto possui um manual completo de deploy em [`deploy_manual.md`](./deploy_m
 - **Banco** — PostgreSQL instalado no host (fora do Docker)
 - **Web Server** — Nginx como proxy reverso
 - **SSL** — Let's Encrypt com renovação automática
-- **CI/CD** — GitHub Actions com deploy automático a cada push na `main`
+- **Atualização** — `./atualizacao.sh` executado no servidor (ver [Atualização em Produção](#-atualização-em-produção))
 
 > ⚠️ **`Dockerfile` e `docker-compose.yml` não estão versionados** (ver
 > `.gitignore`) — eles vivem apenas no servidor, em
-> `/var/www/docker-instances/Rebanho`, junto do `.env.prod`. Um `git clone`
+> `/home/deploy/Rebanho`, junto do `.env.prod`. Um `git clone`
 > puro não traz esses arquivos; consulte o manual de deploy para criá-los.
 
 Consulte [`deploy_manual.md`](./deploy_manual.md) para o passo a passo completo incluindo PostgreSQL, Nginx e SSL.
@@ -398,8 +396,6 @@ Consulte [`deploy_manual.md`](./deploy_manual.md) para o passo a passo completo 
 
 ```
 rebanho/
-│
-├── .github/workflows/deploy.yml    # CI/CD — deploy automático
 │
 ├── config/                         # Configurações Django
 │   ├── settings.py
@@ -484,6 +480,8 @@ rebanho/
 │   ├── test_finance_money_parser.py
 │   └── test_finance_filters.py
 │
+├── atualizacao.sh                  # Atualiza o sistema em produção
+├── check_deploy.sh                 # Checklist de pré-deploy
 ├── requirements.txt
 ├── manage.py
 ├── reconcile_stock.py              # Reconciliação de saldos pelo ledger
@@ -635,7 +633,7 @@ python reconcile_stock.py
 O `verificar_financeiro` confere quatro coisas: se toda venda do ledger tem lote
 vinculado, se todo lote aponta para uma movimentação existente, se os totais em
 cache batem com a soma dos lotes, e se o extrato bate com as vendas e pagamentos.
-**Rode-o depois de cada deploy que toque no financeiro.**
+O `atualizacao.sh` já o executa ao final de cada atualização.
 
 ---
 
@@ -671,45 +669,79 @@ pytest tests/test_finance_money_parser.py tests/test_finance_filters.py
 
 ---
 
-## ⚙️ CI/CD
+## 🔄 Atualização em Produção
 
-Deploy **totalmente automatizado** via GitHub Actions. A cada push na branch `main`:
+A atualização é feita **manualmente, por um único comando no servidor**, depois do
+push. Não há deploy automático.
 
-```
-push → main
-   │
-   ▼
-GitHub Actions (ubuntu-latest) → SSH na VPS
-   │
-   ├─ [1/9] git reset --hard origin/main
-   ├─ [2/9] Garante diretórios
-   ├─ [3/9] Corrige permissões de staticfiles
-   ├─ [4/9] docker compose build web
-   ├─ [5/9] docker compose up -d --no-deps web
-   ├─ [6/9] python manage.py migrate --noinput      ⚠️
-   ├─ [7/9] makemigrations --check --dry-run        ⚠️
-   ├─ [8/9] collectstatic --noinput
-   ├─ [9/9] docker compose restart celery
-   ├─ Health check com retry (HTTP 200 em /login/)
-   └─ ✅ Deploy concluído
+```bash
+# Na sua máquina
+git push origin main
+
+# No servidor
+ssh deploy@<ip-do-vps>
+cd ~/Rebanho
+./atualizacao.sh
 ```
 
-> ⚠️ **Dois pontos que exigem atenção antes de dar merge na `main`:**
->
-> 1. **As migrações rodam sozinhas** no passo 6, e o pipeline **não faz backup
->    do banco**. Migrações de dados executam em produção no momento do merge —
->    faça `pg_dump` e valide num restore antes.
-> 2. **O passo 7 falha o deploy** se houver mudança de model sem migration
->    correspondente. Rode `makemigrations --check --dry-run` localmente antes
->    de subir.
+O script mostra os commits que vão chegar, avisa se há migrações e pede
+confirmação antes de mexer em qualquer coisa.
 
-### Secrets necessários (GitHub → Settings → Secrets → Actions)
+### O que ele faz, e em que ordem
 
-| Secret | Descrição |
-|--------|-----------|
-| `VPS_HOST` | IP público da VPS |
-| `VPS_USER` | Usuário SSH (ex: `deploy`) |
-| `VPS_SSH_PRIVATE_KEY` | Chave privada SSH gerada no servidor |
+```
+[1/9] Conferências          ferramentas, compose, .env, alterações locais
+[2/9] git pull              só avança (fast-forward); recusa se o servidor divergiu
+[3/9] Build da imagem       ┐
+[4/9] Checagem de migrações │  o sistema ANTIGO continua no ar durante
+[5/9] Backup do banco       │  todas estas etapas — se qualquer uma falhar,
+[6/9] migrate               │  o código volta à versão anterior e ninguém
+[7/9] collectstatic         ┘  percebe nada
+[8/9] Troca do container    ← só aqui a versão nova entra no ar
+[9/9] Health check          se falhar e não houve migração, volta sozinho
+```
+
+O ponto central é a ordem: **tudo que pode falhar acontece antes da troca do
+container**. O backup é obrigatório sempre que houver migração pendente, e é
+validado (`pg_restore --list`) antes de o banco ser tocado.
+
+### Opções
+
+| Comando | Efeito |
+|---------|--------|
+| `./atualizacao.sh` | Atualiza para a última versão da `main`, pedindo confirmação |
+| `./atualizacao.sh --sim` | Sem perguntas |
+| `./atualizacao.sh --forcar` | Reconstrói mesmo sem commits novos |
+| `./atualizacao.sh --voltar` | Volta para a versão que estava no ar antes da atual |
+| `./atualizacao.sh --ajuda` | Mostra o uso |
+
+### O que ele se recusa a fazer
+
+- **Sobrescrever alterações feitas direto no servidor** — se houver arquivo
+  versionado modificado, ou commit que não está no GitHub, ele para e explica.
+- **Migrar sem backup válido.**
+- **Voltar o código sozinho depois de uma migração** — o código antigo pode não
+  funcionar com o banco novo. Nesse caso ele lista as opções e o caminho do backup.
+- **Rodar duas vezes ao mesmo tempo.**
+
+### Onde ficam os registros
+
+| O quê | Onde |
+|-------|------|
+| Log de cada execução | `logs/atualizacao_AAAAMMDD_HHMMSS.log` |
+| Backups do banco (últimos 10) | `~/backups/rebanho/rebanho_*.dump` |
+| Histórico de versões (usado pelo `--voltar`) | `~/backups/rebanho/historico_atualizacoes.log` |
+
+### Restaurar um backup
+
+```bash
+cd ~/Rebanho
+docker compose --env-file .env.prod stop web celery
+# Troque as variáveis pelos valores do .env.prod
+pg_restore -h 127.0.0.1 -p <DB_PORT> -U <DB_USER> -d <DB_NAME> --clean --if-exists \
+  ~/backups/rebanho/rebanho_AAAAMMDD_HHMMSS.dump
+docker compose --env-file .env.prod start web celery
+```
 
 ---
 

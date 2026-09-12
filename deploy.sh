@@ -145,14 +145,12 @@ setup_ssl() {
 }
 
 # ── Atualização de código ────────────────────────────────────────────────────
+# Substituído pelo atualizacao.sh. A versão antiga fazia pull + build + up, mas
+# nunca rodava migrate nem backup — com migrações pendentes, o sistema subia
+# sem as tabelas novas e quebrava. Delegamos para não existirem dois caminhos.
 deploy_update() {
-    info "=== ATUALIZAÇÃO ==="
-    git pull origin main
-    $COMPOSE build web
-    $COMPOSE up -d --no-deps web celery
-    sleep 8
-    $COMPOSE ps
-    info "=== Atualização concluída! ==="
+    warning "'./deploy.sh update' foi substituído por ./atualizacao.sh"
+    exec "$(dirname "$(readlink -f "$0")")/atualizacao.sh" "${@:2}"
 }
 
 # ── Utilitários ──────────────────────────────────────────────────────────────
@@ -171,15 +169,23 @@ backup_db() {
 # ── Main ─────────────────────────────────────────────────────────────────────
 check_requirements
 
-case "${1:-full}" in
+# Sem argumento, só mostra o uso. Antes o padrão era "full", que começa com
+# "docker compose down" — rodar ./deploy.sh por engano derrubava a produção.
+case "${1:-}" in
     full)        deploy_full   ;;
-    update)      deploy_update ;;
+    update)      deploy_update "$@" ;;
     nginx-setup) nginx_setup   ;;
     ssl)         setup_ssl     ;;
     logs)        show_logs     ;;
     status)      show_status   ;;
     backup)      backup_db     ;;
     *)
-        echo "Uso: $0 {full|update|nginx-setup|ssl|logs|status|backup}"
+        echo "Uso: $0 {full|nginx-setup|ssl|logs|status|backup}"
+        echo ""
+        echo "  full         instalação do zero (PARA os containers — não use em produção no ar)"
+        echo "  nginx-setup  configura o Nginx do sistema"
+        echo "  ssl          emite o certificado Let's Encrypt"
+        echo ""
+        echo "  Para ATUALIZAR o sistema em produção, use: ./atualizacao.sh"
         exit 1 ;;
 esac

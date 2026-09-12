@@ -251,7 +251,7 @@ if [ "$FAIL" -eq 0 ]; then
   echo "  Próximos passos:"
   echo "    1. git add . && git commit -m 'chore: producao pronta'"
   echo "    2. git push origin main"
-  echo "    3. GitHub Actions fará o deploy automático na VPS."
+  echo "    3. No VPS, dentro do projeto: ./atualizacao.sh"
   echo ""
 else
   echo -e "${RED}${BOLD}❌ Corrija os erros acima antes de fazer o deploy.${NC}"
