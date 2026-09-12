@@ -1,6 +1,6 @@
 # 🐄 Gestão de Rebanhos
 
-> Sistema profissional de controle de rebanhos bovinos com rastreabilidade completa, integridade de estoque garantida e relatórios gerenciais avançados.
+> Sistema profissional de controle de rebanhos bovinos com rastreabilidade completa, integridade de estoque garantida, controle financeiro por cliente e relatórios gerenciais avançados.
 
 [![Deploy](https://github.com/Frraz/Rebanho/actions/workflows/deploy.yml/badge.svg)](https://github.com/Frraz/Rebanho/actions/workflows/deploy.yml)
 ![Python](https://img.shields.io/badge/Python-3.12-3776AB?style=flat&logo=python&logoColor=white)
@@ -19,29 +19,31 @@
 
 - [Visão Geral](#-visão-geral)
 - [Funcionalidades](#-funcionalidades)
-- [Arquitetura](#-arquitetura)
-- [Stack Tecnológica](#-stack-tecnológica)
+- [Arquitetura](#️-arquitetura)
+- [Stack Tecnológica](#️-stack-tecnológica)
 - [Instalação Local](#-instalação-local)
-- [Deploy em Produção](#-deploy-em-produção)
+- [Deploy em Produção](#️-deploy-em-produção)
 - [Estrutura do Projeto](#-estrutura-do-projeto)
 - [Regras de Negócio](#-regras-de-negócio)
+- [Comandos de Manutenção](#-comandos-de-manutenção)
 - [Testes](#-testes)
-- [CI/CD](#-cicd)
+- [CI/CD](#️-cicd)
 - [Segurança](#-segurança)
 
 ---
 
 ## 🎯 Visão Geral
 
-Sistema web para fazendas que necessitam de **controle rigoroso de rebanho** com rastreabilidade completa de cada animal, desde o nascimento até a saída (venda, abate, morte ou doação).
+Sistema web para fazendas que necessitam de **controle rigoroso de rebanho** com rastreabilidade completa de cada animal, desde o nascimento até a saída (venda, abate, morte ou doação) — e, desde a versão atual, **controle financeiro do que cada cliente deve ou tem de crédito**.
 
 A arquitetura garante que o **saldo de animais nunca fique negativo**, todas as operações são **atômicas e auditáveis**, e os relatórios podem ser gerados tanto a partir do estado atual quanto **recalculados pelo histórico completo de movimentações**.
 
 ### Diferenciais Técnicos
 
-- **Ledger Pattern** — cada movimentação é um registro imutável, nunca deletado ou alterado
+- **Ledger Pattern** — cada movimentação de estoque é um registro imutável, nunca deletado ou alterado pelo fluxo normal
 - **Snapshot + Ledger** — saldo atual em cache para performance, recalculável do zero a qualquer momento
 - **Operações Compostas Atômicas** — manejo e mudança de categoria executam múltiplas escritas em uma única transação
+- **Extrato financeiro por cliente** — vendas, pagamentos e ajustes num único ledger, com o saldo calculado por agregação (sem snapshot a divergir)
 - **Dashboard Dual** — interface minimalista com toggle para painel completo de métricas e gráficos
 - **CI/CD com GitHub Actions** — deploy automático a cada push na branch `main`
 - **Fluxo de aprovação** — novos cadastros aguardam aprovação de um administrador antes de acessar o sistema
@@ -62,7 +64,19 @@ A arquitetura garante que o **saldo de animais nunca fique negativo**, todas as 
 | **Fazendas** | CRUD completo, saldo por categoria sempre visível (mesmo zerado) |
 | **Tipos de Animal** | Categorias dinâmicas — novas categorias refletem em todas as fazendas automaticamente via signal |
 | **Tipos de Morte** | Lista de motivos para registro de óbitos |
-| **Clientes** | Nome, CPF/CNPJ, telefone e endereço — vinculados a vendas e doações |
+| **Clientes** | Nome, CPF/CNPJ, telefone e endereço — com o **saldo atual** visível na listagem |
+
+### Vendas
+
+Tela própria, com lista das últimas vendas e formulário de **múltiplos lotes**.
+
+| Recurso | Descrição |
+|---------|-----------|
+| **Vários tipos por venda** | Uma venda pode conter N lotes de animais; o mesmo tipo pode repetir em lotes diferentes, com preços por quilo distintos |
+| **Cálculo automático** | `Peso × Preço/kg → Total` calculado ao vivo, mas o Total é **editável** para arredondamentos e valores combinados |
+| **Aviso de estoque** | A tela soma as quantidades da mesma categoria e avisa antes de enviar; o servidor é quem recusa de fato, com o saldo travado |
+| **Edição e exclusão** | Ambas completas e atômicas — apagar devolve os animais ao estoque e retira o valor do saldo do cliente |
+| **Filtros e exportação** | Busca livre, cliente, fazenda, tipo de animal, período (início e fim), situação e "somente sem valor"; imprimir e exportar PDF respeitando os filtros |
 
 ### Ocorrências (Saídas de Estoque)
 
@@ -70,8 +84,10 @@ A arquitetura garante que o **saldo de animais nunca fique negativo**, todas as 
 |------|--------------------|
 | **Morte** | Tipo de morte obrigatório |
 | **Abate** | Peso e observações |
-| **Venda** | Cliente, peso e preço |
 | **Doação** | Cliente/donatário e peso |
+| **Pagamentos** | Data, cliente (com busca instantânea), valor, tipo e descrição |
+
+> **Venda** tem tela própria (acima). Editar ou cancelar uma venda pela tela de Ocorrências redireciona para lá — mexer por ali alteraria o estoque e deixaria o saldo do cliente com o valor antigo.
 
 ### Movimentações (Entradas e Transferências)
 
@@ -84,13 +100,26 @@ A arquitetura garante que o **saldo de animais nunca fique negativo**, todas as 
 | **Manejo** | Transferência entre fazendas (operação atômica composta) |
 | **Mudança de Categoria** | Reclassificação do animal (operação atômica composta) |
 
+### Financeiro
+
+| Recurso | Descrição |
+|---------|-----------|
+| **Saldo do cliente** | Negativo = deve · Zero = quitado · Positivo = tem crédito a favor |
+| **Pagamentos** | Podem exceder a dívida ou existir sem dívida nenhuma — o crédito é abatido nas compras seguintes |
+| **Ajuste manual** | Crédito ou débito avulso (perdão de dívida, correção de lançamento antigo, acerto fora do sistema), com motivo obrigatório |
+| **Histórico de exclusões** | Retrato completo de tudo que for apagado — quem, quando e o que havia ali |
+
 ### Relatórios
-- **Por Fazenda** — estoque inicial → ocorrências → movimentações → consolidado → estoque final → detalhamentos (mortes, vendas, abates, doações)
-- **Fazendas Reunidas** — consolidação de todas as fazendas com breakdown individual
-- Filtros por mês, ano e categoria de animal
-- Layout fiel ao modelo Excel do processo atual do cliente
-- URLs com parâmetros GET — bookmarkáveis e compartilháveis
-- Impressão otimizada (landscape, 9pt)
+
+| Relatório | Conteúdo |
+|-----------|----------|
+| **Por Fazenda** | Estoque inicial → ocorrências → movimentações → consolidado → estoque final → detalhamentos |
+| **Fazendas Reunidas** | Consolidação de todas as fazendas com breakdown individual |
+| **Ficha de Controle Manual** | PDF para preenchimento à mão no campo |
+| **Fluxo Financeiro** | Todas as movimentações de crédito e débito, abrindo no mês atual. Filtros: período (início e fim), cliente, tipo de animal, fazenda, crédito/débito e origem. Mostra saldo acumulado quando há um cliente filtrado |
+| **Saldos dos Clientes** | Um cliente por linha — total comprado, total pago e saldo. Filtro por tipo de saldo |
+
+Todos com **imprimir** (layout otimizado) e **exportar PDF** respeitando os filtros da tela. URLs com parâmetros GET — bookmarkáveis e compartilháveis.
 
 ### Autenticação e Acesso
 - Login próprio em `/login/` — independente do `/admin/`
@@ -114,13 +143,14 @@ A arquitetura garante que o **saldo de animais nunca fique negativo**, todas as 
 ┌────────────────────────▼────────────────────────────────┐
 │                    APPLICATION                           │
 │               Services (Regras de Negócio)               │
-│   MovementService │ TransferService │ ReportService       │
+│  MovementService │ TransferService │ SaleService         │
+│  PaymentService  │ BalanceService  │ ReportServices      │
 └────────────────────────┬────────────────────────────────┘
                          │
 ┌────────────────────────▼────────────────────────────────┐
 │                      DOMAIN                              │
 │         Value Objects │ Enums │ Domain Rules              │
-│      OperationType │ MovementType │ Invariants            │
+│      OperationType │ MovementType │ EntryType             │
 └────────────────────────┬────────────────────────────────┘
                          │
 ┌────────────────────────▼────────────────────────────────┐
@@ -130,15 +160,15 @@ A arquitetura garante que o **saldo de animais nunca fique negativo**, todas as 
 └─────────────────────────────────────────────────────────┘
 ```
 
-### Padrão Ledger + Snapshot
+### Padrão Ledger + Snapshot (Estoque)
 
 ```
 ┌──────────────────────────────────────────┐
 │         AnimalMovement (Ledger)           │
 │                                           │
 │  ✓ Fonte absoluta da verdade              │
-│  ✓ Imutável (sem UPDATE/DELETE)           │
-│  ✓ Auditável com timestamp + usuário      │
+│  ✓ Imutável no fluxo normal               │
+│  ✓ Auditável com data + usuário           │
 │  ✓ Metadados JSON por tipo de operação    │
 └────────────────────┬─────────────────────┘
                      │ atualiza via service
@@ -153,15 +183,66 @@ A arquitetura garante que o **saldo de animais nunca fique negativo**, todas as 
 └──────────────────────────────────────────┘
 ```
 
+### Extrato Financeiro (sem snapshot, por decisão)
+
+```
+   Venda            Pagamento          Ajuste manual
+     │                  │                    │
+     │ débito           │ crédito            │ débito ou crédito
+     ▼                  ▼                    ▼
+┌──────────────────────────────────────────────────────┐
+│              FinancialEntry (extrato)                 │
+│                                                       │
+│  ✓ Origem declarada e coerente (CHECK CONSTRAINT)     │
+│  ✓ Valor sempre positivo — o sinal vem da natureza    │
+└────────────────────────┬─────────────────────────────┘
+                         │ agregação em tempo real
+                         ▼
+              saldo = Σ créditos − Σ débitos
+```
+
+> **Por que não há tabela de saldo do cliente.** Vendas e pagamentos podem ser
+> editados e apagados. Um saldo materializado divergiria em silêncio a cada
+> edição — o mesmo problema que já obriga o estoque a manter um script de
+> reconciliação. Com agregação, o saldo é correto por construção, e os índices
+> em `(client, date)` e `(client, entry_type)` mantêm o custo irrelevante no
+> volume deste sistema.
+
+### Uma venda, dois mundos
+
+Cada lote de uma venda gera a sua própria baixa no ledger de estoque, e a venda
+inteira gera **um** lançamento no extrato do cliente:
+
+```
+          Sale (cabeçalho: cliente, fazenda, data)
+                         │
+        ┌────────────────┼────────────────┐
+        ▼                ▼                ▼
+    SaleItem         SaleItem         SaleItem
+   (12 bezerros)   (5 novilhas)    (8 bezerros)
+        │                │                │
+        ▼                ▼                ▼
+  AnimalMovement   AnimalMovement   AnimalMovement    ← baixa de estoque
+        └────────────────┴────────────────┘
+                         │
+                         ▼
+              FinancialEntry (1 débito)               ← dívida do cliente
+```
+
+O `metadata` de cada `AnimalMovement` continua recebendo `peso` e `preco_total`
+como texto — é o que mantém o Relatório por Fazenda, o PDF de ocorrências e a
+tela de auditoria funcionando sem nenhuma alteração.
+
 ### Bounded Contexts (DDD)
 
 | Context | Responsabilidade |
 |---------|-----------------|
 | `farms` | Fazendas e dados cadastrais |
 | `inventory` | Saldo, movimentações e domínio de estoque |
-| `operations` | Ocorrências (saídas) e movimentações (entradas/transferências) |
-| `reporting` | Geração de relatórios gerenciais |
-| `core` | Dashboard, autenticação e páginas centrais |
+| `operations` | Ocorrências (saídas), cadastros de clientes e tipos de morte |
+| `finance` | Vendas, pagamentos, extrato e saldo dos clientes |
+| `reporting` | Relatórios gerenciais de estoque |
+| `core` | Dashboard, autenticação e auditoria |
 
 ### Infraestrutura de Produção
 
@@ -200,6 +281,9 @@ Internet (HTTPS 443)
 | Banco de Dados | PostgreSQL | 14+ |
 | Cache / Broker | Redis | 7 |
 | Tarefas Assíncronas | Celery | 5.x |
+| Histórico de Alterações | django-simple-history | 3.7 |
+| PDF (relatórios) | WeasyPrint | 60+ |
+| PDF (ocorrências) | ReportLab | 4+ |
 | Containerização | Docker + Compose | latest |
 | Web Server | Nginx + Gunicorn | 1.24 / 21+ |
 | SSL | Let's Encrypt (certbot) | — |
@@ -208,6 +292,11 @@ Internet (HTTPS 443)
 | Interação Server | HTMX | 1.9 |
 | Gráficos | Chart.js | 4.4 |
 | CI/CD | GitHub Actions | — |
+
+> **Dois geradores de PDF, de propósito.** Os relatórios são HTML → PDF via
+> WeasyPrint, o que permite reaproveitar o mesmo layout da tela. O PDF de
+> ocorrências é montado programaticamente com ReportLab. Ao mexer em um PDF,
+> confira qual dos dois está por trás.
 
 ---
 
@@ -218,6 +307,7 @@ Internet (HTTPS 443)
 - Python 3.12+
 - PostgreSQL 14+
 - Redis 7+
+- Dependências de sistema do WeasyPrint (`libpango`, `libcairo`, `libgdk-pixbuf`) — no Ubuntu/Debian: `sudo apt install libpango-1.0-0 libpangoft2-1.0-0 libcairo2 libgdk-pixbuf-2.0-0`
 
 ### Passo a Passo
 
@@ -263,10 +353,13 @@ python manage.py migrate
 # 6. Criar superusuário
 python manage.py createsuperuser
 
-# 7. Coletar arquivos estáticos
+# 7. Semear as categorias do sistema
+python manage.py seed_system_categories
+
+# 8. Coletar arquivos estáticos
 python manage.py collectstatic --noinput
 
-# 8. Iniciar servidor
+# 9. Iniciar servidor
 python manage.py runserver
 ```
 
@@ -281,7 +374,7 @@ celery -A config worker -l info
 
 ## 🖥️ Deploy em Produção
 
-O projeto possui um manual completo de deploy disponível em [`DEPLOY.md`](./DEPLOY.md), cobrindo do zero ao sistema online em uma VPS Ubuntu zerada.
+O projeto possui um manual completo de deploy em [`deploy_manual.md`](./deploy_manual.md), cobrindo do zero ao sistema online em uma VPS Ubuntu zerada.
 
 ### Resumo da infraestrutura
 
@@ -292,17 +385,12 @@ O projeto possui um manual completo de deploy disponível em [`DEPLOY.md`](./DEP
 - **SSL** — Let's Encrypt com renovação automática
 - **CI/CD** — GitHub Actions com deploy automático a cada push na `main`
 
-```bash
-# Deploy manual (primeira vez na VPS)
-git clone https://github.com/Frraz/Rebanho /var/www/docker-instances/Rebanho
-cd /var/www/docker-instances/Rebanho
-cp .env.example .env.prod      # preencher com valores de produção
-docker compose build
-docker compose up -d
-docker compose exec web python manage.py createsuperuser
-```
+> ⚠️ **`Dockerfile` e `docker-compose.yml` não estão versionados** (ver
+> `.gitignore`) — eles vivem apenas no servidor, em
+> `/var/www/docker-instances/Rebanho`, junto do `.env.prod`. Um `git clone`
+> puro não traz esses arquivos; consulte o manual de deploy para criá-los.
 
-Consulte [`DEPLOY.md`](./DEPLOY.md) para o passo a passo completo incluindo PostgreSQL, Nginx e SSL.
+Consulte [`deploy_manual.md`](./deploy_manual.md) para o passo a passo completo incluindo PostgreSQL, Nginx e SSL.
 
 ---
 
@@ -311,28 +399,23 @@ Consulte [`DEPLOY.md`](./DEPLOY.md) para o passo a passo completo incluindo Post
 ```
 rebanho/
 │
-├── .github/
-│   └── workflows/
-│       └── deploy.yml              # CI/CD — deploy automático
+├── .github/workflows/deploy.yml    # CI/CD — deploy automático
 │
 ├── config/                         # Configurações Django
 │   ├── settings.py
 │   ├── urls.py
-│   ├── celery.py
-│   └── wsgi.py
+│   └── celery.py
 │
 ├── core/                           # App central
 │   ├── views.py                    # Dashboard (simples + métricas)
 │   ├── views_audit.py              # Auditoria de ações
-│   ├── emails.py                   # Envio de e-mails (aprovação, rejeição)
-│   └── templates/
-│       ├── core/dashboard.html
-│       └── registration/login.html
+│   ├── emails.py                   # E-mails de aprovação/rejeição
+│   ├── utils/decimal_utils.py      # Normalização de decimais pt-BR
+│   └── templatetags/number_filters.py
 │
 ├── farms/                          # Bounded Context: Fazendas
 │   ├── models/farm.py
-│   ├── signals.py                  # Auto-cria saldos em nova fazenda
-│   └── views.py
+│   └── signals.py                  # Auto-cria saldos em nova fazenda
 │
 ├── inventory/                      # Bounded Context: Inventário (CORE DOMAIN)
 │   ├── domain/
@@ -342,39 +425,51 @@ rebanho/
 │   ├── models/
 │   │   ├── animal_category.py      # Tipos de animal
 │   │   ├── stock_balance.py        # FarmStockBalance (snapshot)
-│   │   └── animal_movement.py      # AnimalMovement (ledger)
+│   │   ├── animal_movement.py      # AnimalMovement (ledger)
+│   │   └── animal_movement_cancellation.py
 │   ├── services/
-│   │   ├── movement_service.py
-│   │   ├── reconciliation_service.py
+│   │   ├── movement_service.py     # Única porta de escrita do ledger
 │   │   └── stock_query_service.py
-│   ├── repositories/
-│   │   └── stock_repository.py
 │   └── signals.py                  # Auto-criação de saldos por categoria
 │
 ├── operations/                     # Bounded Context: Operações
 │   ├── services/
-│   │   ├── occurrence_service.py   # Mortes, abates, vendas, doações
-│   │   └── transfer_service.py     # Manejo e mudança de categoria
-│   └── views/
-│       ├── ocorrencias.py
-│       └── cadastros.py
+│   │   ├── occurrence_service.py   # Mortes, abates, doações
+│   │   ├── transfer_service.py     # Manejo e mudança de categoria
+│   │   └── occurrence_pdf_service.py
+│   └── views/{ocorrencias,cadastros}.py
 │
-├── reporting/                      # Bounded Context: Relatórios
-│   ├── queries/report_queries.py   # Queries otimizadas
+├── finance/                        # Bounded Context: Financeiro
+│   ├── models/
+│   │   ├── sale.py                 # Venda (cabeçalho)
+│   │   ├── sale_item.py            # Lote de animais da venda
+│   │   ├── payment.py              # Pagamento do cliente
+│   │   ├── financial_entry.py      # Extrato (débito/crédito)
+│   │   ├── deletion_log.py         # Retrato do que foi apagado
+│   │   └── enums.py
 │   ├── services/
-│   │   ├── farm_report_service.py
-│   │   └── consolidated_report_service.py
-│   └── templatetags/report_tags.py
+│   │   ├── sale_service.py         # Estoque + dinheiro, atômico
+│   │   ├── payment_service.py      # Pagamentos e ajustes manuais
+│   │   └── balance_service.py      # Saldo por agregação
+│   ├── utils/money.py              # Leitura de valores do metadata antigo
+│   ├── filters.py                  # Período mês/ano início–fim
+│   ├── views/                      # vendas, pagamentos, relatórios, htmx
+│   ├── management/commands/verificar_financeiro.py
+│   └── migrations/
+│       ├── 0001_initial.py
+│       └── 0002_backfill_vendas_existentes.py
 │
-├── templates/                      # Templates globais
+├── reporting/                      # Bounded Context: Relatórios de estoque
+│   ├── services/{farm,consolidated}_report_service.py
+│   └── templates/reporting/        # Telas + templates de PDF
+│
+├── templates/
 │   ├── base/base.html              # Layout principal (navbar, footer)
 │   └── shared/                     # Componentes reutilizáveis
 │
-├── static/
-│   └── js/masks.js                 # Máscaras: CPF/CNPJ, telefone, peso
-│
-├── scripts/
-│   └── deploy_prod.sh              # Script de deploy executado pelo CI/CD
+├── static/js/
+│   ├── masks.js                    # Máscaras pt-BR + API RebanhoMasks
+│   └── venda_form.js               # Formulário de venda multi-lote
 │
 ├── tests/
 │   ├── conftest.py
@@ -383,13 +478,16 @@ rebanho/
 │   ├── test_stock_integrity.py
 │   ├── test_ledger_immutability.py
 │   ├── test_approval_flow.py
-│   └── test_report_stock.py
+│   ├── test_report_stock.py
+│   ├── test_finance_sale_service.py
+│   ├── test_finance_balance.py
+│   ├── test_finance_money_parser.py
+│   └── test_finance_filters.py
 │
-├── docker-compose.yml
-├── Dockerfile
 ├── requirements.txt
 ├── manage.py
-├── DEPLOY.md                       # Manual completo de deploy
+├── reconcile_stock.py              # Reconciliação de saldos pelo ledger
+├── deploy_manual.md                # Manual completo de deploy
 └── .env.example
 ```
 
@@ -401,11 +499,14 @@ rebanho/
 
 | # | Regra | Implementação |
 |---|-------|---------------|
-| 1 | Saldo nunca negativo | `CHECK CONSTRAINT current_quantity >= 0` no banco + validação no service |
-| 2 | Ledger imutável | `AnimalMovement` sem métodos de update/delete |
-| 3 | Operações atômicas | `@transaction.atomic` em todos os services |
+| 1 | Saldo de animais nunca negativo | `CHECK CONSTRAINT current_quantity >= 0` no banco + validação no service |
+| 2 | Ledger de estoque imutável no fluxo normal | `AnimalMovement.delete()` levanta erro; edições só via service |
+| 3 | Operações atômicas | `transaction.atomic` explícito dentro dos services |
 | 4 | Rastreabilidade total | `timestamp`, `created_by`, `operation_type`, `metadata` em todo movimento |
-| 5 | Consistência de categorias | Signal cria saldo zerado para novas categorias em todas as fazendas automaticamente |
+| 5 | Consistência de categorias | Signal cria saldo zerado para novas categorias em todas as fazendas |
+| 6 | Valor financeiro sempre positivo | `CHECK CONSTRAINT amount > 0` — quem dá o sinal é a natureza do lançamento |
+| 7 | Origem do lançamento coerente | `CHECK CONSTRAINT` garante que venda/pagamento/ajuste batem com a FK preenchida |
+| 8 | Nada é apagado sem rastro | Exclusão de venda ou pagamento grava um `FinanceDeletionLog` |
 
 ### Fluxo de Validação (Múltiplas Camadas)
 
@@ -425,6 +526,15 @@ Domain Value Objects      ← Tipos válidos, operações permitidas
 Database Constraints      ← Última linha de defesa (CHECK constraint)
 ```
 
+### Por que `transaction.atomic` explícito nos services
+
+O projeto usa `ATOMIC_REQUESTS = True`, mas isso **não basta**: as views capturam
+`except Exception` para exibir uma mensagem amigável. Quando a view engole a
+exceção, a transação do request segue viva e **comita o que já foi escrito** —
+uma venda de 3 lotes que falhasse no terceiro gravaria os dois primeiros.
+O bloco `with transaction.atomic()` dentro do service cria um savepoint próprio
+que desfaz tudo, mesmo com o erro capturado lá em cima.
+
 ### Operações Compostas (Transacionais)
 
 **Manejo** (transferência entre fazendas):
@@ -438,16 +548,36 @@ BEGIN TRANSACTION
 COMMIT — ou ROLLBACK completo se qualquer passo falhar
 ```
 
-**Mudança de Categoria**:
+**Venda com vários lotes**:
 ```
 BEGIN TRANSACTION
-  1. Verifica saldo da categoria ORIGEM na fazenda
-  2. Cria AnimalMovement MUDANCA_CATEGORIA_OUT
-  3. Atualiza FarmStockBalance (categoria origem -N)
-  4. Cria AnimalMovement MUDANCA_CATEGORIA_IN
-  5. Atualiza FarmStockBalance (categoria destino +N)
+  1. Soma as quantidades POR CATEGORIA e confere contra o estoque
+     (a mesma categoria pode aparecer em várias linhas — validar
+      linha a linha deixaria passar uma venda que no total estoura)
+  2. Cria a Sale (cabeçalho)
+  3. Para cada lote, em ordem determinística de categoria:
+       → execute_saida() com lock no saldo
+       → cria o SaleItem vinculado à movimentação
+  4. Recalcula os totais da venda
+  5. Cria o FinancialEntry de débito (se houver valor)
 COMMIT — ou ROLLBACK completo se qualquer passo falhar
 ```
+
+> A ordem determinística por categoria evita deadlock entre duas vendas
+> simultâneas na mesma fazenda.
+
+### Saldo do Cliente
+
+```
+saldo = Σ(créditos) − Σ(débitos)
+
+  negativo → o cliente DEVE
+  zero     → quitado
+  positivo → o cliente tem CRÉDITO a favor (pagou adiantado ou a mais)
+```
+
+Um pagamento pode ser maior que a dívida, ou existir sem dívida nenhuma — o
+crédito resultante é abatido nas compras seguintes.
 
 ### Cálculo de Estoque nos Relatórios
 
@@ -460,7 +590,52 @@ Estoque Final   = Estoque Inicial
                − Σ(SAÍDAS no período selecionado)
 ```
 
-> Os relatórios **nunca confiam apenas no snapshot** — calculam dinamicamente pelo ledger, garantindo consistência mesmo que o snapshot esteja desatualizado.
+> Os relatórios **nunca confiam apenas no snapshot** — calculam dinamicamente
+> pelo ledger, ignorando movimentações estornadas.
+
+### Valores decimais: uma armadilha conhecida
+
+Campos de peso e preço usam `type="text"` com máscara pt-BR, **nunca**
+`type="number"` — o navegador descarta a vírgula antes do valor chegar ao Django.
+
+Há duas regras de leitura diferentes, e confundi-las custa caro:
+
+| Origem | Regra | Módulo |
+|--------|-------|--------|
+| **Digitação do usuário** (`"1.250"`) | O ponto é separador de **milhar** → 1250 | `core/utils/decimal_utils.py` |
+| **Gravado no banco** (`"1.250"`, de `str(Decimal)`) | O ponto é separador **decimal** → 1,25 | `finance/utils/money.py` |
+
+Aplicar a primeira regra a um valor da segunda origem infla o número em 1000×.
+É exatamente por isso que os dois parsers existem separados.
+
+---
+
+## 🔧 Comandos de Manutenção
+
+```bash
+# Semeia as 9 categorias fixas do sistema (touros, vacas, bezerros, ...)
+python manage.py seed_system_categories
+
+# Dados de exemplo para desenvolvimento
+python manage.py seed
+
+# Confere a integridade do financeiro (somente leitura)
+python manage.py verificar_financeiro
+
+# ... e corrige o que for seguro corrigir
+python manage.py verificar_financeiro --corrigir
+
+# Limita a verificação a um cliente
+python manage.py verificar_financeiro --cliente <uuid>
+
+# Recalcula os saldos de estoque a partir do ledger
+python reconcile_stock.py
+```
+
+O `verificar_financeiro` confere quatro coisas: se toda venda do ledger tem lote
+vinculado, se todo lote aponta para uma movimentação existente, se os totais em
+cache batem com a soma dos lotes, e se o extrato bate com as vendas e pagamentos.
+**Rode-o depois de cada deploy que toque no financeiro.**
 
 ---
 
@@ -474,8 +649,11 @@ pytest
 pytest --cov=. --cov-report=html
 
 # Suite específica
-pytest tests/test_movement_service.py -v
+pytest tests/test_finance_sale_service.py -v
 pytest tests/test_stock_integrity.py -v
+
+# Os testes de valores e período não tocam no banco — rodam em instantes
+pytest tests/test_finance_money_parser.py tests/test_finance_filters.py
 ```
 
 | Suite | O que testa |
@@ -486,6 +664,10 @@ pytest tests/test_stock_integrity.py -v
 | `test_ledger_immutability` | Imutabilidade dos registros do ledger |
 | `test_approval_flow` | Fluxo de aprovação de novos usuários |
 | `test_report_stock` | Cálculos de estoque inicial e final nos relatórios |
+| `test_finance_sale_service` | Venda multi-lote, estoque, edição e exclusão |
+| `test_finance_balance` | Pagamentos, ajustes e os quatro estados de saldo |
+| `test_finance_money_parser` | Leitura de valores gravados no `metadata` |
+| `test_finance_filters` | Intervalo de período (início, fim, invertido, bissexto) |
 
 ---
 
@@ -497,16 +679,29 @@ Deploy **totalmente automatizado** via GitHub Actions. A cada push na branch `ma
 push → main
    │
    ▼
-GitHub Actions (ubuntu-latest)
+GitHub Actions (ubuntu-latest) → SSH na VPS
    │
-   ├─ SSH na VPS
-   ├─ git reset --hard origin/main
-   ├─ docker compose build web
-   ├─ docker compose up -d --no-deps web
+   ├─ [1/9] git reset --hard origin/main
+   ├─ [2/9] Garante diretórios
+   ├─ [3/9] Corrige permissões de staticfiles
+   ├─ [4/9] docker compose build web
+   ├─ [5/9] docker compose up -d --no-deps web
+   ├─ [6/9] python manage.py migrate --noinput      ⚠️
+   ├─ [7/9] makemigrations --check --dry-run        ⚠️
+   ├─ [8/9] collectstatic --noinput
+   ├─ [9/9] docker compose restart celery
    ├─ Health check com retry (HTTP 200 em /login/)
-   ├─ docker compose restart celery
    └─ ✅ Deploy concluído
 ```
+
+> ⚠️ **Dois pontos que exigem atenção antes de dar merge na `main`:**
+>
+> 1. **As migrações rodam sozinhas** no passo 6, e o pipeline **não faz backup
+>    do banco**. Migrações de dados executam em produção no momento do merge —
+>    faça `pg_dump` e valide num restore antes.
+> 2. **O passo 7 falha o deploy** se houver mudança de model sem migration
+>    correspondente. Rode `makemigrations --check --dry-run` localmente antes
+>    de subir.
 
 ### Secrets necessários (GitHub → Settings → Secrets → Actions)
 
@@ -529,6 +724,9 @@ GitHub Actions (ubuntu-latest)
 | Autorização | `@login_required` em todas as views |
 | Aprovação | Novos usuários aguardam aprovação manual de administrador |
 | Integridade | `CHECK CONSTRAINT` no banco como última linha de defesa |
+| Auditoria | `django-simple-history` em movimentações, vendas e pagamentos |
+| Exclusões | Registradas com retrato completo em `FinanceDeletionLog` |
+| Admin financeiro | Somente leitura — escrever por ali burlaria os services |
 | SSL | HTTPS obrigatório em produção (Let's Encrypt) |
 | Proxy | `SECURE_PROXY_SSL_HEADER` configurado para Nginx |
 
