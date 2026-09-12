@@ -1,0 +1,83 @@
+name: 🔍 Diagnóstico de conexão com a VPS
+
+# Só roda quando acionado à mão. Não interfere no deploy.
+on:
+  workflow_dispatch:
+
+jobs:
+  diagnostico:
+    name: Testar alcance da VPS a partir do runner
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: 🌐 Onde está o runner
+        run: |
+          echo "IP público deste runner:"
+          curl -s --max-time 10 https://api.ipify.org || echo "(não obtido)"
+          echo
+          echo "Região:"
+          curl -s --max-time 10 https://ipinfo.io/region || echo "(não obtido)"
+          echo
+
+      - name: 🔎 O secret VPS_HOST está saudável?
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+        run: |
+          # O valor fica mascarado no log, então inspecionamos indiretamente.
+          # Espaço ou quebra de linha sobrando no secret é uma causa comum de
+          # falha silenciosa — o comprimento denuncia sem revelar o conteúdo.
+          echo "Comprimento do VPS_HOST : ${#VPS_HOST}"
+          echo "Tem espaço em branco?   : $(echo "$VPS_HOST" | grep -qE '[[:space:]]' && echo 'SIM — CORRIJA O SECRET' || echo 'não')"
+          echo "Parece IPv4?            : $(echo "$VPS_HOST" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' && echo 'sim' || echo 'não (é hostname)')"
+          echo
+          echo "Resolução DNS:"
+          getent hosts "$VPS_HOST" || echo "  NÃO RESOLVEU"
+
+      - name: 🚪 Quais portas respondem a partir do GitHub
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+        run: |
+          testar_porta() {
+            local porta=$1
+            local nome=$2
+            if timeout 10 bash -c "cat < /dev/null > /dev/tcp/$VPS_HOST/$porta" 2>/dev/null; then
+              echo "  porta $porta ($nome): ABERTA"
+            else
+              echo "  porta $porta ($nome): inacessível"
+            fi
+          }
+
+          echo "Alcance a partir deste runner:"
+          testar_porta 22  "SSH"
+          testar_porta 80  "HTTP"
+          testar_porta 443 "HTTPS"
+
+      - name: 🌍 O site responde a partir do runner
+        run: |
+          for url in https://rebanho.ferzion.com.br/login/ https://rebanhojd.ferzion.com.br/login/; do
+            CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 "$url" 2>/dev/null || echo "erro")
+            echo "  $url -> $CODE"
+          done
+
+      - name: 📖 Como ler este diagnóstico
+        if: always()
+        run: |
+          cat <<'FIM'
+
+          ┌──────────────────────────────────────────────────────────────┐
+          │ 22 inacessível, mas 80/443 ABERTAS                            │
+          │   → O servidor é alcançável; o bloqueio é só na porta 22.     │
+          │     Firewall da Hostinger (painel), não o ufw.                │
+          ├──────────────────────────────────────────────────────────────┤
+          │ 22, 80 e 443 todas inacessíveis                               │
+          │   → O VPS_HOST aponta para um IP errado ou inalcançável,      │
+          │     ou a Hostinger bloqueia faixas de datacenter.             │
+          ├──────────────────────────────────────────────────────────────┤
+          │ DNS "NÃO RESOLVEU" ou "Tem espaço em branco: SIM"             │
+          │   → O secret está malformado. Recadastre-o.                   │
+          ├──────────────────────────────────────────────────────────────┤
+          │ Todas ABERTAS                                                 │
+          │   → Era transitório. Tente o deploy de novo.                  │
+          └──────────────────────────────────────────────────────────────┘
+          FIM
