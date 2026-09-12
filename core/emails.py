@@ -80,7 +80,7 @@ def notificar_usuario_aprovado(usuario) -> bool:
         return False
 
     nome_completo = usuario.get_full_name() or usuario.username
-    assunto = '[Gestão de Rebanhos] Sua conta foi aprovada! ✅'
+    assunto = '[Gestão de Rebanhos] Sua conta foi aprovada'
 
     corpo_html = render_to_string('emails/conta_aprovada.html', {
         'usuario':      usuario,

@@ -8,7 +8,6 @@
   .header{background:linear-gradient(135deg,#16a34a,#15803d);padding:32px 32px 24px;text-align:center;}
   .header h1{color:#fff;margin:0;font-size:22px;font-weight:700;}
   .header p{color:#bbf7d0;margin:6px 0 0;font-size:14px;}
-  .emoji{font-size:42px;display:block;margin-bottom:12px;}
   .body{padding:28px 32px;}
   .body p{color:#374151;font-size:15px;line-height:1.6;margin:0 0 16px;}
   .info-box{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:16px 20px;margin:20px 0;}
@@ -26,7 +25,6 @@
 <body>
 <div class="card">
   <div class="header">
-    <span class="emoji">🐄</span>
     <h1>Novo Cadastro Aguardando Aprovação</h1>
     <p>Sistema de Gestão de Rebanhos</p>
   </div>
@@ -42,12 +40,12 @@
     <p>Clique em um dos botões abaixo para tomar uma decisão:</p>
 
     <div class="btn-group">
-      <a href="{{ url_aprovar }}" class="btn btn-approve">✅ Aprovar Acesso</a>
-      <a href="{{ url_rejeitar }}" class="btn btn-reject">❌ Rejeitar</a>
+      <a href="{{ url_aprovar }}" class="btn btn-approve">Aprovar Acesso</a>
+      <a href="{{ url_rejeitar }}" class="btn btn-reject">Rejeitar</a>
     </div>
 
     <div class="warning">
-      ⏳ <strong>Atenção:</strong> Este link expira em <strong>7 dias</strong>.
+      <strong>Atenção:</strong> Este link expira em <strong>7 dias</strong>.
       Após esse prazo, o usuário precisará se cadastrar novamente.
     </div>
   </div>
