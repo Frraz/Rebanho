@@ -17,6 +17,7 @@ Dois padrões diferentes, de propósito:
     tela quando a soma das quantidades passa do estoque.
 """
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ValidationError
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.views.decorators.http import require_http_methods
@@ -75,7 +76,7 @@ def categorias_da_fazenda(request):
     try:
         saldos = (
             FarmStockBalance.objects
-            .filter(farm_id=farm_id, current_quantity__gt=0)
+            .filter(farm_id=farm_id, current_quantity__gt=0, animal_category__is_active=True)
             .select_related('animal_category')
             .order_by('animal_category__display_order', 'animal_category__name')
         )
@@ -86,10 +87,11 @@ def categorias_da_fazenda(request):
                 'disponivel': saldo.current_quantity,
             }
             for saldo in saldos
-            if saldo.animal_category.is_active
         ]
-    except (ValueError, TypeError):
-        # farm_id malformado — devolve vazio em vez de estourar.
+    except (ValidationError, ValueError, TypeError):
+        # UUID malformado na query string. O Django levanta ValidationError
+        # (não ValueError) ao filtrar por um UUID inválido — tratar só o
+        # segundo deixaria passar um erro 500 numa tela de apoio.
         return JsonResponse({'categorias': []})
 
     return JsonResponse({'categorias': categorias})
@@ -103,7 +105,10 @@ def saldo_do_cliente(request):
     if not client_id:
         return render(request, 'finance/partials/client_balance.html', {'cliente': None})
 
-    cliente = Client.objects.filter(pk=client_id).first()
+    try:
+        cliente = Client.objects.filter(pk=client_id).first()
+    except (ValidationError, ValueError):
+        cliente = None
     if cliente is None:
         return render(request, 'finance/partials/client_balance.html', {'cliente': None})
 

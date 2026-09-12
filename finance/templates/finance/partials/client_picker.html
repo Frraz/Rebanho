@@ -23,7 +23,9 @@
             this.nome = '';
             document.getElementById('{{ field.auto_id }}').value = '';
             this.aberto = true;
-            $refs.busca.focus();
+            // `this.$refs` — dentro de um método do x-data, os atalhos do
+            // Alpine só existem em `this`; `$refs` solto não resolve.
+            this.$refs.busca.focus();
         }
      }"
      @click.away="aberto = false"
