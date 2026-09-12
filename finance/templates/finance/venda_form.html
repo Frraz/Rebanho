@@ -53,7 +53,6 @@
                     {% if form.farm.errors %}
                     <p class="mt-1.5 text-sm text-red-600">{{ form.farm.errors.0 }}</p>
                     {% endif %}
-                    <p class="mt-1.5 text-xs text-gray-500">Todos os lotes saem desta fazenda</p>
                 </div>
 
                 {% include 'finance/partials/client_picker.html' with field=form.client cliente_atual=venda.client %}

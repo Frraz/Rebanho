@@ -46,7 +46,7 @@
                hx-trigger="keyup changed delay:250ms, focus"
                hx-target="#resultados-cliente"
                hx-swap="innerHTML"
-               hx-vals='js:{"q": document.getElementById("busca-cliente").value}'
+               hx-vals='js:{"q": document.getElementById("busca-cliente").value, "all": document.getElementById("busca-cliente").value ? "" : "1"}'
                class="block w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-xl text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all">
 
         <button type="button"

@@ -216,7 +216,11 @@ class BaseSaleItemFormSet(forms.BaseFormSet):
 SaleItemFormSet = forms.formset_factory(
     SaleItemForm,
     formset=BaseSaleItemFormSet,
-    extra=1,
+    # `total_form_count` do Django é max(formulários iniciais, min_num) + extra.
+    # Com min_num=1 já garantimos pelo menos 1 linha; extra=1 faria aparecer
+    # 2 linhas em branco no cadastro. As demais linhas vêm só pelo botão
+    # "Adicionar tipo de animal".
+    extra=0,
     min_num=1,
     validate_min=True,
     can_delete=True,
