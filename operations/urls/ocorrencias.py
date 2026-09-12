@@ -27,11 +27,12 @@ urlpatterns = [
         ocorrencias.abate_create_view,
         name='abate'
     ),
-    path(
-        'venda/',
-        ocorrencias.venda_create_view,
-        name='venda'
-    ),
+    # ATENÇÃO: 'venda/' saiu daqui.
+    # Vendas passaram a ter tela própria (lista + formulário multi-lote) no app
+    # `finance`, montada em /ocorrencias/venda/ pelo config/urls.py. Deixar a
+    # rota antiga aqui criaria dois donos para o mesmo caminho — e a venda
+    # cadastrada pelo formulário antigo não teria Sale nem lançamento no
+    # extrato do cliente. Use {% url 'vendas:list' %} / {% url 'vendas:create' %}.
     path(
         'doacao/',
         ocorrencias.doacao_create_view,

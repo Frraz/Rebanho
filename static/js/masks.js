@@ -271,4 +271,42 @@
         });
     }
 
+
+    // ═══════════════════════════════════════════════════════════
+    // API PÚBLICA
+    // ═══════════════════════════════════════════════════════════
+
+    /**
+     * Até aqui tudo era privado, e a página só ganhava máscara em dois
+     * momentos: no DOMContentLoaded e depois de uma troca do HTMX.
+     *
+     * O formulário de venda cria linhas novas pelo Alpine, sem passar por
+     * nenhum dos dois — as linhas clonadas ficavam sem máscara. Por isso o
+     * módulo passa a expor:
+     *
+     *   RebanhoMasks.init(elemento)   aplica as máscaras num trecho novo
+     *   RebanhoMasks.parse("1.250,80")  → 1250.8   (para cálculos na tela)
+     *   RebanhoMasks.format(1250.8)     → "1.250,80"
+     *
+     * `parse`/`format` usam Number, então servem para o cálculo que o usuário
+     * vê. O valor que vale é sempre o que o servidor recalcula em Decimal.
+     */
+    window.RebanhoMasks = {
+        init: initMasks,
+
+        parse: function (value) {
+            if (value === null || value === undefined || value === '') return null;
+            var clean = normalizeExistingValue(String(value)).replace(',', '.');
+            var num = parseFloat(clean);
+            return isNaN(num) ? null : num;
+        },
+
+        format: function (value, casas) {
+            if (value === null || value === undefined || value === '' || isNaN(value)) return '';
+            casas = (casas === undefined) ? 2 : casas;
+            var fixed = Number(value).toFixed(casas);
+            return toDisplayFormat(fixed.replace('.', ','));
+        }
+    };
+
 }());

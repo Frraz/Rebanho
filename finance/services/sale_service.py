@@ -200,12 +200,11 @@ class SaleService:
                              preservado e a exclusão é recusada).
         """
         with transaction.atomic():
-            sale = (
-                Sale.objects
-                .select_for_update()
-                .select_related('client', 'farm')
-                .get(pk=sale.pk)
-            )
+            # Sem select_related junto do select_for_update: no PostgreSQL o
+            # FOR UPDATE alcança todas as tabelas do JOIN, e travaríamos também
+            # as linhas do cliente e da fazenda — segurando operações que nada
+            # têm a ver com esta venda.
+            sale = Sale.objects.select_for_update().get(pk=sale.pk)
 
             SaleService._assert_no_cancelled_movements(sale, acao="apagar")
 

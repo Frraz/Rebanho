@@ -1,0 +1,58 @@
+{% extends 'finance/pdf/base_pdf.html' %}
+{% load finance_tags %}
+
+{% block titulo %}Pagamentos{% endblock %}
+{% block cabecalho_titulo %}Relação de Pagamentos{% endblock %}
+
+{% block conteudo %}
+
+<table class="resumo">
+    <tr>
+        <td colspan="3">
+            <span class="rotulo">Total recebido no período</span>
+            <span class="valor credito">{{ total_periodo|moeda_rs }}</span>
+        </td>
+    </tr>
+</table>
+
+{% if pagamentos %}
+<table class="dados">
+    <thead>
+        <tr>
+            <th style="width:11%">Data</th>
+            <th style="width:28%">Cliente</th>
+            <th style="width:14%">Tipo</th>
+            <th style="width:30%">Descrição</th>
+            <th style="width:17%" class="dir">Valor</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for p in pagamentos %}
+        <tr>
+            <td>{{ p.date|date:"d/m/Y" }}</td>
+            <td>{{ p.client.name }}</td>
+            <td>{{ p.get_payment_type_display }}</td>
+            <td>{{ p.description|default:"—"|truncatechars:70 }}</td>
+            <td class="dir neg credito">{{ p.amount|moeda_rs }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+    <tfoot>
+        <tr>
+            <td colspan="4" class="dir">Total ({{ total_count }} pagamento{{ total_count|pluralize }})</td>
+            <td class="dir">{{ total_periodo|moeda_rs }}</td>
+        </tr>
+    </tfoot>
+</table>
+
+{% if total_count > 3000 %}
+<p class="aviso-corte">
+    Este PDF mostra os 3.000 pagamentos mais recentes do filtro, de um total de {{ total_count }}.
+</p>
+{% endif %}
+
+{% else %}
+<p class="vazio">Nenhum pagamento encontrado para os filtros selecionados.</p>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,73 @@
+{% extends 'finance/pdf/base_pdf.html' %}
+{% load finance_tags %}
+
+{% block titulo %}Saldos dos Clientes{% endblock %}
+{% block cabecalho_titulo %}Saldos dos Clientes{% endblock %}
+{% block cabecalho_periodo %}
+<div class="periodo">Posição em {{ gerado_em|date:"d/m/Y" }}</div>
+{% endblock %}
+
+{% block conteudo %}
+
+<table class="resumo">
+    <tr>
+        <td>
+            <span class="rotulo">Total a receber</span>
+            <span class="valor devendo">{{ totais.total_devedor|moeda_rs }}</span>
+            <span style="font-size:7pt; color:#666;">{{ totais.n_devedores }} cliente(s)</span>
+        </td>
+        <td>
+            <span class="rotulo">Créditos a favor dos clientes</span>
+            <span class="valor credito">{{ totais.total_credor|moeda_rs }}</span>
+            <span style="font-size:7pt; color:#666;">{{ totais.n_credores }} cliente(s)</span>
+        </td>
+        <td>
+            <span class="rotulo">Clientes quitados</span>
+            <span class="valor">{{ totais.n_quitados }}</span>
+        </td>
+    </tr>
+</table>
+
+{% if clientes %}
+<table class="dados">
+    <thead>
+        <tr>
+            <th style="width:34%">Cliente</th>
+            <th style="width:19%" class="dir">Total comprado</th>
+            <th style="width:19%" class="dir">Total pago</th>
+            <th style="width:19%" class="dir">Saldo</th>
+            <th style="width:9%" class="centro">Situação</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for c in clientes %}
+        <tr>
+            <td>{{ c.name }}{% if not c.is_active %} <span style="color:#9ca3af; font-size:7.5pt;">(inativo)</span>{% endif %}</td>
+            <td class="dir">{{ c.total_debitos|moeda_rs }}</td>
+            <td class="dir">{{ c.total_creditos|moeda_rs }}</td>
+            <td class="dir neg {% if c.saldo < 0 %}devendo{% elif c.saldo > 0 %}credito{% endif %}">
+                {{ c.saldo|saldo_formatado }}
+            </td>
+            <td class="centro">
+                {% if c.saldo < 0 %}<span class="etiqueta et-venda">Devendo</span>
+                {% elif c.saldo > 0 %}<span class="etiqueta et-pagamento">Crédito</span>
+                {% else %}<span class="etiqueta">Quitado</span>{% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+    <tfoot>
+        <tr>
+            <td class="dir">Totais ({{ total_count }} cliente{{ total_count|pluralize }})</td>
+            <td class="dir devendo">{{ totais.total_devedor|moeda_rs }}</td>
+            <td class="dir credito">{{ totais.total_credor|moeda_rs }}</td>
+            <td class="dir">{{ totais.liquido|saldo_formatado }}</td>
+            <td></td>
+        </tr>
+    </tfoot>
+</table>
+{% else %}
+<p class="vazio">Nenhum cliente encontrado para os filtros selecionados.</p>
+{% endif %}
+
+{% endblock %}

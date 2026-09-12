@@ -93,14 +93,16 @@ def client_list_view(request):
                 Q(address__icontains=search_term)
             )
         
+        # Saldo de cada cliente numa consulta só (sem N+1), para a coluna
+        # "Saldo" da listagem. Import local: evita dependência circular entre
+        # operations e finance na carga dos apps.
+        from finance.services import BalanceService
+        clients_queryset = BalanceService.annotate_balance(clients_queryset)
+
         # Ordenação
         clients_queryset = clients_queryset.order_by('name')
-        
-        # Anotar com estatísticas (se houver relacionamentos)
-        # clients_queryset = clients_queryset.annotate(
-        #     vendas_count=Count('venda', distinct=True)
-        # )
-        
+
+
         # Paginação
         paginator = Paginator(clients_queryset, 20)  # 20 clientes por página
         

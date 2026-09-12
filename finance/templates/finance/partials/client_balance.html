@@ -1,0 +1,22 @@
+{% load finance_tags %}
+{# Situação atual do cliente escolhido. Aparece no formulário de pagamento
+   para o usuário ver quanto ele deve antes de digitar o valor. #}
+
+{% if cliente %}
+<div class="rounded-xl border px-4 py-3 flex flex-wrap items-center justify-between gap-3
+            {% if saldo < 0 %}bg-red-50 border-red-200{% elif saldo > 0 %}bg-emerald-50 border-emerald-200{% else %}bg-gray-50 border-gray-200{% endif %}">
+    <div>
+        <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Situação de {{ cliente.name }}</p>
+        <p class="mt-0.5 text-xl font-bold {{ saldo|saldo_classe }}">
+            {{ saldo|saldo_formatado }}
+            <span class="text-sm font-medium text-gray-500">({{ saldo|saldo_rotulo }})</span>
+        </p>
+    </div>
+    {% if totais %}
+    <div class="text-right text-xs text-gray-600 space-y-0.5">
+        <p>Comprou: <span class="font-semibold">{{ totais.debitos|moeda_rs }}</span></p>
+        <p>Pagou: <span class="font-semibold">{{ totais.creditos|moeda_rs }}</span></p>
+    </div>
+    {% endif %}
+</div>
+{% endif %}

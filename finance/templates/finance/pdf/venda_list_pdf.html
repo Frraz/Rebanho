@@ -1,0 +1,81 @@
+{% extends 'finance/pdf/base_pdf.html' %}
+{% load finance_tags %}
+
+{% block titulo %}Vendas{% endblock %}
+{% block tamanho_pagina %}A4 landscape{% endblock %}
+{% block cabecalho_titulo %}Relação de Vendas{% endblock %}
+
+{% block conteudo %}
+
+<table class="resumo">
+    <tr>
+        <td>
+            <span class="rotulo">Valor total</span>
+            <span class="valor">{{ totais.valor|moeda_rs }}</span>
+        </td>
+        <td>
+            <span class="rotulo">Animais vendidos</span>
+            <span class="valor">{{ totais.animais|default:0 }}</span>
+        </td>
+        <td>
+            <span class="rotulo">Peso total</span>
+            <span class="valor">{{ totais.peso|peso_kg }} kg</span>
+        </td>
+    </tr>
+</table>
+
+{% if vendas %}
+<table class="dados">
+    <thead>
+        <tr>
+            <th style="width:8%">Data</th>
+            <th style="width:18%">Cliente</th>
+            <th style="width:14%">Fazenda</th>
+            <th style="width:30%">Lotes</th>
+            <th style="width:6%" class="centro">Qtd.</th>
+            <th style="width:11%" class="dir">Peso (kg)</th>
+            <th style="width:13%" class="dir">Total</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for v in vendas %}
+        <tr>
+            <td>
+                {{ v.date|date:"d/m/Y" }}
+                {% if v.is_cancelled %}<br><span class="etiqueta et-cancelada">cancelada</span>{% endif %}
+            </td>
+            <td class="{% if v.is_cancelled %}apagado{% endif %}">{{ v.client.name }}</td>
+            <td class="{% if v.is_cancelled %}apagado{% endif %}">{{ v.farm.name }}</td>
+            <td>
+                {% for item in v.items.all %}{{ item.quantity }}× {{ item.animal_category.name }}{% if item.price_per_kg %} (R$ {{ item.price_per_kg|preco_kg }}/kg){% endif %}{% if not forloop.last %}<br>{% endif %}{% empty %}—{% endfor %}
+            </td>
+            <td class="centro neg">{{ v.total_quantity }}</td>
+            <td class="dir">{{ v.total_weight|peso_kg }}</td>
+            <td class="dir neg">
+                {% if v.has_price %}{{ v.total_amount|moeda_rs }}{% else %}<span class="etiqueta et-sem-valor">sem valor</span>{% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+    <tfoot>
+        <tr>
+            <td colspan="4" class="dir">Totais ({{ total_count }} venda{{ total_count|pluralize }})</td>
+            <td class="centro">{{ totais.animais|default:0 }}</td>
+            <td class="dir">{{ totais.peso|peso_kg }}</td>
+            <td class="dir">{{ totais.valor|moeda_rs }}</td>
+        </tr>
+    </tfoot>
+</table>
+
+{% if total_count > 2000 %}
+<p class="aviso-corte">
+    Este PDF mostra as 2.000 vendas mais recentes do filtro, de um total de {{ total_count }}.
+    Refine o período para incluir todas.
+</p>
+{% endif %}
+
+{% else %}
+<p class="vazio">Nenhuma venda encontrada para os filtros selecionados.</p>
+{% endif %}
+
+{% endblock %}

@@ -90,12 +90,9 @@ class PaymentService:
         exclusões (a única trilha que sobra depois).
         """
         with transaction.atomic():
-            payment = (
-                Payment.objects
-                .select_for_update()
-                .select_related('client')
-                .get(pk=payment.pk)
-            )
+            # Sem select_related no select_for_update: evita travar a linha do
+            # cliente junto (o FOR UPDATE do PostgreSQL alcança o JOIN inteiro).
+            payment = Payment.objects.select_for_update().get(pk=payment.pk)
 
             resumo = {
                 'cliente': payment.client.name,

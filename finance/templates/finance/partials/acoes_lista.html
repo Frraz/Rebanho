@@ -1,0 +1,78 @@
+{# ══════════════════════════════════════════════════════════════════════════
+   Botões Imprimir e Exportar PDF de uma tela de lista.
+
+   O PDF é montado a partir dos campos que estão na tela AGORA, não dos que
+   foram submetidos — assim o usuário mexe num filtro e exporta direto, sem
+   precisar clicar em "Filtrar" antes. Mesma ideia já usada na lista de
+   ocorrências.
+
+   Espera no contexto:
+     pdf_url     — rota do PDF
+     campos_pdf  — lista de nomes de campo a repassar na query string
+     total_count — para o contador no botão
+   ══════════════════════════════════════════════════════════════════════════ #}
+<div class="ml-auto flex items-center gap-2"
+     x-data="{
+         gerando: false,
+         montarUrl() {
+             const base = '{{ pdf_url }}';
+             const campos = {{ campos_pdf|safe }};
+             const params = new URLSearchParams();
+             campos.forEach(function (nome) {
+                 const el = document.querySelector('[name=' + nome + ']');
+                 if (!el) return;
+                 const valor = (el.type === 'checkbox') ? (el.checked ? '1' : '') : el.value;
+                 if (valor && String(valor).trim()) params.set(nome, String(valor).trim());
+             });
+             const qs = params.toString();
+             return qs ? base + '?' + qs : base;
+         },
+         exportar() {
+             this.gerando = true;
+             window.open(this.montarUrl(), '_blank');
+             setTimeout(() => { this.gerando = false; }, 1500);
+         }
+     }">
+
+    <button type="button"
+            onclick="window.print()"
+            title="Imprimir esta tela"
+            class="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-300 text-gray-700 bg-white
+                   hover:bg-gray-50 text-sm font-medium rounded-xl shadow-sm hover:shadow transition-all
+                   focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-1">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+        </svg>
+        Imprimir
+    </button>
+
+    <button type="button"
+            @click="exportar()"
+            :disabled="gerando"
+            title="Exportar para PDF com os filtros atuais"
+            class="inline-flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-red-200 text-red-700
+                   hover:bg-red-50 hover:border-red-300 disabled:opacity-60 disabled:cursor-not-allowed
+                   text-sm font-semibold rounded-xl shadow-sm hover:shadow transition-all
+                   focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-1">
+        <template x-if="gerando">
+            <svg class="animate-spin w-4 h-4 text-red-500" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+            </svg>
+        </template>
+        <template x-if="!gerando">
+            <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6"/>
+            </svg>
+        </template>
+        <span x-text="gerando ? 'Gerando PDF...' : 'Exportar PDF'"></span>
+        {% if total_count %}
+        <span class="ml-0.5 px-1.5 py-0.5 text-xs font-bold bg-red-100 text-red-600 rounded-md leading-none">
+            {{ total_count }}
+        </span>
+        {% endif %}
+    </button>
+</div>
