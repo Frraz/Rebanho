@@ -1,0 +1,324 @@
+{% extends 'base/base.html' %}
+{% load finance_tags %}
+{% load number_filters %}
+
+{% block title %}Vendas — Sistema de Gestão{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    {# ══ Cabeçalho ══ #}
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 print:hidden">
+        <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center shadow-lg flex-shrink-0">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Vendas</h1>
+                <p class="mt-1 text-sm text-gray-600">
+                    Últimas vendas registradas
+                    {% if total_count %}
+                    <span class="text-gray-400">•</span>
+                    <span class="font-medium text-gray-900">{{ total_count }}</span>
+                    venda{{ total_count|pluralize }}
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+
+        <a href="{% url 'vendas:create' %}"
+           class="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white text-sm font-semibold rounded-xl shadow-md hover:shadow-lg transition-all">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            Nova Venda
+        </a>
+    </div>
+
+    {# ══ Cabeçalho só da impressão ══ #}
+    <div class="hidden print:block text-center py-2 border-b border-gray-300 mb-4">
+        <h1 class="text-lg font-bold">Relação de Vendas</h1>
+        <p class="text-sm text-gray-600">{{ periodo_label }}</p>
+    </div>
+
+    {# ══ Resumo ══ #}
+    {% if total_count %}
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 px-5 py-4">
+            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Valor total</p>
+            <p class="mt-1 text-2xl font-bold text-gray-900">{{ totais.valor|moeda_rs }}</p>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 px-5 py-4">
+            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Animais vendidos</p>
+            <p class="mt-1 text-2xl font-bold text-gray-900">{{ totais.animais|default:0 }}</p>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 px-5 py-4">
+            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Peso total</p>
+            <p class="mt-1 text-2xl font-bold text-gray-900">{{ totais.peso|peso_kg }} <span class="text-base font-medium text-gray-500">kg</span></p>
+        </div>
+    </div>
+    {% endif %}
+
+    {# ══ Filtros ══ #}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 print:hidden">
+        <form method="get" action="" class="space-y-4">
+
+            <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                </div>
+                <input type="search" name="q" value="{{ busca }}"
+                       placeholder="Buscar por cliente, fazenda, tipo de animal ou observação..."
+                       class="block w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all">
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1.5">Cliente</label>
+                    <select name="cliente" class="block w-full border border-gray-300 rounded-xl py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                        <option value="">Todos os clientes</option>
+                        {% for c in clientes %}
+                        <option value="{{ c.id }}" {% if c.id|stringformat:"s" == cliente_filtro %}selected{% endif %}>{{ c.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1.5">Fazenda</label>
+                    <select name="fazenda" class="block w-full border border-gray-300 rounded-xl py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                        <option value="">Todas as fazendas</option>
+                        {% for f in fazendas %}
+                        <option value="{{ f.id }}" {% if f.id|stringformat:"s" == fazenda_filtro %}selected{% endif %}>{{ f.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1.5">Tipo de Animal</label>
+                    <select name="categoria" class="block w-full border border-gray-300 rounded-xl py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                        <option value="">Todos os tipos</option>
+                        {% for cat in categorias %}
+                        <option value="{{ cat.id }}" {% if cat.id|stringformat:"s" == categoria_filtro %}selected{% endif %}>{{ cat.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1.5">Situação</label>
+                    <select name="situacao" class="block w-full border border-gray-300 rounded-xl py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                        <option value="">Todas</option>
+                        {% for val, label in situacoes %}
+                        <option value="{{ val }}" {% if val == situacao_filtro %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-4 lg:grid-cols-4 gap-3">
+                {% include 'finance/partials/filtro_periodo.html' %}
+            </div>
+
+            <label class="inline-flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                <input type="checkbox" name="sem_valor" value="1" {% if sem_valor_filtro == '1' %}checked{% endif %}
+                       class="rounded border-gray-300 text-green-600 focus:ring-green-500">
+                <span>Somente vendas <strong>sem valor informado</strong></span>
+                <span class="text-xs text-gray-500">(vendas antigas a completar)</span>
+            </label>
+
+            <div class="flex flex-wrap items-center gap-3 pt-3 border-t border-gray-100">
+                <button type="submit"
+                        class="inline-flex items-center gap-2 px-6 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-xl transition-all shadow-sm hover:shadow">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                    Filtrar
+                </button>
+
+                {% if filtros_ativos %}
+                <a href="{% url 'vendas:list' %}"
+                   class="inline-flex items-center gap-2 px-6 py-2.5 border-2 border-gray-300 text-gray-600 text-sm font-medium rounded-xl hover:bg-gray-50 hover:border-gray-400 transition-all">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                    Limpar Filtros
+                </a>
+                <span class="text-sm text-gray-600">
+                    <span class="font-semibold text-gray-900">{{ total_count }}</span>
+                    resultado{{ total_count|pluralize }}
+                </span>
+                {% endif %}
+
+                {% url 'vendas:pdf' as url_pdf %}
+                {% include 'finance/partials/acoes_lista.html' with pdf_url=url_pdf campos_pdf="['q','cliente','fazenda','categoria','situacao','sem_valor','mes_inicio','ano_inicio','mes_fim','ano_fim']" %}
+            </div>
+        </form>
+    </div>
+
+    {# ══ Tabela ══ #}
+    {% if page_obj and page_obj.object_list %}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-5 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Data</th>
+                        <th class="px-5 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Cliente</th>
+                        <th class="px-5 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Fazenda</th>
+                        <th class="px-5 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Lotes</th>
+                        <th class="px-5 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Qtd.</th>
+                        <th class="px-5 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Peso (kg)</th>
+                        <th class="px-5 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Total</th>
+                        <th class="px-5 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider print:hidden">Ações</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-100">
+                    {% for venda in page_obj %}
+                    <tr class="{% if venda.is_cancelled %}bg-gray-50 opacity-60{% else %}hover:bg-gray-50{% endif %} transition-colors align-top">
+
+                        <td class="px-5 py-4 whitespace-nowrap text-sm">
+                            <span class="font-medium {% if venda.is_cancelled %}text-gray-400 line-through{% else %}text-gray-900{% endif %}">
+                                {{ venda.date|date:"d/m/Y" }}
+                            </span>
+                            {% if venda.is_cancelled %}
+                            <span class="block mt-1 text-xs font-bold text-amber-700">Cancelada</span>
+                            {% endif %}
+                        </td>
+
+                        <td class="px-5 py-4 text-sm font-medium {% if venda.is_cancelled %}text-gray-400{% else %}text-gray-900{% endif %}">
+                            {{ venda.client.name }}
+                        </td>
+
+                        <td class="px-5 py-4 text-sm {% if venda.is_cancelled %}text-gray-400{% else %}text-gray-700{% endif %}">
+                            {{ venda.farm.name }}
+                        </td>
+
+                        <td class="px-5 py-4 text-sm text-gray-700">
+                            <div class="space-y-1">
+                                {% for item in venda.items.all %}
+                                <div class="flex items-baseline gap-1.5 text-xs">
+                                    <span class="font-semibold text-gray-900">{{ item.quantity }}×</span>
+                                    <span>{{ item.animal_category.name }}</span>
+                                    {% if item.price_per_kg %}
+                                    <span class="text-gray-400">· R$ {{ item.price_per_kg|preco_kg }}/kg</span>
+                                    {% endif %}
+                                </div>
+                                {% empty %}
+                                <span class="text-gray-400">—</span>
+                                {% endfor %}
+                            </div>
+                        </td>
+
+                        <td class="px-5 py-4 whitespace-nowrap text-center text-sm font-bold {% if venda.is_cancelled %}text-gray-400{% else %}text-gray-900{% endif %}">
+                            {{ venda.total_quantity }}
+                        </td>
+
+                        <td class="px-5 py-4 whitespace-nowrap text-right text-sm text-gray-700">
+                            {{ venda.total_weight|peso_kg }}
+                        </td>
+
+                        <td class="px-5 py-4 whitespace-nowrap text-right text-sm">
+                            {% if venda.has_price %}
+                            <span class="font-bold {% if venda.is_cancelled %}text-gray-400 line-through{% else %}text-gray-900{% endif %}">
+                                {{ venda.total_amount|moeda_rs }}
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200"
+                                  title="Esta venda foi registrada sem valor. Edite para informar o preço.">
+                                sem valor
+                            </span>
+                            {% endif %}
+                        </td>
+
+                        <td class="px-5 py-4 whitespace-nowrap text-center print:hidden">
+                            {% if venda.is_cancelled %}
+                            <span class="text-xs text-gray-400">—</span>
+                            {% else %}
+                            <div class="flex items-center justify-center gap-1.5">
+                                <a href="{% url 'vendas:edit' venda.id %}"
+                                   title="Editar esta venda"
+                                   class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-500 hover:text-blue-700 border border-blue-200 hover:border-blue-300 transition-all">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                    </svg>
+                                </a>
+
+                                {% include 'finance/partials/confirmar_exclusao.html' with objeto=venda url_delete_name='vendas:delete' titulo='Apagar esta venda?' %}
+                            </div>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {# ══ Paginação ══ #}
+    {% if page_obj.has_other_pages %}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 px-6 py-4 print:hidden">
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="text-sm text-gray-600">
+                Mostrando <span class="font-semibold text-gray-900">{{ page_obj.start_index }}</span>
+                a <span class="font-semibold text-gray-900">{{ page_obj.end_index }}</span>
+                de <span class="font-semibold text-gray-900">{{ paginator.count }}</span>
+                venda{{ paginator.count|pluralize }}
+            </div>
+            <nav class="flex items-center gap-2">
+                {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}{{ querystring }}"
+                   class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-all">
+                    Anterior
+                </a>
+                {% endif %}
+                <span class="text-sm text-gray-500 px-2">
+                    Página {{ page_obj.number }} de {{ paginator.num_pages }}
+                </span>
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{{ querystring }}"
+                   class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-all">
+                    Próxima
+                </a>
+                {% endif %}
+            </nav>
+        </div>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="bg-white rounded-2xl border border-gray-200 text-center py-16 px-6">
+        <div class="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gray-100 mb-6">
+            <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+        </div>
+        {% if filtros_ativos %}
+        <h3 class="text-lg font-semibold text-gray-900 mb-2">Nenhuma venda encontrada</h3>
+        <p class="text-sm text-gray-500 mb-6 max-w-md mx-auto">Não há vendas para os filtros selecionados.</p>
+        <a href="{% url 'vendas:list' %}"
+           class="inline-flex items-center gap-2 px-6 py-3 border-2 border-gray-300 text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition-all">
+            Limpar filtros
+        </a>
+        {% else %}
+        <h3 class="text-lg font-semibold text-gray-900 mb-2">Nenhuma venda registrada</h3>
+        <p class="text-sm text-gray-500 mb-6 max-w-md mx-auto">Comece registrando a primeira venda.</p>
+        <a href="{% url 'vendas:create' %}"
+           class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-green-500 text-white font-semibold rounded-xl shadow-lg transition-all">
+            Nova Venda
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+</div>
+
+<style>
+@media print {
+    @page { size: landscape; margin: 1cm; }
+    body { font-size: 9pt; }
+    .print\:hidden { display: none !important; }
+    .print\:block { display: block !important; }
+}
+</style>
+{% endblock %}

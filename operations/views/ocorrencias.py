@@ -17,7 +17,7 @@ from django.utils import timezone
 from django.core.exceptions import ValidationError
 import logging
 
-from operations.forms import MorteForm, AbateForm, VendaForm, DoacaoForm
+from operations.forms import MorteForm, AbateForm, DoacaoForm
 from operations.services.occurrence_service import OccurrenceService
 from operations.services.occurrence_pdf_service import OccurrencePDFService
 from inventory.services import MovementService
@@ -46,6 +46,31 @@ OCCURRENCE_LABELS = {
 # ══════════════════════════════════════════════════════════════════════════════
 # HELPERS
 # ══════════════════════════════════════════════════════════════════════════════
+
+def _redirecionar_para_venda(request, movement, aviso: str):
+    """
+    Manda o usuário para a tela certa quando ele tenta mexer numa venda por aqui.
+
+    Quando dá para identificar a venda (as criadas pelo módulo financeiro
+    guardam o id no metadata, e as importadas têm o lote vinculado), abre
+    direto a edição dela; senão, cai na lista.
+    """
+    messages.warning(request, aviso)
+
+    sale_id = (movement.metadata or {}).get('_sale_id')
+    if not sale_id:
+        try:
+            sale_id = str(movement.sale_item.sale_id)
+        except Exception:  # noqa: BLE001 — sem lote vinculado
+            sale_id = None
+
+    if sale_id:
+        try:
+            return redirect('vendas:edit', pk=sale_id)
+        except Exception:  # noqa: BLE001 — id inválido
+            pass
+    return redirect('vendas:list')
+
 
 def _build_filters_context(request) -> dict:
     search = request.GET.get('q', '').strip()
@@ -302,63 +327,14 @@ def abate_create_view(request):
 # ══════════════════════════════════════════════════════════════════════════════
 # VENDA
 # ══════════════════════════════════════════════════════════════════════════════
-
-@login_required
-@require_http_methods(["GET", "POST"])
-def venda_create_view(request):
-    if request.method == 'POST':
-        form = VendaForm(request.POST)
-
-        if form.is_valid():
-            try:
-                metadata = {'observacao': form.cleaned_data.get('observacao', '')}
-                if form.cleaned_data.get('peso'):
-                    metadata['peso'] = str(form.cleaned_data['peso'])
-                if form.cleaned_data.get('preco_total'):
-                    metadata['preco_total'] = str(form.cleaned_data['preco_total'])
-
-                movement = MovementService.execute_saida(
-                    farm_id=str(form.cleaned_data['farm'].id),
-                    animal_category_id=str(form.cleaned_data['animal_category'].id),
-                    operation_type=OperationType.VENDA,
-                    quantity=form.cleaned_data['quantity'],
-                    user=request.user,
-                    client_id=str(form.cleaned_data['client'].id),
-                    timestamp=form.cleaned_data.get('timestamp'),
-                    metadata=metadata,
-                    ip_address=request.META.get('REMOTE_ADDR'),
-                )
-
-                logger.info(
-                    f"Venda registrada por {request.user.username}. "
-                    f"Cliente: {movement.client.name}, Quantidade: {movement.quantity}"
-                )
-                messages.success(
-                    request,
-                    f'Venda registrada com sucesso! '
-                    f'{movement.quantity} {movement.farm_stock_balance.animal_category.name} '
-                    f'vendidos para {movement.client.name}.'
-                )
-                return redirect('ocorrencias:list')
-
-            except Exception as e:
-                logger.error(f"Erro ao registrar venda: {str(e)}. Usuário: {request.user.username}", exc_info=True)
-                messages.error(request, f'Erro ao registrar venda: {str(e)}')
-        else:
-            logger.warning(f"Validação falhou ao registrar venda. Usuário: {request.user.username}")
-    else:
-        form = VendaForm()
-
-    return render(request, 'shared/generic_form.html', {
-        'form': form,
-        'form_title': 'Registrar Venda',
-        'form_description': 'Registre a venda de animais',
-        'submit_button_text': 'Registrar Venda',
-        'cancel_url': reverse('ocorrencias:list'),
-        'show_back_button': True,
-        'form_badge': 'Ocorrência',
-        'form_badge_color': 'green',
-    })
+#
+# A view de cadastro de venda saiu daqui. Vendas passaram a ter tela própria
+# no app `finance` (lista + formulário com vários tipos de animal), porque
+# agora cada venda também gera o lançamento no extrato do cliente — coisa que
+# este formulário não fazia.
+#
+#   lista    → vendas:list    (/ocorrencias/venda/)
+#   cadastro → vendas:create  (/ocorrencias/venda/nova/)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -450,6 +426,24 @@ def occurrence_cancel_view(request, pk):
     )
 
     is_htmx = request.headers.get('HX-Request') == 'true'
+
+    # Mesma razão da edição: cancelar a venda só por aqui devolveria os animais
+    # ao estoque mas deixaria a dívida de pé no extrato do cliente.
+    if movement.operation_type == OperationType.VENDA.value:
+        aviso = (
+            "Vendas são apagadas na tela de Vendas, para que o valor saia "
+            "junto do saldo do cliente."
+        )
+        if is_htmx:
+            return HttpResponse(
+                f'<tr id="occurrence-row-{movement.id}">'
+                f'<td colspan="8" class="px-6 py-4 text-sm text-amber-700 bg-amber-50">'
+                f'{aviso} <a href="/ocorrencias/venda/" class="underline font-semibold">'
+                f'Abrir Vendas</a></td></tr>',
+                status=200,
+            )
+        messages.warning(request, aviso)
+        return redirect('vendas:list')
 
     try:
         c = movement.cancellation
@@ -582,8 +576,7 @@ def occurrence_edit_view(request, pk):
     """
     from operations.models import Client, DeathReason
     from inventory.models import AnimalMovementCancellation
-    from django.utils.dateparse import parse_datetime
-    from django.utils import timezone as tz
+    from django.utils.dateparse import parse_date
 
     movement = get_object_or_404(
         AnimalMovement.objects
@@ -598,6 +591,16 @@ def occurrence_edit_view(request, pk):
         pk=pk,
         operation_type__in=OCCURRENCE_TYPES,
     )
+
+    # Vendas têm tela própria desde o módulo financeiro. Editar por aqui
+    # mexeria só na movimentação de estoque, deixando a venda e o saldo do
+    # cliente com valores antigos — uma divergência silenciosa no dinheiro.
+    if movement.operation_type == OperationType.VENDA.value:
+        return _redirecionar_para_venda(
+            request, movement,
+            "Vendas são editadas na tela de Vendas, para que o valor e o saldo "
+            "do cliente sejam atualizados junto."
+        )
 
     if AnimalMovementCancellation.objects.filter(movement_id=pk).exists():
         messages.warning(request, "Ocorrências canceladas não podem ser editadas.")
@@ -644,12 +647,14 @@ def occurrence_edit_view(request, pk):
                 'metadata': new_meta,
             }
 
+            # `timestamp` virou DateField (migração inventory/0005) e o input é
+            # type="date", que envia "2026-09-12". `parse_datetime` devolve None
+            # para data sem hora — ou seja, a data nunca era salva ao editar.
+            # A correção equivalente já existia em inventory/views/movimentacoes.py.
             if timestamp_str:
-                ts = parse_datetime(timestamp_str)
-                if ts:
-                    if tz.is_naive(ts):
-                        ts = tz.make_aware(ts)
-                    data['timestamp'] = ts
+                nova_data = parse_date(timestamp_str)
+                if nova_data:
+                    data['timestamp'] = nova_data
 
             if client_id:
                 data['client_id'] = client_id

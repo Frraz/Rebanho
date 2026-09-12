@@ -1,0 +1,36 @@
+{% load finance_tags %}
+{# Resultados da busca de cliente. Mostra o saldo junto do nome: na hora de
+   lançar um pagamento, é exatamente a informação que falta. #}
+
+{% if vazio_inicial %}
+<p class="px-4 py-3 text-sm text-gray-400">Digite para buscar...</p>
+
+{% elif clientes %}
+<ul class="divide-y divide-gray-100">
+    {% for c in clientes %}
+    <li>
+        <button type="button"
+                @click="selecionar('{{ c.id }}', '{{ c.name|escapejs }}')"
+                class="w-full text-left px-4 py-3 hover:bg-green-50 transition-colors flex items-center justify-between gap-3">
+            <span class="text-sm font-medium text-gray-900">{{ c.name }}</span>
+            {% if c.saldo %}
+            <span class="text-xs font-semibold whitespace-nowrap {{ c.saldo|saldo_classe }}">
+                {{ c.saldo|saldo_formatado }}
+            </span>
+            {% else %}
+            <span class="text-xs text-gray-400 whitespace-nowrap">quitado</span>
+            {% endif %}
+        </button>
+    </li>
+    {% endfor %}
+</ul>
+
+{% else %}
+<div class="px-4 py-4 text-sm text-gray-500">
+    <p>Nenhum cliente encontrado para "<strong>{{ termo }}</strong>".</p>
+    <a href="{% url 'operations_cadastros:client_create' %}" target="_blank"
+       class="mt-2 inline-block text-green-700 hover:text-green-800 font-medium underline">
+        Cadastrar novo cliente
+    </a>
+</div>
+{% endif %}

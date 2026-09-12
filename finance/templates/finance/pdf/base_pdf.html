@@ -1,0 +1,171 @@
+{% load finance_tags %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block titulo %}Relatório{% endblock %}</title>
+    <style>
+        /*
+         * Estilo dos PDFs financeiros.
+         *
+         * Segue a mesma linguagem visual de reporting/pdf_base.html (o Excel-like
+         * usado nos relatórios de estoque), mas em folha retrato por padrão e com
+         * tipografia um pouco maior — estas listas têm menos colunas e se
+         * beneficiam de mais respiro.
+         *
+         * Nada de recurso externo: o WeasyPrint é chamado sem base_url, então
+         * qualquer imagem ou fonte remota simplesmente não carregaria.
+         */
+        @page {
+            size: {% block tamanho_pagina %}A4 portrait{% endblock %};
+            margin: 1.2cm 1cm;
+            @bottom-center {
+                content: "Página " counter(page) " de " counter(pages);
+                font-family: Helvetica, Arial, sans-serif;
+                font-size: 7.5pt;
+                color: #666;
+            }
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: Helvetica, Arial, sans-serif;
+            font-size: 9pt;
+            color: #111;
+            margin: 0;
+        }
+
+        .cabecalho {
+            border-bottom: 2px solid #111;
+            padding-bottom: 8px;
+            margin-bottom: 14px;
+        }
+        .cabecalho h1 {
+            font-size: 15pt;
+            margin: 0 0 2px 0;
+            letter-spacing: .3px;
+        }
+        .cabecalho .periodo {
+            font-size: 10pt;
+            font-weight: bold;
+            color: #333;
+        }
+        .cabecalho .filtros {
+            font-size: 8pt;
+            color: #555;
+            margin-top: 3px;
+        }
+        .cabecalho .emissao {
+            font-size: 7.5pt;
+            color: #777;
+            margin-top: 3px;
+        }
+
+        .resumo {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 14px;
+        }
+        .resumo td {
+            border: 1px solid #ccc;
+            padding: 7px 10px;
+            width: 33.33%;
+            vertical-align: top;
+        }
+        .resumo .rotulo {
+            font-size: 7pt;
+            text-transform: uppercase;
+            letter-spacing: .4px;
+            color: #666;
+            display: block;
+        }
+        .resumo .valor {
+            font-size: 13pt;
+            font-weight: bold;
+            display: block;
+            margin-top: 2px;
+        }
+
+        table.dados {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table.dados th {
+            background: #1f2937;
+            color: #fff;
+            font-size: 7.5pt;
+            text-transform: uppercase;
+            letter-spacing: .3px;
+            padding: 6px 5px;
+            text-align: left;
+            border: 1px solid #1f2937;
+        }
+        table.dados td {
+            border: 1px solid #d1d5db;
+            padding: 5px;
+            font-size: 8.5pt;
+            vertical-align: top;
+        }
+        table.dados tbody tr:nth-child(even) { background: #f9fafb; }
+        table.dados tfoot td {
+            background: #e5e7eb;
+            font-weight: bold;
+            border: 1px solid #9ca3af;
+            font-size: 9pt;
+        }
+
+        .dir { text-align: right; }
+        .centro { text-align: center; }
+        .neg { font-weight: bold; }
+        .devendo { color: #b91c1c; }
+        .credito { color: #047857; }
+        .apagado { color: #9ca3af; }
+        .etiqueta {
+            display: inline-block;
+            padding: 1px 5px;
+            border-radius: 3px;
+            font-size: 7pt;
+            font-weight: bold;
+            border: 1px solid;
+        }
+        .et-venda { color: #b91c1c; border-color: #fca5a5; background: #fef2f2; }
+        .et-pagamento { color: #047857; border-color: #6ee7b7; background: #ecfdf5; }
+        .et-ajuste { color: #6d28d9; border-color: #c4b5fd; background: #f5f3ff; }
+        .et-cancelada { color: #92400e; border-color: #fcd34d; background: #fffbeb; }
+        .et-sem-valor { color: #92400e; border-color: #fcd34d; background: #fffbeb; }
+
+        .vazio {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+            font-style: italic;
+        }
+        .aviso-corte {
+            margin-top: 10px;
+            font-size: 7.5pt;
+            color: #92400e;
+            border: 1px solid #fcd34d;
+            background: #fffbeb;
+            padding: 5px 8px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="cabecalho">
+        <h1>{% block cabecalho_titulo %}Relatório{% endblock %}</h1>
+        {% block cabecalho_periodo %}
+        {% if periodo_label %}<div class="periodo">{{ periodo_label }}</div>{% endif %}
+        {% endblock %}
+        {% if resumo_filtros %}<div class="filtros">{{ resumo_filtros }}</div>{% endif %}
+        <div class="emissao">
+            Emitido em {{ gerado_em|date:"d/m/Y" }}
+            {% if user %}por {{ user.get_full_name|default:user.username }}{% endif %}
+        </div>
+    </div>
+
+    {% block conteudo %}{% endblock %}
+
+</body>
+</html>

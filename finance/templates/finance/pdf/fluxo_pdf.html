@@ -1,0 +1,94 @@
+{% extends 'finance/pdf/base_pdf.html' %}
+{% load finance_tags %}
+
+{% block titulo %}Fluxo Financeiro{% endblock %}
+{% block tamanho_pagina %}A4 landscape{% endblock %}
+{% block cabecalho_titulo %}Fluxo Financeiro{% endblock %}
+
+{% block conteudo %}
+
+<table class="resumo">
+    <tr>
+        <td>
+            <span class="rotulo">Vendas (débitos)</span>
+            <span class="valor devendo">{{ totais.debitos|moeda_rs }}</span>
+        </td>
+        <td>
+            <span class="rotulo">Recebimentos (créditos)</span>
+            <span class="valor credito">{{ totais.creditos|moeda_rs }}</span>
+        </td>
+        <td>
+            <span class="rotulo">Resultado do período</span>
+            <span class="valor {% if totais.resultado < 0 %}devendo{% else %}credito{% endif %}">
+                {{ totais.resultado|saldo_formatado }}
+            </span>
+        </td>
+    </tr>
+</table>
+
+{% if mostra_acumulado and saldo_inicial is not None %}
+<p style="font-size:8.5pt; margin:0 0 8px 0;">
+    Saldo antes do período: <strong>{{ saldo_inicial|saldo_formatado }}</strong>
+</p>
+{% endif %}
+
+{% if lancamentos %}
+<table class="dados">
+    <thead>
+        <tr>
+            <th style="width:8%">Data</th>
+            <th style="width:20%">Cliente</th>
+            <th style="width:9%">Origem</th>
+            <th style="width:{% if mostra_acumulado %}27%{% else %}39%{% endif %}">Detalhe</th>
+            <th style="width:12%" class="dir">Débito</th>
+            <th style="width:12%" class="dir">Crédito</th>
+            {% if mostra_acumulado %}<th style="width:12%" class="dir">Saldo</th>{% endif %}
+        </tr>
+    </thead>
+    <tbody>
+        {% for l in lancamentos %}
+        <tr>
+            <td>{{ l.date|date:"d/m/Y" }}</td>
+            <td>{{ l.client.name }}</td>
+            <td>
+                {% if l.source_type == 'VENDA' %}<span class="etiqueta et-venda">Venda</span>
+                {% elif l.source_type == 'PAGAMENTO' %}<span class="etiqueta et-pagamento">Pagto</span>
+                {% else %}<span class="etiqueta et-ajuste">Ajuste</span>{% endif %}
+            </td>
+            <td>
+                {% if l.sale %}{{ l.sale.farm.name }} · {% for item in l.sale.items.all %}{{ item.quantity }}× {{ item.animal_category.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                {% elif l.payment %}{{ l.payment.get_payment_type_display }}{% if l.payment.description %} · {{ l.payment.description|truncatechars:40 }}{% endif %}
+                {% else %}{{ l.description|truncatechars:70 }}{% endif %}
+            </td>
+            <td class="dir">{% if l.entry_type == 'DEBITO' %}<span class="neg devendo">{{ l.amount|moeda }}</span>{% else %}—{% endif %}</td>
+            <td class="dir">{% if l.entry_type == 'CREDITO' %}<span class="neg credito">{{ l.amount|moeda }}</span>{% else %}—{% endif %}</td>
+            {% if mostra_acumulado %}
+            <td class="dir neg {% if l.saldo_acumulado < 0 %}devendo{% else %}credito{% endif %}">
+                {{ l.saldo_acumulado|saldo_formatado }}
+            </td>
+            {% endif %}
+        </tr>
+        {% endfor %}
+    </tbody>
+    <tfoot>
+        <tr>
+            <td colspan="4" class="dir">Totais ({{ total_count }} lançamento{{ total_count|pluralize }})</td>
+            <td class="dir devendo">{{ totais.debitos|moeda }}</td>
+            <td class="dir credito">{{ totais.creditos|moeda }}</td>
+            {% if mostra_acumulado %}<td></td>{% endif %}
+        </tr>
+    </tfoot>
+</table>
+
+{% if total_count > 3000 %}
+<p class="aviso-corte">
+    Este PDF mostra os 3.000 primeiros lançamentos do filtro, de um total de {{ total_count }}.
+    Refine o período para incluir todos.
+</p>
+{% endif %}
+
+{% else %}
+<p class="vazio">Nenhum lançamento encontrado para os filtros selecionados.</p>
+{% endif %}
+
+{% endblock %}

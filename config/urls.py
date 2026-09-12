@@ -178,18 +178,28 @@ urlpatterns = [
     # ──────────────────────────────────────────────────────────────────────────
     # OCORRÊNCIAS
     # ──────────────────────────────────────────────────────────────────────────
+
+    # Vendas e Pagamentos vêm ANTES do include de ocorrências: ambos usam o
+    # prefixo /ocorrencias/, e o Django resolve na ordem de declaração.
+    # /ocorrencias/venda/ passou a abrir a lista de vendas (antes abria o
+    # formulário direto), então o link do menu continua o mesmo.
+    path('ocorrencias/venda/', include('finance.urls.vendas')),
+    path('ocorrencias/pagamentos/', include('finance.urls.pagamentos')),
+
     path('ocorrencias/', include('operations.urls.ocorrencias')),
-    
-    
+
+
     # ──────────────────────────────────────────────────────────────────────────
     # RELATÓRIOS
     # ──────────────────────────────────────────────────────────────────────────
+    path('relatorios/', include('finance.urls.relatorios')),
     path('relatorios/', include('reporting.urls')),
-    
-    
+
+
     # ──────────────────────────────────────────────────────────────────────────
     # HTMX ENDPOINTS (Interações dinâmicas)
     # ──────────────────────────────────────────────────────────────────────────
+    path('htmx/financeiro/', include('finance.urls.htmx')),
     path('htmx/', include('inventory.urls.htmx')),
     
     

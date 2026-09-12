@@ -1,0 +1,238 @@
+{% extends 'base/base.html' %}
+{% load finance_tags %}
+
+{% block title %}Pagamentos — Sistema de Gestão{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    {# ══ Cabeçalho ══ #}
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 print:hidden">
+        <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-lg flex-shrink-0">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Pagamentos</h1>
+                <p class="mt-1 text-sm text-gray-600">
+                    Pagamentos recebidos dos clientes
+                    {% if total_count %}
+                    <span class="text-gray-400">•</span>
+                    <span class="font-medium text-gray-900">{{ total_count }}</span>
+                    registro{{ total_count|pluralize }}
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+
+        <a href="{% url 'pagamentos:create' %}"
+           class="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 text-white text-sm font-semibold rounded-xl shadow-md hover:shadow-lg transition-all">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            Novo Pagamento
+        </a>
+    </div>
+
+    <div class="hidden print:block text-center py-2 border-b border-gray-300 mb-4">
+        <h1 class="text-lg font-bold">Relação de Pagamentos</h1>
+        <p class="text-sm text-gray-600">{{ periodo_label }}</p>
+    </div>
+
+    {% if total_count %}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 px-5 py-4">
+        <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Total recebido no período filtrado</p>
+        <p class="mt-1 text-3xl font-bold text-emerald-600">{{ total_periodo|moeda_rs }}</p>
+    </div>
+    {% endif %}
+
+    {# ══ Filtros ══ #}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 print:hidden">
+        <form method="get" action="" class="space-y-4">
+
+            <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                </div>
+                <input type="search" name="q" value="{{ busca }}"
+                       placeholder="Buscar por cliente ou descrição..."
+                       class="block w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all">
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                <div class="sm:col-span-2">
+                    <label class="block text-xs font-medium text-gray-700 mb-1.5">Cliente</label>
+                    <select name="cliente" class="block w-full border border-gray-300 rounded-xl py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent">
+                        <option value="">Todos os clientes</option>
+                        {% for c in clientes %}
+                        <option value="{{ c.id }}" {% if c.id|stringformat:"s" == cliente_filtro %}selected{% endif %}>{{ c.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="sm:col-span-2">
+                    <label class="block text-xs font-medium text-gray-700 mb-1.5">Tipo de Pagamento</label>
+                    <select name="tipo" class="block w-full border border-gray-300 rounded-xl py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent">
+                        <option value="">Todos os tipos</option>
+                        {% for val, label in tipos %}
+                        <option value="{{ val }}" {% if val == tipo_filtro %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                {% include 'finance/partials/filtro_periodo.html' %}
+            </div>
+
+            <div class="flex flex-wrap items-center gap-3 pt-3 border-t border-gray-100">
+                <button type="submit"
+                        class="inline-flex items-center gap-2 px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl transition-all shadow-sm hover:shadow">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                    Filtrar
+                </button>
+
+                {% if filtros_ativos %}
+                <a href="{% url 'pagamentos:list' %}"
+                   class="inline-flex items-center gap-2 px-6 py-2.5 border-2 border-gray-300 text-gray-600 text-sm font-medium rounded-xl hover:bg-gray-50 hover:border-gray-400 transition-all">
+                    Limpar Filtros
+                </a>
+                <span class="text-sm text-gray-600">
+                    <span class="font-semibold text-gray-900">{{ total_count }}</span>
+                    resultado{{ total_count|pluralize }}
+                </span>
+                {% endif %}
+
+                {% url 'pagamentos:pdf' as url_pdf %}
+                {% include 'finance/partials/acoes_lista.html' with pdf_url=url_pdf campos_pdf="['q','cliente','tipo','mes_inicio','ano_inicio','mes_fim','ano_fim']" %}
+            </div>
+        </form>
+    </div>
+
+    {# ══ Tabela ══ #}
+    {% if page_obj and page_obj.object_list %}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-5 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Data</th>
+                        <th class="px-5 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Cliente</th>
+                        <th class="px-5 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Tipo</th>
+                        <th class="px-5 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Descrição</th>
+                        <th class="px-5 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Valor</th>
+                        <th class="px-5 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Registrado por</th>
+                        <th class="px-5 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider print:hidden">Ações</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-100">
+                    {% for pagamento in page_obj %}
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="px-5 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {{ pagamento.date|date:"d/m/Y" }}
+                        </td>
+                        <td class="px-5 py-4 text-sm font-medium text-gray-900">
+                            {{ pagamento.client.name }}
+                        </td>
+                        <td class="px-5 py-4 whitespace-nowrap">
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                {{ pagamento.get_payment_type_display }}
+                            </span>
+                        </td>
+                        <td class="px-5 py-4 text-sm text-gray-600">
+                            {% if pagamento.description %}
+                            {{ pagamento.description|truncatechars:60 }}
+                            {% else %}
+                            <span class="text-gray-300">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-5 py-4 whitespace-nowrap text-right text-sm font-bold text-emerald-600">
+                            {{ pagamento.amount|moeda_rs }}
+                        </td>
+                        <td class="px-5 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{ pagamento.created_by.username|default:"—" }}
+                        </td>
+                        <td class="px-5 py-4 whitespace-nowrap text-center print:hidden">
+                            <div class="flex items-center justify-center gap-1.5">
+                                <a href="{% url 'pagamentos:edit' pagamento.id %}"
+                                   title="Editar este pagamento"
+                                   class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-500 hover:text-blue-700 border border-blue-200 hover:border-blue-300 transition-all">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                    </svg>
+                                </a>
+                                {% include 'finance/partials/confirmar_exclusao.html' with objeto=pagamento url_delete_name='pagamentos:delete' titulo='Apagar este pagamento?' %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {% if page_obj.has_other_pages %}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 px-6 py-4 print:hidden">
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="text-sm text-gray-600">
+                Mostrando <span class="font-semibold text-gray-900">{{ page_obj.start_index }}</span>
+                a <span class="font-semibold text-gray-900">{{ page_obj.end_index }}</span>
+                de <span class="font-semibold text-gray-900">{{ paginator.count }}</span>
+            </div>
+            <nav class="flex items-center gap-2">
+                {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}{{ querystring }}"
+                   class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">Anterior</a>
+                {% endif %}
+                <span class="text-sm text-gray-500 px-2">Página {{ page_obj.number }} de {{ paginator.num_pages }}</span>
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{{ querystring }}"
+                   class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">Próxima</a>
+                {% endif %}
+            </nav>
+        </div>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="bg-white rounded-2xl border border-gray-200 text-center py-16 px-6">
+        <div class="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gray-100 mb-6">
+            <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+            </svg>
+        </div>
+        {% if filtros_ativos %}
+        <h3 class="text-lg font-semibold text-gray-900 mb-2">Nenhum pagamento encontrado</h3>
+        <a href="{% url 'pagamentos:list' %}" class="inline-flex items-center gap-2 px-6 py-3 border-2 border-gray-300 text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition-all mt-4">
+            Limpar filtros
+        </a>
+        {% else %}
+        <h3 class="text-lg font-semibold text-gray-900 mb-2">Nenhum pagamento registrado</h3>
+        <p class="text-sm text-gray-500 mb-6 max-w-md mx-auto">
+            Registre o primeiro pagamento para começar a acompanhar os saldos dos clientes.
+        </p>
+        <a href="{% url 'pagamentos:create' %}"
+           class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-600 to-emerald-500 text-white font-semibold rounded-xl shadow-lg transition-all">
+            Novo Pagamento
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+</div>
+
+<style>
+@media print {
+    @page { size: portrait; margin: 1cm; }
+    body { font-size: 9pt; }
+    .print\:hidden { display: none !important; }
+    .print\:block { display: block !important; }
+}
+</style>
+{% endblock %}

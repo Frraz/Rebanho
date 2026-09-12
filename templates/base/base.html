@@ -365,13 +365,20 @@
                                 <span>Abate</span>
                             </a>
                             
-                            <a href="/ocorrencias/venda/" class="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors">
+                            <a href="{% url 'vendas:list' %}" class="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors {% if '/ocorrencias/venda' in request.path %}bg-green-50 text-green-700 font-medium{% endif %}">
                                 <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                 </svg>
                                 <span>Venda</span>
                             </a>
-                            
+
+                            <a href="{% url 'pagamentos:list' %}" class="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 transition-colors {% if '/ocorrencias/pagamentos' in request.path %}bg-emerald-50 text-emerald-700 font-medium{% endif %}">
+                                <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                                </svg>
+                                <span>Pagamentos</span>
+                            </a>
+
                             <a href="/ocorrencias/doacao/" class="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
                                 <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/>
@@ -503,6 +510,24 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                                 </svg>
                                 <span>Ficha de Controle Manual</span>
+                            </a>
+
+                            <div class="my-2 border-t border-gray-100"></div>
+
+                            <a href="{% url 'relatorios_financeiros:fluxo' %}"
+                               class="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 transition-colors {% if '/relatorios/fluxo-financeiro' in request.path %}bg-emerald-50 text-emerald-700 font-medium{% endif %}">
+                                <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                                </svg>
+                                <span>Fluxo Financeiro</span>
+                            </a>
+
+                            <a href="{% url 'relatorios_financeiros:saldos' %}"
+                               class="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 transition-colors {% if '/relatorios/saldos' in request.path %}bg-emerald-50 text-emerald-700 font-medium{% endif %}">
+                                <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                <span>Saldos dos Clientes</span>
                             </a>
                         </div>
                     </div>
@@ -649,7 +674,8 @@
                         <a href="/ocorrencias/" class="flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">Ver Todas</a>
                         <a href="/ocorrencias/morte/" class="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-600 hover:text-red-700 rounded-lg hover:bg-red-50 transition-colors">Morte</a>
                         <a href="/ocorrencias/abate/" class="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-600 hover:text-orange-700 rounded-lg hover:bg-orange-50 transition-colors">Abate</a>
-                        <a href="/ocorrencias/venda/" class="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-600 hover:text-green-700 rounded-lg hover:bg-green-50 transition-colors">Venda</a>
+                        <a href="{% url 'vendas:list' %}" class="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-600 hover:text-green-700 rounded-lg hover:bg-green-50 transition-colors">Venda</a>
+                        <a href="{% url 'pagamentos:list' %}" class="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-600 hover:text-emerald-700 rounded-lg hover:bg-emerald-50 transition-colors">Pagamentos</a>
                         <a href="/ocorrencias/doacao/" class="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-600 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition-colors">Doação</a>
                     </div>
                 </div>
@@ -705,6 +731,14 @@
                         <a href="{% url 'reporting:manual_control' %}"
                            class="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-600 hover:text-indigo-700 rounded-lg hover:bg-indigo-50 transition-colors">
                             Ficha de Controle Manual
+                        </a>
+                        <a href="{% url 'relatorios_financeiros:fluxo' %}"
+                           class="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-600 hover:text-emerald-700 rounded-lg hover:bg-emerald-50 transition-colors">
+                            Fluxo Financeiro
+                        </a>
+                        <a href="{% url 'relatorios_financeiros:saldos' %}"
+                           class="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-600 hover:text-emerald-700 rounded-lg hover:bg-emerald-50 transition-colors">
+                            Saldos dos Clientes
                         </a>
                     </div>
                 </div>

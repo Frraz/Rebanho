@@ -1,0 +1,279 @@
+{% extends 'base/base.html' %}
+{% load finance_tags %}
+
+{% block title %}Fluxo Financeiro — Relatórios{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    {# ══ Cabeçalho ══ #}
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 print:hidden">
+        <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-lg flex-shrink-0">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Fluxo Financeiro</h1>
+                <p class="mt-1 text-sm text-gray-600">
+                    Todas as movimentações de crédito e débito dos clientes
+                    <span class="text-gray-400">•</span>
+                    <span class="font-medium text-gray-900">{{ periodo_label }}</span>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="hidden print:block text-center py-2 border-b border-gray-300 mb-4">
+        <h1 class="text-lg font-bold">Fluxo Financeiro</h1>
+        <p class="text-sm text-gray-600">{{ periodo_label }}</p>
+    </div>
+
+    {# ══ Resumo do período ══ #}
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 px-5 py-4">
+            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Vendas (débitos)</p>
+            <p class="mt-1 text-2xl font-bold text-red-600">{{ totais.debitos|moeda_rs }}</p>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 px-5 py-4">
+            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Recebimentos (créditos)</p>
+            <p class="mt-1 text-2xl font-bold text-emerald-600">{{ totais.creditos|moeda_rs }}</p>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 px-5 py-4">
+            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Resultado do período</p>
+            <p class="mt-1 text-2xl font-bold {{ totais.resultado|saldo_classe }}">{{ totais.resultado|saldo_formatado }}</p>
+        </div>
+    </div>
+
+    {# ══ Filtros ══ #}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 print:hidden">
+        <form method="get" action="" class="space-y-4">
+
+            <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                {% include 'finance/partials/filtro_periodo.html' %}
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                <div class="lg:col-span-2">
+                    <label class="block text-xs font-medium text-gray-700 mb-1.5">Cliente</label>
+                    <select name="cliente" class="block w-full border border-gray-300 rounded-xl py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent">
+                        <option value="">Todos os clientes</option>
+                        {% for c in clientes %}
+                        <option value="{{ c.id }}" {% if c.id|stringformat:"s" == cliente_filtro %}selected{% endif %}>{{ c.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1.5">Tipo de Animal</label>
+                    <select name="categoria" class="block w-full border border-gray-300 rounded-xl py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent">
+                        <option value="">Todos os tipos</option>
+                        {% for cat in categorias %}
+                        <option value="{{ cat.id }}" {% if cat.id|stringformat:"s" == categoria_filtro %}selected{% endif %}>{{ cat.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1.5">Fazenda</label>
+                    <select name="fazenda" class="block w-full border border-gray-300 rounded-xl py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent">
+                        <option value="">Todas</option>
+                        {% for f in fazendas %}
+                        <option value="{{ f.id }}" {% if f.id|stringformat:"s" == fazenda_filtro %}selected{% endif %}>{{ f.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1.5">Crédito ou Débito</label>
+                    <select name="natureza" class="block w-full border border-gray-300 rounded-xl py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent">
+                        <option value="">Ambos</option>
+                        {% for val, label in naturezas %}
+                        <option value="{{ val }}" {% if val == natureza_filtro %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1.5">Origem</label>
+                    <select name="origem" class="block w-full border border-gray-300 rounded-xl py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent">
+                        <option value="">Todas as origens</option>
+                        {% for val, label in origens %}
+                        <option value="{{ val }}" {% if val == origem_filtro %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            {% if categoria_filtro %}
+            <p class="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                Ao filtrar por tipo de animal, só aparecem lançamentos de venda —
+                pagamentos e ajustes não têm animal associado.
+            </p>
+            {% endif %}
+
+            <div class="flex flex-wrap items-center gap-3 pt-3 border-t border-gray-100">
+                <button type="submit"
+                        class="inline-flex items-center gap-2 px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl transition-all shadow-sm hover:shadow">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                    Filtrar
+                </button>
+
+                <a href="{% url 'relatorios_financeiros:fluxo' %}"
+                   class="inline-flex items-center gap-2 px-6 py-2.5 border-2 border-gray-300 text-gray-600 text-sm font-medium rounded-xl hover:bg-gray-50 hover:border-gray-400 transition-all">
+                    Mês atual
+                </a>
+
+                <span class="text-sm text-gray-600">
+                    <span class="font-semibold text-gray-900">{{ total_count }}</span>
+                    lançamento{{ total_count|pluralize }}
+                </span>
+
+                {% url 'relatorios_financeiros:fluxo_pdf' as url_pdf %}
+                {% include 'finance/partials/acoes_lista.html' with pdf_url=url_pdf campos_pdf="['cliente','categoria','fazenda','natureza','origem','mes_inicio','ano_inicio','mes_fim','ano_fim']" %}
+            </div>
+        </form>
+    </div>
+
+    {# ══ Tabela ══ #}
+    {% if lancamentos %}
+
+    {% if mostra_acumulado and cliente_selecionado %}
+    <div class="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-sm text-blue-900">
+        Extrato de <strong>{{ cliente_selecionado.name }}</strong>.
+        Saldo antes do período: <strong>{{ saldo_inicial|saldo_formatado }}</strong>
+    </div>
+    {% endif %}
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Data</th>
+                        <th class="px-4 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Cliente</th>
+                        <th class="px-4 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Origem</th>
+                        <th class="px-4 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Detalhe</th>
+                        <th class="px-4 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Débito</th>
+                        <th class="px-4 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Crédito</th>
+                        {% if mostra_acumulado %}
+                        <th class="px-4 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Saldo</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-100">
+                    {% for l in lancamentos %}
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {{ l.date|date:"d/m/Y" }}
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-900">{{ l.client.name }}</td>
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            {% if l.source_type == 'VENDA' %}
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-red-50 text-red-700 border border-red-200">Venda</span>
+                            {% elif l.source_type == 'PAGAMENTO' %}
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">Pagamento</span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200">Ajuste</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-600">
+                            {% if l.sale %}
+                                <span class="text-gray-500">{{ l.sale.farm.name }}</span>
+                                <span class="text-gray-300">·</span>
+                                {% for item in l.sale.items.all %}{{ item.quantity }}× {{ item.animal_category.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                            {% elif l.payment %}
+                                {{ l.payment.get_payment_type_display }}
+                                {% if l.payment.description %}
+                                <span class="text-gray-400">· {{ l.payment.description|truncatechars:40 }}</span>
+                                {% endif %}
+                            {% else %}
+                                {{ l.description|truncatechars:60 }}
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-right text-sm">
+                            {% if l.entry_type == 'DEBITO' %}
+                            <span class="font-semibold text-red-600">{{ l.amount|moeda }}</span>
+                            {% else %}<span class="text-gray-300">—</span>{% endif %}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-right text-sm">
+                            {% if l.entry_type == 'CREDITO' %}
+                            <span class="font-semibold text-emerald-600">{{ l.amount|moeda }}</span>
+                            {% else %}<span class="text-gray-300">—</span>{% endif %}
+                        </td>
+                        {% if mostra_acumulado %}
+                        <td class="px-4 py-3 whitespace-nowrap text-right text-sm font-bold {{ l.saldo_acumulado|saldo_classe }}">
+                            {{ l.saldo_acumulado|saldo_formatado }}
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot class="bg-gray-50 border-t-2 border-gray-200">
+                    <tr>
+                        <td colspan="4" class="px-4 py-3 text-sm font-semibold text-gray-700 text-right">Totais do período</td>
+                        <td class="px-4 py-3 text-right text-sm font-bold text-red-600">{{ totais.debitos|moeda }}</td>
+                        <td class="px-4 py-3 text-right text-sm font-bold text-emerald-600">{{ totais.creditos|moeda }}</td>
+                        {% if mostra_acumulado %}<td></td>{% endif %}
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+
+    {% if page_obj.has_other_pages %}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 px-6 py-4 print:hidden">
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="text-sm text-gray-600">
+                Mostrando <span class="font-semibold text-gray-900">{{ page_obj.start_index }}</span>
+                a <span class="font-semibold text-gray-900">{{ page_obj.end_index }}</span>
+                de <span class="font-semibold text-gray-900">{{ total_count }}</span>
+            </div>
+            <nav class="flex items-center gap-2">
+                {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}{{ querystring }}"
+                   class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">Anterior</a>
+                {% endif %}
+                <span class="text-sm text-gray-500 px-2">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{{ querystring }}"
+                   class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">Próxima</a>
+                {% endif %}
+            </nav>
+        </div>
+    </div>
+    {% if mostra_acumulado %}
+    <p class="text-xs text-gray-500 print:hidden">
+        O saldo acumulado é calculado dentro desta página. Para o extrato inteiro em sequência,
+        exporte o PDF.
+    </p>
+    {% endif %}
+    {% endif %}
+
+    {% else %}
+    <div class="bg-white rounded-2xl border border-gray-200 text-center py-16 px-6">
+        <div class="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gray-100 mb-6">
+            <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+            </svg>
+        </div>
+        <h3 class="text-lg font-semibold text-gray-900 mb-2">Nenhum lançamento no período</h3>
+        <p class="text-sm text-gray-500 max-w-md mx-auto">
+            Não há movimentações financeiras para {{ periodo_label|lower }} com os filtros escolhidos.
+        </p>
+    </div>
+    {% endif %}
+
+</div>
+
+<style>
+@media print {
+    @page { size: landscape; margin: 1cm; }
+    body { font-size: 9pt; }
+    .print\:hidden { display: none !important; }
+    .print\:block { display: block !important; }
+}
+</style>
+{% endblock %}
