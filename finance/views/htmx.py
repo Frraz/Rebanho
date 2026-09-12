@@ -26,8 +26,6 @@ from finance.services import BalanceService
 from inventory.models import FarmStockBalance
 from operations.models import Client
 
-LIMITE_BUSCA = 12
-
 
 @login_required
 @require_http_methods(["GET"])
@@ -51,7 +49,7 @@ def buscar_clientes(request):
             'vazio_inicial': True,
         })
 
-    clientes = BalanceService.annotate_balance(clientes).order_by('name')[:LIMITE_BUSCA]
+    clientes = BalanceService.annotate_balance(clientes).order_by('name')
 
     return render(request, 'finance/partials/client_results.html', {
         'clientes': clientes,
