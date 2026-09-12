@@ -179,8 +179,8 @@ Gestão{% endblock %} {% block content %}
       {% endif %}
     </dl>
   </div>
-  {% endif %} {# ── Metadados
-  ─────────────────────────────────────────────────── #} {% if meta_items %}
+  {% endif %} {% comment %} ── Metadados
+  ─────────────────────────────────────────────────── {% endcomment %} {% if meta_items %}
   <div
     class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden"
   >
@@ -196,8 +196,8 @@ Gestão{% endblock %} {% block content %}
       {% endfor %}
     </dl>
   </div>
-  {% endif %} {# ── Alerta imutabilidade
-  ──────────────────────────────────────── #}
+  {% endif %} {% comment %} ── Alerta imutabilidade
+  ──────────────────────────────────────── {% endcomment %}
   <div
     class="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl px-5 py-4"
   >

@@ -23,9 +23,9 @@
                     <span class="font-semibold text-gray-700">{{ total_count }}</span> registro{{ total_count|pluralize }}
                     {% endif %}
                 </p>
-                {# Esta tela lê a tabela viva de movimentações: um registro
+                {% comment %} Esta tela lê a tabela viva de movimentações: um registro
                    apagado não aparece aqui. O histórico de exclusões é o
-                   complemento necessário. #}
+                   complemento necessário. {% endcomment %}
                 <a href="{% url 'relatorios_financeiros:exclusoes' %}"
                    class="mt-2 inline-flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 underline decoration-gray-300 hover:decoration-gray-600">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
