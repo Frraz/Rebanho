@@ -19,6 +19,7 @@ from django.views.decorators.http import require_http_methods, require_POST
 from finance.forms import AdjustmentForm
 from finance.models import EntrySource, FinancialEntry
 from finance.services import AdjustmentService, BalanceService
+from finance.utils.money import to_pt_br_input
 
 logger = logging.getLogger(__name__)
 
@@ -89,7 +90,7 @@ def ajuste_edit_view(request, pk):
             'client': ajuste.client_id,
             'date': ajuste.date,
             'entry_type': ajuste.entry_type,
-            'amount': ajuste.amount,
+            'amount': to_pt_br_input(ajuste.amount),
             'description': ajuste.description,
         })
 

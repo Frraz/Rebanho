@@ -123,3 +123,45 @@ def quantize_money(value):
     if value is None:
         return None
     return Decimal(value).quantize(CENTS, rounding=ROUND_HALF_UP)
+
+
+def to_pt_br_input(value, casas=2):
+    """
+    Formata um Decimal para preencher um campo com máscara pt-BR.
+
+    ═══════════════════════════════════════════════════════════════════════════
+    POR QUE NÃO BASTA MANDAR O DECIMAL DIRETO PARA O FORMULÁRIO
+
+    O widget renderiza `str(valor)` e o masks.js reinterpreta o que encontra no
+    campo. A heurística dele é: ponto seguido de 1 ou 2 dígitos é decimal;
+    qualquer outra coisa é separador de milhar. Isso quebra justamente no preço
+    por quilo, que tem 4 casas:
+
+        Decimal("10.0000")  →  str "10.0000"  →  a tela mostra "100.000"
+
+    ou seja, R$ 10,00/kg apareceria como R$ 100.000/kg ao abrir uma venda para
+    editar. Entregando o valor já em pt-BR ("10,00"), a vírgula elimina a
+    ambiguidade e o campo mostra o número certo.
+
+    >>> to_pt_br_input(Decimal('10.0000'))
+    '10,00'
+    >>> to_pt_br_input(Decimal('1250.8'))
+    '1.250,80'
+    >>> to_pt_br_input(None)
+    ''
+    """
+    if value is None or value == '':
+        return ''
+
+    try:
+        numero = Decimal(value)
+    except (InvalidOperation, ValueError, TypeError):
+        return ''
+
+    # Preço por quilo guarda 4 casas, mas exibir "10,0000" só polui. Mostramos
+    # as casas extras apenas quando elas carregam informação.
+    if casas > 2 and numero == numero.quantize(CENTS):
+        casas = 2
+
+    texto = f"{numero:,.{casas}f}"          # formato inglês: 1,250.80
+    return texto.replace(',', '\x00').replace('.', ',').replace('\x00', '.')

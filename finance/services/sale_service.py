@@ -297,12 +297,14 @@ class SaleService:
         Ordena por categoria para que duas vendas simultâneas na mesma fazenda
         peguem os locks sempre na mesma ordem (prevenção de deadlock).
         """
-        ordered = sorted(
+        # Processa por categoria, mas guarda a posição original em `line_order`
+        # para a venda reabrir na tela exatamente na ordem em que foi digitada.
+        ordenados = sorted(
             enumerate(items),
-            key=lambda pair: (str(pair[1]['animal_category'].id), pair[0]),
+            key=lambda par: (str(par[1]['animal_category'].id), par[0]),
         )
 
-        for line_order, (original_index, item) in enumerate(ordered):
+        for posicao_original, item in ordenados:
             category = item['animal_category']
             quantity = int(item['quantity'])
             total_weight = item.get('total_weight')
@@ -335,7 +337,7 @@ class SaleService:
                 total_weight=total_weight,
                 price_per_kg=price_per_kg,
                 total_amount=total_amount,
-                line_order=original_index,
+                line_order=posicao_original,
             )
 
     @staticmethod

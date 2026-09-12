@@ -17,6 +17,7 @@ from finance.utils.money import (
     parse_stored_money,
     parse_stored_weight,
     quantize_money,
+    to_pt_br_input,
 )
 
 
@@ -94,3 +95,36 @@ class TestPesoEArredondamento:
         """parse_stored_amount é o cru; só o de dinheiro descarta zero."""
         assert parse_stored_amount('0') == Decimal('0')
         assert parse_stored_amount('-50') == Decimal('-50')
+
+
+class TestFormatacaoParaOFormulario:
+    """
+    Regressão: valores que voltam para a tela na EDIÇÃO.
+
+    O masks.js lê o que está no campo e decide se o ponto é decimal ou milhar
+    pela quantidade de dígitos depois dele. O preço por quilo guarda 4 casas,
+    então `str(Decimal("10.0000"))` = "10.0000" era lido como milhar e um preço
+    de R$ 10,00/kg aparecia como R$ 100.000 ao abrir a venda para editar.
+
+    Entregar o valor já em pt-BR resolve: a vírgula elimina a ambiguidade.
+    """
+
+    def test_preco_por_kg_com_quatro_casas_nao_vira_milhar(self):
+        assert to_pt_br_input(Decimal('10.0000'), casas=4) == '10,00'
+        assert to_pt_br_input(Decimal('12.5000'), casas=4) == '12,50'
+
+    def test_preserva_as_casas_que_carregam_informacao(self):
+        assert to_pt_br_input(Decimal('10.1234'), casas=4) == '10,1234'
+
+    def test_separador_de_milhar(self):
+        assert to_pt_br_input(Decimal('1250.8')) == '1.250,80'
+        assert to_pt_br_input(Decimal('1234567.89')) == '1.234.567,89'
+
+    def test_vazio(self):
+        assert to_pt_br_input(None) == ''
+        assert to_pt_br_input('') == ''
+
+    def test_ida_e_volta(self):
+        """O que sai para a tela tem que voltar igual ao ser lido."""
+        for valor in (Decimal('10.00'), Decimal('1250.80'), Decimal('1234567.89')):
+            assert parse_stored_money(to_pt_br_input(valor)) == valor

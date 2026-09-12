@@ -18,6 +18,7 @@ from finance.filters import aplicar_periodo, contexto_periodo, parse_periodo, ro
 from finance.forms import PaymentForm
 from finance.models import Payment, PaymentType
 from finance.services import BalanceService, PaymentService
+from finance.utils.money import to_pt_br_input
 from finance.views.pdf import render_pdf
 from operations.models import Client
 
@@ -184,7 +185,7 @@ def pagamento_edit_view(request, pk):
         form = PaymentForm(initial={
             'client': pagamento.client_id,
             'date': pagamento.date,
-            'amount': pagamento.amount,
+            'amount': to_pt_br_input(pagamento.amount),
             'payment_type': pagamento.payment_type,
             'description': pagamento.description,
         })

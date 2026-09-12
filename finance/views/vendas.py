@@ -22,6 +22,7 @@ from finance.filters import aplicar_periodo, contexto_periodo, parse_periodo, ro
 from finance.forms import SaleForm, SaleItemFormSet
 from finance.models import Sale, SaleStatus
 from finance.services import SaleService
+from finance.utils.money import to_pt_br_input
 from finance.views.pdf import render_pdf
 from inventory.domain.exceptions import DomainException
 from inventory.models import AnimalCategory
@@ -251,15 +252,18 @@ def venda_edit_view(request, pk):
             'date': venda.date,
             'notes': venda.notes,
         })
+        # Os valores vão para a tela já em pt-BR. Entregar o Decimal cru faria
+        # o preço por quilo (4 casas) ser lido como milhar pela máscara:
+        # Decimal("10.0000") viraria "100.000" no campo. Ver finance/utils/money.py.
         formset = SaleItemFormSet(
             prefix='itens',
             initial=[
                 {
                     'animal_category': item.animal_category_id,
                     'quantity': item.quantity,
-                    'total_weight': item.total_weight,
-                    'price_per_kg': item.price_per_kg,
-                    'total_amount': item.total_amount,
+                    'total_weight': to_pt_br_input(item.total_weight),
+                    'price_per_kg': to_pt_br_input(item.price_per_kg, casas=4),
+                    'total_amount': to_pt_br_input(item.total_amount),
                 }
                 for item in venda.items.select_related('animal_category').all()
             ],

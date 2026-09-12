@@ -8,6 +8,7 @@ from .money import (
     parse_stored_money,
     parse_stored_weight,
     quantize_money,
+    to_pt_br_input,
 )
 
 __all__ = [
@@ -16,4 +17,5 @@ __all__ = [
     'parse_stored_money',
     'parse_stored_weight',
     'quantize_money',
+    'to_pt_br_input',
 ]

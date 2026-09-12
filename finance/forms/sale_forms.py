@@ -54,7 +54,13 @@ class SaleForm(forms.Form):
         label='Data da Venda',
         required=False,
         input_formats=['%Y-%m-%d'],
-        widget=forms.DateInput(attrs={'class': _INPUT_CSS, 'type': 'date'}),
+        # `format='%Y-%m-%d'` é obrigatório: com USE_L10N e locale pt-BR, o
+        # Django renderiza a data inicial como "12/09/2026", e um
+        # <input type="date"> descarta silenciosamente o que não estiver em
+        # ISO — o campo abriria vazio ao editar.
+        widget=forms.DateInput(
+            attrs={'class': _INPUT_CSS, 'type': 'date'}, format='%Y-%m-%d',
+        ),
         help_text='Deixe em branco para usar a data de hoje',
     )
 
