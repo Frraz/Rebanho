@@ -56,3 +56,4 @@ Dockerfile
 docker-compose.yml
 
 /static/img/*
+atualizacao.sh
