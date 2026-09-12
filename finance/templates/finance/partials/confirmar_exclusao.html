@@ -1,13 +1,3 @@
-{# ══════════════════════════════════════════════════════════════════════════
-   Botão de apagar com confirmação.
-
-   Exclusão aqui é definitiva: o registro sai do sistema e, no caso da venda,
-   os animais voltam ao estoque. O modal diz isso com todas as letras e pede
-   um motivo, que fica guardado no log de exclusões — a única trilha que
-   sobra depois.
-
-   Espera: objeto, url_delete_name, titulo.
-   ══════════════════════════════════════════════════════════════════════════ #}
 <div x-data="{ aberto: false, enviando: false }">
     <button @click="aberto = true"
             type="button"

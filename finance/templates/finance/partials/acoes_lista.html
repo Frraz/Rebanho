@@ -1,16 +1,3 @@
-{# ══════════════════════════════════════════════════════════════════════════
-   Botões Imprimir e Exportar PDF de uma tela de lista.
-
-   O PDF é montado a partir dos campos que estão na tela AGORA, não dos que
-   foram submetidos — assim o usuário mexe num filtro e exporta direto, sem
-   precisar clicar em "Filtrar" antes. Mesma ideia já usada na lista de
-   ocorrências.
-
-   Espera no contexto:
-     pdf_url     — rota do PDF
-     campos_pdf  — lista de nomes de campo a repassar na query string
-     total_count — para o contador no botão
-   ══════════════════════════════════════════════════════════════════════════ #}
 <div class="ml-auto flex items-center gap-2"
      x-data="{
          gerando: false,

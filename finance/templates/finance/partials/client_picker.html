@@ -1,13 +1,3 @@
-{# ══════════════════════════════════════════════════════════════════════════
-   Campo de cliente com busca instantânea.
-
-   Conforme o usuário digita, o HTMX busca no servidor e mostra as
-   correspondências. O nome escolhido aparece no campo visível; o UUID vai
-   num input escondido, que é o que o formulário Django valida.
-
-   Espera: field (o campo `client` do form), cliente_atual (opcional, no modo
-   edição).
-   ══════════════════════════════════════════════════════════════════════════ #}
 <div x-data="{
         aberto: false,
         nome: '{{ cliente_atual.name|escapejs }}',
