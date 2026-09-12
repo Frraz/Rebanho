@@ -119,12 +119,12 @@
                 {% include 'finance/partials/filtro_periodo.html' %}
             </div>
 
-            <label class="inline-flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+{% comment %}             <label class="inline-flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
                 <input type="checkbox" name="sem_valor" value="1" {% if sem_valor_filtro == '1' %}checked{% endif %}
                        class="rounded border-gray-300 text-green-600 focus:ring-green-500">
                 <span>Somente vendas <strong>sem valor informado</strong></span>
                 <span class="text-xs text-gray-500">(vendas antigas a completar)</span>
-            </label>
+            </label> {% endcomment %}
 
             <div class="flex flex-wrap items-center gap-3 pt-3 border-t border-gray-100">
                 <button type="submit"
