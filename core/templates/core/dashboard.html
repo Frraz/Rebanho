@@ -293,19 +293,12 @@ Gestão de Rebanhos{% endblock %} {% block extra_head %}
             />
           </svg>
           <span class="text-xs sm:text-sm text-gray-700 font-medium">
-            {% now "w" as dia_semana %} {% now "j" as dia %} {% now "n" as
-            mes_num %} {% now "Y" as ano %} {% if dia_semana == "0" %}Domingo {%
-            elif dia_semana == "1" %}Segunda-feira {% elif dia_semana == "2"
-            %}Terça-feira {% elif dia_semana == "3" %}Quarta-feira {% elif
-            dia_semana == "4" %}Quinta-feira {% elif dia_semana == "5"
-            %}Sexta-feira {% elif dia_semana == "6" %}Sábado {% endif %}, {{ dia
-            }} de {% if mes_num == "1" %}janeiro {% elif mes_num == "2"
-            %}fevereiro {% elif mes_num == "3" %}março {% elif mes_num == "4"
-            %}abril {% elif mes_num == "5" %}maio {% elif mes_num == "6" %}junho
-            {% elif mes_num == "7" %}julho {% elif mes_num == "8" %}agosto {%
-            elif mes_num == "9" %}setembro {% elif mes_num == "10" %}outubro {%
-            elif mes_num == "11" %}novembro {% elif mes_num == "12" %}dezembro
-            {% endif %} de {{ ano }}
+            {# Nomes de dia/mês em português vêm do próprio Django (LANGUAGE_CODE="pt-br"), #}
+            {# sem precisar de if/elif manual — que é o que quebrava aqui quando o Prettier #}
+            {# partia uma tag {% now %} em duas linhas: o Django só reconhece {% %} numa única linha. #}
+            {# "d" e "e" são caracteres especiais do formatador de data (dia / fuso horário), #}
+            {# por isso "de" precisa das DUAS letras escapadas: \d\e, uma barra por letra. #}
+            {% now "l, j \d\e F \d\e Y" as data_completa %}{{ data_completa|capfirst }}
           </span>
         </div>
       </div>
@@ -786,8 +779,7 @@ Gestão de Rebanhos{% endblock %} {% block extra_head %}
             </div>
           </div>
           <p class="text-green-100 text-xs sm:text-sm truncate">
-            {{ total_fazendas }} fazenda{{ total_fazendas|pluralize }} ativa{{
-            total_fazendas|pluralize }}
+            {{ total_fazendas }} fazenda{{ total_fazendas|pluralize }} ativa{{ total_fazendas|pluralize }}
           </p>
         </div>
       </div>

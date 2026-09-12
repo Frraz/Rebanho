@@ -1,6 +1,8 @@
-{# inventory/templates/inventory/movement_edit.html #} {% extends
-'base/base.html' %} {% load number_filters %} {% block title %}Editar
-Movimentação — {{ operation_label }}{% endblock %} {% block content %}
+{# inventory/templates/inventory/movement_edit.html #}
+{% extends 'base/base.html' %}
+{% load number_filters %}
+{% block title %}Editar Movimentação — {{ operation_label }}{% endblock %}
+{% block content %}
 <div class="max-w-2xl mx-auto space-y-6">
   {# ── Cabeçalho ── #}
   <div class="flex items-center gap-4">
@@ -149,20 +151,13 @@ Movimentação — {{ operation_label }}{% endblock %} {% block content %}
           name="quantity"
           value="{{ movement.quantity }}"
           min="1"
-          {%
-          if
-          is_composite
-          %}
+          {% if is_composite %}
           disabled
           class="block w-full border border-gray-200 rounded-xl py-2.5 px-3 text-sm bg-gray-50 text-gray-400 cursor-not-allowed"
-          {%
-          else
-          %}
+          {% else %}
           required
           class="block w-full border border-gray-300 rounded-xl py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-          {%
-          endif
-          %}
+          {% endif %}
         />
         {% if is_composite %}
         <p class="mt-1 text-xs text-blue-500">
@@ -263,8 +258,7 @@ Movimentação — {{ operation_label }}{% endblock %} {% block content %}
 
       {# ✅ ALTERADO: removido "às H:i" — exibe apenas a data #}
       <span class="ml-auto text-xs text-gray-400">
-        Criado por {{ movement.created_by.username }} em {{
-        movement.timestamp|date:"d/m/Y" }}
+        Criado por {{ movement.created_by.username }} em {{ movement.timestamp|date:"d/m/Y" }}
       </span>
     </div>
   </form>

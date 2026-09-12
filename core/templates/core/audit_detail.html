@@ -66,8 +66,7 @@ Gestão{% endblock %} {% block content %}
       <div class="px-5 py-3 grid grid-cols-3 gap-4">
         <dt class="text-sm font-medium text-gray-500">Registrado em</dt>
         <dd class="text-sm text-gray-500 col-span-2">
-          {{ movement.created_at|date:"d/m/Y" }} {% if movement.timestamp !=
-          movement.created_at.date %}
+          {{ movement.created_at|date:"d/m/Y" }} {% if movement.timestamp != movement.created_at.date %}
           <span class="text-xs text-amber-600 ml-1">(retroativo)</span>
           {% endif %}
         </dd>
@@ -95,9 +94,7 @@ Gestão{% endblock %} {% block content %}
               </span>
             </div>
             <span class="font-medium">
-              {{
-              movement.created_by.get_full_name|default:movement.created_by.username
-              }}
+              {{ movement.created_by.get_full_name|default:movement.created_by.username }}
             </span>
             {% if movement.created_by.get_full_name %}
             <span class="text-xs text-gray-400"
@@ -132,8 +129,8 @@ Gestão{% endblock %} {% block content %}
     </dl>
   </div>
 
-  {# ── Relacionamentos ───────────────────────────────────────────── #} {% if
-  movement.client or movement.death_reason or movement.related_movement %}
+  {# ── Relacionamentos ───────────────────────────────────────────── #}
+  {% if movement.client or movement.death_reason or movement.related_movement %}
   <div
     class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden"
   >
@@ -144,8 +141,7 @@ Gestão{% endblock %} {% block content %}
       {% if movement.client %}
       <div class="px-5 py-3 grid grid-cols-3 gap-4">
         <dt class="text-sm font-medium text-gray-500">
-          {% if movement.operation_type == 'DOACAO' %}Donatário{% else
-          %}Cliente{% endif %}
+          {% if movement.operation_type == 'DOACAO' %}Donatário{% else %}Cliente{% endif %}
         </dt>
         <dd class="text-sm text-gray-900 col-span-2">
           👤 {{ movement.client.name }} {% if movement.client.phone %}
@@ -170,8 +166,7 @@ Gestão{% endblock %} {% block content %}
             href="{% url 'core:audit_detail' movement.related_movement.id %}"
             class="inline-flex items-center gap-1.5 text-green-700 hover:underline"
           >
-            🔗 {{ movement.related_movement.farm_stock_balance.farm.name }} — {{
-            movement.related_movement.farm_stock_balance.animal_category.name }}
+            🔗 {{ movement.related_movement.farm_stock_balance.farm.name }} — {{ movement.related_movement.farm_stock_balance.animal_category.name }}
             ({{ movement.related_movement.get_operation_type_display }})
           </a>
         </dd>

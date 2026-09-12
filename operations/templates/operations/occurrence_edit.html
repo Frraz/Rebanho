@@ -1,6 +1,7 @@
-{# operations/templates/operations/occurrence_edit.html #} {% extends
-'base/base.html' %} {% block title %}Editar Ocorrência — {{
-movement.get_operation_type_display }}{% endblock %} {% block content %}
+{# operations/templates/operations/occurrence_edit.html #}
+{% extends 'base/base.html' %}
+{% block title %}Editar Ocorrência — {{ movement.get_operation_type_display }}{% endblock %}
+{% block content %}
 <div class="max-w-2xl mx-auto space-y-6">
   {# ── Cabeçalho ── #}
   <div class="flex items-center gap-4">
@@ -164,13 +165,7 @@ movement.get_operation_type_display }}{% endblock %} {% block content %}
           {% for client in clients %}
           <option
             value="{{ client.id }}"
-            {%
-            if
-            movement.client_id=""
-            ="client.id"
-            %}selected{%
-            endif
-            %}
+            {% if movement.client_id == client.id %}selected{% endif %}
           >
             {{ client.name }}
           </option>
@@ -194,13 +189,7 @@ movement.get_operation_type_display }}{% endblock %} {% block content %}
           {% for dr in death_reasons %}
           <option
             value="{{ dr.id }}"
-            {%
-            if
-            movement.death_reason_id=""
-            ="dr.id"
-            %}selected{%
-            endif
-            %}
+            {% if movement.death_reason_id == dr.id %}selected{% endif %}
           >
             {{ dr.name }}
           </option>
@@ -299,8 +288,7 @@ movement.get_operation_type_display }}{% endblock %} {% block content %}
 
       {# ✅ ALTERADO: removido "às H:i" — exibe apenas a data #}
       <span class="ml-auto text-xs text-gray-400">
-        Criado por {{ movement.created_by.username }} em {{
-        movement.timestamp|date:"d/m/Y" }}
+        Criado por {{ movement.created_by.username }} em {{ movement.timestamp|date:"d/m/Y" }}
       </span>
     </div>
   </form>
