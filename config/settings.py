@@ -87,6 +87,12 @@ TEMPLATES = [
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         "DIRS": [
             BASE_DIR / "templates",  # Templates globais
+            # Prioriza os templates do app core sobre os padrões que o
+            # django.contrib.admin já traz com os mesmos nomes (ex.:
+            # registration/password_reset_done.html, _confirm.html,
+            # _complete.html) — sem isso, o app_directories.Loader usa a
+            # versão do admin por ele vir antes de 'core' no INSTALLED_APPS.
+            BASE_DIR / "core" / "templates",
         ],
         "APP_DIRS": False,  # ← CORRIGIDO: False para permitir loaders customizados
         "OPTIONS": {
@@ -524,6 +530,11 @@ NOTIFICATION_EMAIL_PREFIX = config(
 LOGIN_URL = "/login/"
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/login/"
+
+AUTHENTICATION_BACKENDS = [
+    "core.backends.UsernameOrEmailBackend",
+    "django.contrib.auth.backends.ModelBackend",
+]
 
 # Session settings
 SESSION_COOKIE_NAME = "livestock_sessionid"

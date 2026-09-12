@@ -9,7 +9,7 @@ AUTENTICAÇÃO & ADMINISTRAÇÃO:
 - /login/                          → Login de usuários
 - /logout/                         → Logout de usuários
 - /registrar/                      → Registro de novos usuários
-- /senha/                          → Recuperação de senha
+- /senha/esqueci/                  → Recuperação de senha (core/urls.py)
 
 DASHBOARD:
 - /                                → Dashboard principal
@@ -110,42 +110,10 @@ urlpatterns = [
         name='logout'
     ),
     
-    # Recuperação de senha
-    path(
-        'senha/recuperar/',
-        auth_views.PasswordResetView.as_view(
-            template_name='registration/password_reset.html',
-            email_template_name='emails/password_reset_email.html',
-            subject_template_name='emails/password_reset_subject.txt',
-        ),
-        name='password_reset'
-    ),
-    
-    path(
-        'senha/recuperar/enviado/',
-        auth_views.PasswordResetDoneView.as_view(
-            template_name='registration/password_reset_done.html',
-        ),
-        name='password_reset_done'
-    ),
-    
-    path(
-        'senha/redefinir/<uidb64>/<token>/',
-        auth_views.PasswordResetConfirmView.as_view(
-            template_name='registration/password_reset_confirm.html',
-        ),
-        name='password_reset_confirm'
-    ),
-    
-    path(
-        'senha/redefinir/concluido/',
-        auth_views.PasswordResetCompleteView.as_view(
-            template_name='registration/password_reset_complete.html',
-        ),
-        name='password_reset_complete'
-    ),
-    
-    
+    # Recuperação de senha: ver core/urls.py (rotas 'core:password_reset*',
+    # sob /senha/esqueci/ — é o fluxo efetivamente usado pelo link de login).
+
+
     # ──────────────────────────────────────────────────────────────────────────
     # CORE (Dashboard, Registro, Auditoria)
     # ──────────────────────────────────────────────────────────────────────────
