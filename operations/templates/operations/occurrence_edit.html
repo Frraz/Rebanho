@@ -149,29 +149,7 @@
       </div>
 
       {# Cliente — Venda / Doação #} {% if shows_client %}
-      <div>
-        <label
-          for="id_client"
-          class="block text-sm font-semibold text-gray-700 mb-1.5"
-        >
-          Cliente <span class="text-red-500">*</span>
-        </label>
-        <select
-          id="id_client"
-          name="client_id"
-          class="block w-full border border-gray-300 rounded-xl py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-        >
-          <option value="">Selecione o cliente</option>
-          {% for client in clients %}
-          <option
-            value="{{ client.id }}"
-            {% if movement.client_id == client.id %}selected{% endif %}
-          >
-            {{ client.name }}
-          </option>
-          {% endfor %}
-        </select>
-      </div>
+      {% include 'finance/partials/client_picker.html' with field_id='id_client' field_name='client_id' label='Cliente' required=True initial_value=movement.client_id cliente_atual=movement.client %}
       {% endif %} {# Motivo da Morte #} {% if shows_death_reason %}
       <div>
         <label

@@ -158,6 +158,8 @@ class DoacaoForm(MovementBaseForm):
     client = forms.ModelChoiceField(
         queryset=Client.objects.filter(is_active=True),
         label='Donatário',
-        widget=forms.Select(attrs={'class': _SELECT_CSS}),
+        # HiddenInput porque quem mostra e edita este campo é o componente de
+        # busca (finance/partials/client_picker.html) — ver form_field.html.
+        widget=forms.HiddenInput(),
         help_text='Pessoa ou entidade que receberá a doação'
     )

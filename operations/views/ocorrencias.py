@@ -574,7 +574,7 @@ def occurrence_edit_view(request, pk):
     GET  → form pré-preenchido
     POST → processa edição via OccurrenceService.edit_occurrence
     """
-    from operations.models import Client, DeathReason
+    from operations.models import DeathReason
     from inventory.models import AnimalMovementCancellation
     from django.utils.dateparse import parse_date
 
@@ -686,14 +686,12 @@ def occurrence_edit_view(request, pk):
             logger.error(f"Erro ao editar ocorrência {pk}: {e}", exc_info=True)
             messages.error(request, "Erro interno ao editar. Tente novamente.")
 
-    clients = Client.objects.filter(is_active=True).order_by('name')
     death_reasons = DeathReason.objects.filter(is_active=True).order_by('name')
 
     context = {
         'movement': movement,
         'op': op,
         'meta': meta,
-        'clients': clients,
         'death_reasons': death_reasons,
         'cancel_url': reverse('ocorrencias:list'),
         'timestamp_value': movement.timestamp.strftime('%Y-%m-%dT%H:%M'),

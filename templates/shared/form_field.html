@@ -1,5 +1,10 @@
 {# Template parcial para renderizar um campo de formulário #}
 {% load form_tags %}
+{% if field.name == 'client' %}
+    {# Campo de cliente: usa o componente de busca com lista completa +
+       filtro (o field deve ser HiddenInput; ver finance/partials/client_picker.html) #}
+    {% include 'finance/partials/client_picker.html' with field=field cliente_atual=field|selected_model_choice %}
+{% else %}
 <div class="{% if field.field.widget.attrs.full_width %}col-span-full{% endif %}">
     
     {# Label #}
@@ -87,3 +92,4 @@
     {% endif %}
 
 </div>
+{% endif %}

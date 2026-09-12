@@ -115,6 +115,23 @@ def peso_kg(value):
 
 
 @register.filter
+def buscar_por_id(queryset, id_str):
+    """
+    Acha o objeto de um queryset/lista cujo `pk` bate com `id_str`.
+
+    Usado para re-selecionar o cliente atual nos filtros de listagem: o
+    filtro só guarda o id na URL, e o client_picker precisa do objeto para
+    mostrar o nome já preenchido na caixa de busca.
+    """
+    if not id_str:
+        return None
+    for obj in queryset:
+        if str(obj.pk) == str(id_str):
+            return obj
+    return None
+
+
+@register.filter
 def preco_kg(value):
     """
     Preço por quilo.

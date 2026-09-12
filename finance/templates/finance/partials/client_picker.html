@@ -1,17 +1,35 @@
+{# ══════════════════════════════════════════════════════════════════════════
+   Busca de cliente com dropdown: mostra a lista inteira ao focar (vazio) e
+   filtra conforme digita. Dois jeitos de usar:
+
+   1) Ligado a um campo de formulário Django (o campo deve ser HiddenInput —
+      quem mostra e edita visualmente é este componente):
+         {% include 'finance/partials/client_picker.html'
+            with field=form.client cliente_atual=objeto.client %}
+
+   2) Solto, fora de um form Django (ex: filtro de listagem em GET) — passa
+      os atributos do campo direto:
+         {% include 'finance/partials/client_picker.html'
+            with field_id='id_cliente_filtro' field_name='cliente' label='Cliente'
+                  required=False initial_value=cliente_filtro cliente_atual=cliente_obj %}
+   ══════════════════════════════════════════════════════════════════════════ #}
+{% firstof field.auto_id field_id as campo_id %}
+{% firstof field.label label 'Cliente' as campo_label %}
+
 <div x-data="{
         aberto: false,
         nome: '{{ cliente_atual.name|escapejs }}',
         selecionar(id, nome) {
             this.nome = nome;
-            document.getElementById('{{ field.auto_id }}').value = id;
+            document.getElementById('{{ campo_id }}').value = id;
             this.aberto = false;
-            document.getElementById('{{ field.auto_id }}').dispatchEvent(
+            document.getElementById('{{ campo_id }}').dispatchEvent(
                 new Event('change', { bubbles: true })
             );
         },
         limpar() {
             this.nome = '';
-            document.getElementById('{{ field.auto_id }}').value = '';
+            document.getElementById('{{ campo_id }}').value = '';
             this.aberto = true;
             // `this.$refs` — dentro de um método do x-data, os atalhos do
             // Alpine só existem em `this`; `$refs` solto não resolve.
@@ -22,11 +40,17 @@
      class="relative">
 
     <label class="block text-sm font-medium text-gray-700 mb-1.5">
-        {{ field.label }} <span class="text-red-500">*</span>
+        {{ campo_label }}
+        {% if field %}{% if field.field.required %}<span class="text-red-500">*</span>{% endif %}
+        {% elif required %}<span class="text-red-500">*</span>{% endif %}
     </label>
 
-    {# O valor real que o Django recebe #}
-    {{ field }}
+    {# O valor real que é enviado no formulário/filtro #}
+    {% if field %}
+        {{ field }}
+    {% else %}
+        <input type="hidden" id="{{ campo_id }}" name="{{ field_name }}" value="{{ initial_value|default_if_none:'' }}">
+    {% endif %}
 
     <div class="relative">
         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
