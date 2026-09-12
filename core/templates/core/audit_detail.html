@@ -28,23 +28,23 @@ Gestão{% endblock %} {% block content %}
       <h2 class="text-sm font-semibold text-gray-700">Dados da Operação</h2>
     </div>
     <dl class="divide-y divide-gray-100">
-      <div class="px-5 py-3 grid grid-cols-3 gap-4">
+      <div class="px-5 py-3 grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-4">
         <dt class="text-sm font-medium text-gray-500">Fazenda</dt>
-        <dd class="text-sm text-gray-900 col-span-2 font-semibold">
+        <dd class="text-sm text-gray-900 sm:col-span-2 font-semibold">
           🏡 {{ movement.farm_stock_balance.farm.name }}
         </dd>
       </div>
 
-      <div class="px-5 py-3 grid grid-cols-3 gap-4">
+      <div class="px-5 py-3 grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-4">
         <dt class="text-sm font-medium text-gray-500">Categoria</dt>
-        <dd class="text-sm text-gray-900 col-span-2">
+        <dd class="text-sm text-gray-900 sm:col-span-2">
           🐄 {{ movement.farm_stock_balance.animal_category.name }}
         </dd>
       </div>
 
-      <div class="px-5 py-3 grid grid-cols-3 gap-4">
+      <div class="px-5 py-3 grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-4">
         <dt class="text-sm font-medium text-gray-500">Quantidade</dt>
-        <dd class="col-span-2">
+        <dd class="sm:col-span-2">
           <span
             class="text-lg font-bold {% if is_saida %}text-red-600{% else %}text-green-600{% endif %}"
           >
@@ -56,16 +56,16 @@ Gestão{% endblock %} {% block content %}
         </dd>
       </div>
 
-      <div class="px-5 py-3 grid grid-cols-3 gap-4">
+      <div class="px-5 py-3 grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-4">
         <dt class="text-sm font-medium text-gray-500">Data da Operação</dt>
-        <dd class="text-sm text-gray-900 col-span-2">
+        <dd class="text-sm text-gray-900 sm:col-span-2">
           {{ movement.timestamp|date:"d/m/Y" }}
         </dd>
       </div>
 
-      <div class="px-5 py-3 grid grid-cols-3 gap-4">
+      <div class="px-5 py-3 grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-4">
         <dt class="text-sm font-medium text-gray-500">Registrado em</dt>
-        <dd class="text-sm text-gray-500 col-span-2">
+        <dd class="text-sm text-gray-500 sm:col-span-2">
           {{ movement.created_at|date:"d/m/Y" }} {% if movement.timestamp != movement.created_at.date %}
           <span class="text-xs text-amber-600 ml-1">(retroativo)</span>
           {% endif %}
@@ -82,9 +82,9 @@ Gestão{% endblock %} {% block content %}
       <h2 class="text-sm font-semibold text-gray-700">Rastreabilidade</h2>
     </div>
     <dl class="divide-y divide-gray-100">
-      <div class="px-5 py-3 grid grid-cols-3 gap-4">
+      <div class="px-5 py-3 grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-4">
         <dt class="text-sm font-medium text-gray-500">Registrado por</dt>
-        <dd class="text-sm text-gray-900 col-span-2">
+        <dd class="text-sm text-gray-900 sm:col-span-2">
           <div class="flex items-center gap-2">
             <div
               class="w-7 h-7 rounded-full bg-green-100 flex items-center justify-center"
@@ -105,9 +105,9 @@ Gestão{% endblock %} {% block content %}
         </dd>
       </div>
 
-      <div class="px-5 py-3 grid grid-cols-3 gap-4">
+      <div class="px-5 py-3 grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-4">
         <dt class="text-sm font-medium text-gray-500">IP de Origem</dt>
-        <dd class="text-sm col-span-2">
+        <dd class="text-sm sm:col-span-2">
           {% if movement.ip_address %}
           <span
             class="font-mono text-gray-700 bg-gray-100 px-2 py-0.5 rounded text-xs"
@@ -120,9 +120,9 @@ Gestão{% endblock %} {% block content %}
         </dd>
       </div>
 
-      <div class="px-5 py-3 grid grid-cols-3 gap-4">
+      <div class="px-5 py-3 grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-4">
         <dt class="text-sm font-medium text-gray-500">ID do Registro</dt>
-        <dd class="text-xs font-mono text-gray-400 col-span-2 break-all">
+        <dd class="text-xs font-mono text-gray-400 sm:col-span-2 break-all">
           {{ movement.id }}
         </dd>
       </div>
@@ -139,11 +139,11 @@ Gestão{% endblock %} {% block content %}
     </div>
     <dl class="divide-y divide-gray-100">
       {% if movement.client %}
-      <div class="px-5 py-3 grid grid-cols-3 gap-4">
+      <div class="px-5 py-3 grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-4">
         <dt class="text-sm font-medium text-gray-500">
           {% if movement.operation_type == 'DOACAO' %}Donatário{% else %}Cliente{% endif %}
         </dt>
-        <dd class="text-sm text-gray-900 col-span-2">
+        <dd class="text-sm text-gray-900 sm:col-span-2">
           👤 {{ movement.client.name }} {% if movement.client.phone %}
           <span class="text-gray-400 ml-2 text-xs"
             >{{ movement.client.phone }}</span
@@ -152,16 +152,16 @@ Gestão{% endblock %} {% block content %}
         </dd>
       </div>
       {% endif %} {% if movement.death_reason %}
-      <div class="px-5 py-3 grid grid-cols-3 gap-4">
+      <div class="px-5 py-3 grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-4">
         <dt class="text-sm font-medium text-gray-500">Causa da Morte</dt>
-        <dd class="text-sm text-gray-900 col-span-2">
+        <dd class="text-sm text-gray-900 sm:col-span-2">
           💀 {{ movement.death_reason.name }}
         </dd>
       </div>
       {% endif %} {% if movement.related_movement %}
-      <div class="px-5 py-3 grid grid-cols-3 gap-4">
+      <div class="px-5 py-3 grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-4">
         <dt class="text-sm font-medium text-gray-500">Operação Vinculada</dt>
-        <dd class="text-sm col-span-2">
+        <dd class="text-sm sm:col-span-2">
           <a
             href="{% url 'core:audit_detail' movement.related_movement.id %}"
             class="inline-flex items-center gap-1.5 text-green-700 hover:underline"
@@ -184,9 +184,9 @@ Gestão{% endblock %} {% block content %}
     </div>
     <dl class="divide-y divide-gray-100">
       {% for label, value in meta_items %}
-      <div class="px-5 py-3 grid grid-cols-3 gap-4">
+      <div class="px-5 py-3 grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-4">
         <dt class="text-sm font-medium text-gray-500">{{ label }}</dt>
-        <dd class="text-sm text-gray-900 col-span-2">{{ value }}</dd>
+        <dd class="text-sm text-gray-900 sm:col-span-2">{{ value }}</dd>
       </div>
       {% endfor %}
     </dl>

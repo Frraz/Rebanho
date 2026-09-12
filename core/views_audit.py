@@ -17,9 +17,12 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.core.paginator import Paginator
 from django.db.models import Q
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, render
+from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
+from core.services.audit_pdf_service import AuditPDFService
 from farms.models import Farm
 from inventory.models import AnimalMovement
 
@@ -80,6 +83,24 @@ META_LABELS: dict[str, str] = {
     "motivo": "Motivo",
 }
 
+STATUS_LABELS: dict[str, str] = {
+    "active": "Ativa",
+    "edited": "Editada",
+    "cancelled": "Estornada",
+}
+
+# Rótulos amigáveis dos campos de filtro, usados para montar os chips
+# removíveis individualmente no template.
+FILTER_LABELS: dict[str, str] = {
+    "q": "Busca",
+    "user": "Usuário",
+    "operation": "Operação",
+    "farm": "Fazenda",
+    "month": "Mês",
+    "year": "Ano",
+    "status": "Status",
+}
+
 
 # ---------------------------------------------------------------------------
 # Access control
@@ -119,6 +140,27 @@ def _base_queryset():
     )
 
 
+def _parse_int(value, minimo, maximo):
+    """
+    Converte texto de select/query param para int dentro de uma faixa.
+
+    Tolera o separador de milhar que o Django insere por causa de
+    USE_THOUSAND_SEPARATOR=True (settings.py): um ano como 2026 é
+    renderizado "2.026" nas <option>, e volta assim na querystring.
+    Sem isso, `"2.026".isdigit()` é False e o filtro nunca é aplicado.
+    """
+    if value in (None, ""):
+        return None
+    try:
+        limpo = str(value).replace(".", "").replace(",", "").strip()
+        numero = int(limpo)
+    except (TypeError, ValueError):
+        return None
+    if numero < minimo or numero > maximo:
+        return None
+    return numero
+
+
 def _apply_filters(qs, params: dict):
     filtros_ativos = False
 
@@ -135,10 +177,10 @@ def _apply_filters(qs, params: dict):
             | Q(death_reason__name__icontains=search)
         )
 
-    user_id = params.get("user", "").strip()
-    if user_id and user_id.isdigit():
+    user_id = _parse_int(params.get("user", "").strip(), 1, 2_147_483_647)
+    if user_id is not None:
         filtros_ativos = True
-        qs = qs.filter(created_by_id=int(user_id))
+        qs = qs.filter(created_by_id=user_id)
 
     operation = params.get("operation", "").strip()
     if operation and operation in OPERATION_LABELS:
@@ -150,21 +192,29 @@ def _apply_filters(qs, params: dict):
         filtros_ativos = True
         qs = qs.filter(farm_stock_balance__farm_id=farm_id)
 
-    month_str = params.get("month", "").strip()
-    year_str = params.get("year", "").strip()
+    month = _parse_int(params.get("month", "").strip(), 1, 12)
+    year = _parse_int(params.get("year", "").strip(), 1900, 2200)
 
-    if year_str and year_str.isdigit():
-        year = int(year_str)
-        if month_str and month_str.isdigit():
-            month = int(month_str)
-            if 1 <= month <= 12:
-                start = date(year, month, 1)
-                end = date(year, month, calendar.monthrange(year, month)[1])
-                qs = qs.filter(timestamp__date__range=(start, end))
-                filtros_ativos = True
+    if year is not None:
+        if month is not None:
+            start = date(year, month, 1)
+            end = date(year, month, calendar.monthrange(year, month)[1])
+            qs = qs.filter(timestamp__date__range=(start, end))
+            filtros_ativos = True
         else:
             qs = qs.filter(timestamp__year=year)
             filtros_ativos = True
+
+    status = params.get("status", "").strip()
+    if status == "cancelled":
+        filtros_ativos = True
+        qs = qs.filter(cancellation__isnull=False)
+    elif status == "edited":
+        filtros_ativos = True
+        qs = qs.filter(cancellation__isnull=True, metadata__has_key="_edited_by")
+    elif status == "active":
+        filtros_ativos = True
+        qs = qs.filter(cancellation__isnull=True).exclude(metadata__has_key="_edited_by")
 
     return qs, filtros_ativos
 
@@ -315,6 +365,46 @@ def _get_metadata_items(movement) -> list[tuple[str, str]]:
 # Views
 # ---------------------------------------------------------------------------
 
+def _build_filter_chips(params, farms_by_id, users_by_id):
+    """
+    Monta a lista de chips removíveis individualmente: um por filtro
+    ativo, cada um com a URL para reenviar a busca sem aquele parâmetro.
+    """
+    chips = []
+    for field, label in FILTER_LABELS.items():
+        value = params.get(field, "").strip()
+        if not value:
+            continue
+
+        if field == "user":
+            user = users_by_id.get(value)
+            display = user.get_full_name() or user.username if user else value
+        elif field == "farm":
+            farm = farms_by_id.get(value)
+            display = farm.name if farm else value
+        elif field == "operation":
+            display = OPERATION_LABELS.get(value, (value, ""))[0]
+        elif field == "month":
+            display = dict(MONTHS).get(int(value), value) if value.isdigit() else value
+        elif field == "status":
+            display = STATUS_LABELS.get(value, value)
+        else:
+            display = value
+
+        remaining = params.copy()
+        remaining.pop(field, None)
+        remaining.pop("page", None)
+        querystring = remaining.urlencode()
+
+        chips.append({
+            "field": field,
+            "label": label,
+            "display": display,
+            "url": f"?{querystring}" if querystring else "?",
+        })
+    return chips
+
+
 @login_required
 @user_passes_test(_pode_ver_auditoria, login_url="/")
 def audit_list_view(request):
@@ -332,11 +422,32 @@ def audit_list_view(request):
     history_map = _build_history_map(page_obj.object_list)
     movements = [_enrich(m, history_map) for m in page_obj.object_list]
 
+    usuarios = (
+        User.objects
+        .filter(animal_movements__isnull=False)
+        .distinct()
+        .order_by("username")
+    )
+    farms = Farm.objects.filter(is_active=True).order_by("name")
+
+    # Querystring sem "page" — usada na paginação para preservar os filtros.
+    pagination_params = params.copy()
+    pagination_params.pop("page", None)
+    pagination_qs = pagination_params.urlencode()
+
+    filter_chips = _build_filter_chips(
+        params,
+        farms_by_id={str(f.id): f for f in farms},
+        users_by_id={str(u.id): u for u in usuarios},
+    )
+
     context = {
         "movements": movements,
         "page_obj": page_obj,
         "total_count": total_count,
         "filtros_ativos": filtros_ativos,
+        "filter_chips": filter_chips,
+        "querystring": f"&{pagination_qs}" if pagination_qs else "",
 
         "search_term": params.get("q", "").strip(),
         "selected_user": params.get("user", "").strip(),
@@ -344,15 +455,12 @@ def audit_list_view(request):
         "selected_farm": params.get("farm", "").strip(),
         "selected_month": params.get("month", "").strip(),
         "selected_year": params.get("year", "").strip(),
+        "selected_status": params.get("status", "").strip(),
 
-        "usuarios": (
-            User.objects
-            .filter(animal_movements__isnull=False)
-            .distinct()
-            .order_by("username")
-        ),
-        "farms": Farm.objects.filter(is_active=True).order_by("name"),
+        "usuarios": usuarios,
+        "farms": farms,
         "operation_types": OPERATION_LABELS,
+        "status_choices": STATUS_LABELS,
         "months": MONTHS,
         "years": list(range(today.year - 3, today.year + 1)),
     }
@@ -424,3 +532,78 @@ def audit_detail_view(request, pk):
         "meta_qty_before": meta.get("_qty_before_edit"),
     }
     return render(request, "core/audit_detail.html", context)
+
+
+# ---------------------------------------------------------------------------
+# Exportação PDF
+# ---------------------------------------------------------------------------
+
+def _describe_filters(params) -> dict:
+    """Monta os rótulos legíveis dos filtros ativos para o cabeçalho do PDF."""
+    described = {
+        "search": params.get("q", "").strip(),
+        "year": params.get("year", "").strip(),
+    }
+
+    user_id = params.get("user", "").strip()
+    if user_id:
+        user = User.objects.filter(pk=user_id).first()
+        if user:
+            described["user_name"] = user.get_full_name() or user.username
+
+    operation = params.get("operation", "").strip()
+    if operation in OPERATION_LABELS:
+        described["operation_label"] = OPERATION_LABELS[operation][0]
+
+    farm_id = params.get("farm", "").strip()
+    if farm_id:
+        farm = Farm.objects.filter(pk=farm_id).first()
+        if farm:
+            described["farm_name"] = farm.name
+
+    month = params.get("month", "").strip()
+    if month.isdigit() and int(month) in dict(MONTHS):
+        described["month_label"] = dict(MONTHS)[int(month)]
+
+    status = params.get("status", "").strip()
+    if status in STATUS_LABELS:
+        described["status_label"] = STATUS_LABELS[status]
+
+    return described
+
+
+@login_required
+@user_passes_test(_pode_ver_auditoria, login_url="/")
+def audit_pdf_view(request):
+    """
+    Gera e retorna o PDF do Painel de Auditoria respeitando exatamente os
+    mesmos filtros da listagem (mesmo DRY do padrão em
+    operations/views/ocorrencias.py::occurrence_pdf_view).
+    """
+    params = request.GET
+
+    qs = _base_queryset()
+    qs, _ = _apply_filters(qs, params)
+
+    movements = list(qs)
+    history_map = _build_history_map(movements)
+    items = [_enrich(m, history_map) for m in movements]
+
+    pdf_bytes = AuditPDFService.generate(
+        items=items,
+        filters=_describe_filters(params),
+        generated_by=request.user.username,
+    )
+
+    timestamp_str = timezone.localtime(timezone.now()).strftime("%Y%m%d_%H%M%S")
+    filename = f"auditoria_{timestamp_str}.pdf"
+
+    logger.info(
+        "PDF de auditoria gerado por %s. Registros: %d | Arquivo: %s",
+        request.user.username, len(items), filename,
+    )
+
+    response = HttpResponse(pdf_bytes, content_type="application/pdf")
+    response["Content-Disposition"] = f'inline; filename="{filename}"'
+    response["Content-Length"] = len(pdf_bytes)
+    return response
