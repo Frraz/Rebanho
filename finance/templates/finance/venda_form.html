@@ -40,7 +40,8 @@
 
         {# ══ Dados da venda ══ #}
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100">
-            <div class="px-6 py-4 border-b border-gray-100 bg-gray-50 rounded-t-2xl">
+            <div class="px-6 py-4 border-b border-gray-100 bg-gray-50 rounded-t-2xl flex items-center gap-2.5">
+                <span class="flex items-center justify-center w-5 h-5 rounded-full bg-gray-200 text-gray-600 text-[11px] font-semibold flex-shrink-0">1</span>
                 <h2 class="text-sm font-semibold text-gray-900 uppercase tracking-wider">Dados da Venda</h2>
             </div>
 
@@ -79,16 +80,51 @@
 
         {# ══ Lotes de animais ══ #}
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-100 bg-gray-50 flex items-center justify-between gap-4">
+            <div class="px-6 py-4 border-b border-gray-100 bg-gray-50 flex items-start justify-between gap-4">
                 <div>
-                    <h2 class="text-sm font-semibold text-gray-900 uppercase tracking-wider">Animais Vendidos</h2>
-                    <p class="mt-0.5 text-xs text-gray-500">
-                        Pode repetir o mesmo tipo em lotes diferentes, com preços por quilo diferentes
-                    </p>
+                    <div class="flex items-center gap-2.5">
+                        <span class="flex items-center justify-center w-5 h-5 rounded-full bg-gray-200 text-gray-600 text-[11px] font-semibold flex-shrink-0">2</span>
+                        <h2 class="text-sm font-semibold text-gray-900 uppercase tracking-wider">Animais Vendidos</h2>
+                    </div>
+
+                    <template x-if="!fazendaEscolhida">
+                        <p class="mt-1.5 ml-[26px] flex items-center gap-1.5 text-xs text-gray-500">
+                            <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            Selecione a fazenda acima para ver os tipos de animais disponíveis
+                        </p>
+                    </template>
+                    <template x-if="fazendaEscolhida && carregandoCategorias">
+                        <p class="mt-1.5 ml-[26px] flex items-center gap-1.5 text-xs text-gray-500">
+                            <svg class="w-3.5 h-3.5 flex-shrink-0 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                            </svg>
+                            Carregando tipos de animais...
+                        </p>
+                    </template>
+                    <template x-if="fazendaEscolhida && !carregandoCategorias && !categorias.length">
+                        <p class="mt-1.5 ml-[26px] flex items-center gap-1.5 text-xs text-amber-600">
+                            <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                            </svg>
+                            Esta fazenda não tem nenhum tipo de animal em estoque no momento
+                        </p>
+                    </template>
+                    <template x-if="fazendaEscolhida && !carregandoCategorias && categorias.length">
+                        <p class="mt-1.5 ml-[26px] text-xs text-gray-500">
+                            Pode repetir o mesmo tipo em lotes diferentes, com preços por quilo diferentes
+                        </p>
+                    </template>
                 </div>
                 <button type="button"
                         @click="adicionarLinha()"
-                        class="inline-flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-xl shadow-sm transition-all flex-shrink-0">
+                        :disabled="!fazendaEscolhida"
+                        :class="fazendaEscolhida ? 'bg-green-600 hover:bg-green-700 cursor-pointer' : 'bg-gray-300 cursor-not-allowed'"
+                        :title="fazendaEscolhida ? '' : 'Selecione a fazenda primeiro'"
+                        class="inline-flex items-center gap-2 px-4 py-2 text-white text-sm font-semibold rounded-xl shadow-sm transition-all flex-shrink-0">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                     </svg>

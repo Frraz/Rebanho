@@ -40,6 +40,10 @@ function formularioVenda(config) {
         totalAnimais: 0,
         totalPeso: 0,
         totalValor: 0,
+        // Estado da fazenda — controla o aviso discreto de "escolha a
+        // fazenda primeiro" e o disable dos campos de tipo de animal.
+        fazendaEscolhida: !!config.fazendaInicial,
+        carregandoCategorias: false,
 
         // ── Ciclo de vida ───────────────────────────────────────────────
 
@@ -54,6 +58,8 @@ function formularioVenda(config) {
 
             if (config.fazendaInicial) {
                 this.carregarCategorias(config.fazendaInicial);
+            } else {
+                this.preencherSelects();
             }
             this.recalcular();
         },
@@ -64,11 +70,16 @@ function formularioVenda(config) {
             var self = this;
 
             if (!fazendaId) {
+                this.fazendaEscolhida = false;
+                this.carregandoCategorias = false;
                 this.categorias = [];
                 this.preencherSelects();
                 this.recalcular();
                 return;
             }
+
+            this.fazendaEscolhida = true;
+            this.carregandoCategorias = true;
 
             fetch(config.categoriasUrl + '?farm=' + encodeURIComponent(fazendaId), {
                 headers: { 'X-Requested-With': 'XMLHttpRequest' },
@@ -77,6 +88,7 @@ function formularioVenda(config) {
                 .then(function (r) { return r.ok ? r.json() : { categorias: [] }; })
                 .then(function (dados) {
                     self.categorias = dados.categorias || [];
+                    self.carregandoCategorias = false;
                     self.preencherSelects();
                     self.recalcular();
                 })
@@ -85,12 +97,26 @@ function formularioVenda(config) {
                     // opções que já estavam na tela e deixamos o servidor
                     // validar o estoque no envio.
                     self.categorias = [];
+                    self.carregandoCategorias = false;
+                    self.preencherSelects();
                 });
         },
 
         preencherSelects: function () {
             var self = this;
             var selects = document.querySelectorAll('#linhas-venda .campo-categoria');
+            var disponivel = self.categorias.length > 0;
+
+            var textoVazio;
+            if (!self.fazendaEscolhida) {
+                textoVazio = 'Escolha a fazenda primeiro';
+            } else if (self.carregandoCategorias) {
+                textoVazio = 'Carregando...';
+            } else if (!disponivel) {
+                textoVazio = 'Nenhum tipo disponível nesta fazenda';
+            } else {
+                textoVazio = 'Selecione o tipo...';
+            }
 
             selects.forEach(function (select) {
                 var escolhido = select.value;
@@ -98,9 +124,7 @@ function formularioVenda(config) {
 
                 var vazio = document.createElement('option');
                 vazio.value = '';
-                vazio.textContent = self.categorias.length
-                    ? 'Selecione o tipo...'
-                    : 'Escolha a fazenda primeiro';
+                vazio.textContent = textoVazio;
                 select.appendChild(vazio);
 
                 self.categorias.forEach(function (cat) {
@@ -124,6 +148,16 @@ function formularioVenda(config) {
                         select.value = escolhido;
                     }
                 }
+
+                // Não desabilita quando já existe uma escolha anterior (ex.:
+                // editar uma venda cuja categoria ficou sem saldo): um
+                // <select disabled> não é enviado no POST, e isso apagaria
+                // silenciosamente esse dado ao salvar.
+                var travar = !disponivel && !escolhido;
+                select.disabled = travar;
+                select.classList.toggle('bg-gray-50', travar);
+                select.classList.toggle('text-gray-400', travar);
+                select.classList.toggle('cursor-not-allowed', travar);
             });
         },
 
