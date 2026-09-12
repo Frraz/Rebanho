@@ -150,7 +150,7 @@
                 {% endif %}
 
                 {% url 'vendas:pdf' as url_pdf %}
-                {% include 'finance/partials/acoes_lista.html' with pdf_url=url_pdf campos_pdf="['q','cliente','fazenda','categoria','situacao','sem_valor','mes_inicio','ano_inicio','mes_fim','ano_fim']" %}
+                {% include 'finance/partials/acoes_lista.html' with pdf_url=url_pdf campos_pdf="['q','cliente','fazenda','categoria','situacao','sem_valor','mes','ano']" %}
             </div>
         </form>
     </div>

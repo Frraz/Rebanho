@@ -3,11 +3,11 @@ Testes do filtro de período das telas financeiras.
 
 Não toca no banco — é lógica de calendário pura.
 
-O caso que motivou boa parte destes testes é o do intervalo invertido: se o
-usuário escolher "Agosto/2026 até Fevereiro/2026", trocar as DATAS já
-calculadas produziria 28/02 como início e 01/08 como fim — um intervalo
-errado. A troca precisa acontecer no par mês/ano, antes de calcular o
-primeiro e o último dia.
+O caso que motivou o teste de "Todos"/"Todos" explícito: o formulário sempre
+manda `mes=` e `ano=` (vazios) quando o usuário escolhe "Todos" nos dois
+selects e envia. Isso precisa ser tratado como uma escolha explícita, não
+como "nada informado" — senão, numa tela com `padrao_mes_atual=True`, o
+usuário nunca conseguiria sair do mês corrente.
 """
 from datetime import date
 
@@ -29,70 +29,70 @@ def _periodo(padrao_mes_atual=False, **params):
     )
 
 
-class TestIntervalo:
-    def test_sem_filtro_nao_limita_nada(self):
+class TestSemFiltro:
+    def test_nada_informado_sem_padrao(self):
         p = _periodo()
         assert (p['inicio'], p['fim']) == (None, None)
         assert p['tem_periodo'] is False
+        assert p['contiguo'] is True
 
-    def test_padrao_e_o_mes_corrente(self):
-        """O relatório de Fluxo Financeiro abre no mês e ano atuais."""
+    def test_nada_informado_com_padrao_usa_mes_atual(self):
+        """O Fluxo Financeiro (e agora Venda e Pagamento) abrem no mês atual."""
         p = _periodo(padrao_mes_atual=True)
         assert p['inicio'] == date(2026, 9, 1)
         assert p['fim'] == date(2026, 9, 30)
+        assert p['mes'] == '9'
+        assert p['ano'] == '2026'
 
-    def test_so_o_inicio_vale_ate_hoje(self):
-        """O cliente pediu explicitamente para poder informar só o início."""
-        p = _periodo(mes_inicio='3', ano_inicio='2026')
-        assert p['inicio'] == date(2026, 3, 1)
-        assert p['fim'] == HOJE
+    def test_todos_explicito_nao_reaplica_o_padrao(self):
+        """Escolher 'Todos' nos dois selects e enviar deve valer, mesmo com padrão."""
+        p = _periodo(padrao_mes_atual=True, mes='', ano='')
+        assert (p['inicio'], p['fim']) == (None, None)
+        assert p['tem_periodo'] is False
 
-    def test_so_o_fim(self):
-        p = _periodo(mes_fim='2', ano_fim='2026')
-        assert p['inicio'] is None
-        assert p['fim'] == date(2026, 2, 28)
 
-    def test_intervalo_completo(self):
-        p = _periodo(mes_inicio='3', ano_inicio='2026', mes_fim='6', ano_fim='2026')
-        assert p['inicio'] == date(2026, 3, 1)
-        assert p['fim'] == date(2026, 6, 30)
-
-    def test_ano_sem_mes_abrange_o_ano(self):
-        p = _periodo(ano_inicio='2025', ano_fim='2025')
+class TestAnoInteiro:
+    def test_so_o_ano_abrange_o_ano_todo(self):
+        p = _periodo(ano='2025')
         assert p['inicio'] == date(2025, 1, 1)
         assert p['fim'] == date(2025, 12, 31)
-
-    def test_virada_de_ano(self):
-        p = _periodo(mes_inicio='12', ano_inicio='2025', mes_fim='1', ano_fim='2026')
-        assert p['inicio'] == date(2025, 12, 1)
-        assert p['fim'] == date(2026, 1, 31)
+        assert p['contiguo'] is True
+        assert p['tem_periodo'] is True
 
 
-class TestIntervaloInvertido:
-    def test_troca_o_par_mes_ano_e_nao_as_datas(self):
-        p = _periodo(mes_inicio='8', ano_inicio='2026', mes_fim='2', ano_fim='2026')
-        assert p['inicio'] == date(2026, 2, 1)
-        assert p['fim'] == date(2026, 8, 31)
+class TestMesEAno:
+    def test_mes_e_ano_especificos(self):
+        p = _periodo(mes='3', ano='2026')
+        assert p['inicio'] == date(2026, 3, 1)
+        assert p['fim'] == date(2026, 3, 31)
+        assert p['contiguo'] is True
 
-    def test_troca_entre_anos_diferentes(self):
-        p = _periodo(mes_inicio='1', ano_inicio='2027', mes_fim='12', ano_fim='2025')
-        assert p['inicio'] == date(2025, 12, 1)
-        assert p['fim'] == date(2027, 1, 31)
+    def test_fevereiro_bissexto(self):
+        p = _periodo(mes='2', ano='2024')
+        assert p['fim'] == date(2024, 2, 29)
 
-    def test_os_selects_refletem_a_troca(self):
-        """A tela precisa mostrar o intervalo que realmente foi aplicado."""
-        p = _periodo(mes_inicio='8', ano_inicio='2026', mes_fim='2', ano_fim='2026')
-        assert (p['mes_inicio'], p['ano_inicio']) == ('2', '2026')
-        assert (p['mes_fim'], p['ano_fim']) == ('8', '2026')
+    def test_fevereiro_comum(self):
+        p = _periodo(mes='2', ano='2026')
+        assert p['fim'] == date(2026, 2, 28)
+
+
+class TestMesSemAno:
+    def test_mes_sem_ano_nao_e_continuo(self):
+        p = _periodo(mes='12')
+        assert (p['inicio'], p['fim']) == (None, None)
+        assert p['contiguo'] is False
+        assert p['tem_periodo'] is True
+        assert p['mes'] == '12'
+        assert p['ano'] == ''
 
 
 class TestEntradaInvalida:
     @pytest.mark.parametrize('params', [
-        {'mes_inicio': 'lixo'},
-        {'ano_inicio': '99999'},
-        {'mes_inicio': '13'},
-        {'mes_inicio': '0'},
-        {'ano_inicio': ''},
+        {'mes': 'lixo'},
+        {'ano': '99999'},
+        {'mes': '13'},
+        {'mes': '0'},
+        {'ano': ''},
     ])
     def test_valor_invalido_e_ignorado(self, params):
         p = _periodo(**params)
@@ -100,31 +100,21 @@ class TestEntradaInvalida:
 
     def test_ano_com_separador_de_milhar(self):
         """USE_THOUSAND_SEPARATOR faz alguns navegadores enviarem '2.026'."""
-        p = _periodo(mes_inicio='5', ano_inicio='2.026')
+        p = _periodo(mes='5', ano='2.026')
         assert p['inicio'] == date(2026, 5, 1)
 
 
-class TestFevereiro:
-    def test_ano_bissexto(self):
-        p = _periodo(mes_inicio='2', ano_inicio='2024', mes_fim='2', ano_fim='2024')
-        assert p['fim'] == date(2024, 2, 29)
-
-    def test_ano_comum(self):
-        p = _periodo(mes_inicio='2', ano_inicio='2026', mes_fim='2', ano_fim='2026')
-        assert p['fim'] == date(2026, 2, 28)
-
-
 class TestRotulo:
-    def test_mes_unico(self):
+    def test_mes_e_ano(self):
         assert rotulo_periodo(_periodo(padrao_mes_atual=True)) == 'Setembro de 2026'
 
-    def test_intervalo(self):
-        p = _periodo(mes_inicio='3', ano_inicio='2026', mes_fim='6', ano_fim='2026')
-        assert rotulo_periodo(p) == 'Março/2026 a Junho/2026'
+    def test_ano_inteiro(self):
+        p = _periodo(ano='2025')
+        assert rotulo_periodo(p) == 'Ano de 2025'
 
     def test_sem_periodo(self):
         assert rotulo_periodo(_periodo()) == 'Todo o período'
 
-    def test_apenas_inicio(self):
-        p = _periodo(mes_inicio='3', ano_inicio='2026')
-        assert rotulo_periodo(p).startswith('Março/2026 a ')
+    def test_mes_sem_ano(self):
+        p = _periodo(mes='12')
+        assert rotulo_periodo(p) == 'Dezembro (todos os anos)'

@@ -39,7 +39,8 @@ POR_PAGINA = 25
 
 def _ler_filtros(request):
     """Lê todos os filtros da tela de vendas de uma vez."""
-    periodo = parse_periodo(request)
+    # O cliente pediu que esta tela também abra no mês e ano atuais.
+    periodo = parse_periodo(request, padrao_mes_atual=True)
     return {
         'busca': request.GET.get('q', '').strip(),
         'cliente_id': request.GET.get('cliente', '').strip(),

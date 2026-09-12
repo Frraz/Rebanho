@@ -79,7 +79,7 @@ def _consultar_fluxo(filtros):
         FinancialEntry.objects
         .select_related('client', 'sale', 'sale__farm', 'payment', 'created_by')
         .prefetch_related('sale__items__animal_category')
-        .order_by('date', 'created_at')
+        .order_by('-date', '-created_at')
     )
     return _aplicar_filtros_fluxo(queryset, filtros)
 
@@ -103,9 +103,12 @@ def _com_saldo_acumulado(lancamentos, cliente_id, periodo):
     Acrescenta a coluna de saldo acumulado.
 
     Só é calculada quando um único cliente está filtrado — somar o extrato de
-    clientes diferentes numa coluna só não significaria nada.
+    clientes diferentes numa coluna só não significaria nada — e quando o
+    período filtrado é um intervalo contínuo: com um mês específico e ano
+    "Todos", os lançamentos não formam uma sequência única, então não há um
+    "saldo antes do período" que faça sentido.
     """
-    if not cliente_id:
+    if not cliente_id or not periodo.get('contiguo'):
         return lancamentos, None
 
     saldo = (
@@ -114,11 +117,20 @@ def _com_saldo_acumulado(lancamentos, cliente_id, periodo):
     )
     inicial = saldo
 
-    for lancamento in lancamentos:
+    # `lancamentos` chega do mais recente para o mais antigo (ordem de
+    # exibição da tela), mas o saldo acumulado precisa ser somado em ordem
+    # cronológica. Como os objetos são os mesmos, basta iterar ao contrário
+    # para calcular — a lista devolvida continua na ordem de exibição.
+    for lancamento in reversed(lancamentos):
         saldo += lancamento.signed_amount
         lancamento.saldo_acumulado = saldo
 
     return lancamentos, inicial
+
+
+def _mostra_acumulado(filtros):
+    """Só mostra a coluna quando há um cliente e o período é contínuo."""
+    return bool(filtros['cliente_id']) and filtros['periodo'].get('contiguo')
 
 
 def _contexto_filtros_fluxo(filtros):
@@ -169,7 +181,7 @@ def fluxo_financeiro_view(request):
         'total_count': paginator.count,
         'totais': totais,
         'saldo_inicial': saldo_inicial,
-        'mostra_acumulado': bool(filtros['cliente_id']),
+        'mostra_acumulado': _mostra_acumulado(filtros),
         'querystring': f'&{codificado}' if codificado else '',
         'cliente_selecionado': (
             Client.objects.filter(pk=filtros['cliente_id']).first()
@@ -198,7 +210,7 @@ def fluxo_financeiro_pdf_view(request):
             'total_count': queryset.count(),
             'totais': totais,
             'saldo_inicial': saldo_inicial,
-            'mostra_acumulado': bool(filtros['cliente_id']),
+            'mostra_acumulado': _mostra_acumulado(filtros),
             'periodo_label': rotulo_periodo(filtros['periodo']),
             'resumo_filtros': _resumo_filtros_fluxo(filtros),
             'user': request.user,

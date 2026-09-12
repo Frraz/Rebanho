@@ -32,7 +32,8 @@ def _ler_filtros(request):
         'busca': request.GET.get('q', '').strip(),
         'cliente_id': request.GET.get('cliente', '').strip(),
         'tipo': request.GET.get('tipo', '').strip(),
-        'periodo': parse_periodo(request),
+        # O cliente pediu que esta tela também abra no mês e ano atuais.
+        'periodo': parse_periodo(request, padrao_mes_atual=True),
     }
 
 

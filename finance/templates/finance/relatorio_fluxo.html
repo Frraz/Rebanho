@@ -112,6 +112,13 @@
             </p>
             {% endif %}
 
+            {% if cliente_filtro and mes_filtro and not ano_filtro %}
+            <p class="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                Com um mês específico e ano "Todos", os lançamentos não formam
+                uma sequência única — por isso o saldo acumulado não é exibido.
+            </p>
+            {% endif %}
+
             <div class="flex flex-wrap items-center gap-3 pt-3 border-t border-gray-100">
                 <button type="submit"
                         class="inline-flex items-center gap-2 px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl transition-all shadow-sm hover:shadow">
@@ -132,7 +139,7 @@
                 </span>
 
                 {% url 'relatorios_financeiros:fluxo_pdf' as url_pdf %}
-                {% include 'finance/partials/acoes_lista.html' with pdf_url=url_pdf campos_pdf="['cliente','categoria','fazenda','natureza','origem','mes_inicio','ano_inicio','mes_fim','ano_fim']" %}
+                {% include 'finance/partials/acoes_lista.html' with pdf_url=url_pdf campos_pdf="['cliente','categoria','fazenda','natureza','origem','mes','ano']" %}
             </div>
         </form>
     </div>
