@@ -1,18 +1,3 @@
-{# ══════════════════════════════════════════════════════════════════════════
-   Busca de cliente com dropdown: mostra a lista inteira ao focar (vazio) e
-   filtra conforme digita. Dois jeitos de usar:
-
-   1) Ligado a um campo de formulário Django (o campo deve ser HiddenInput —
-      quem mostra e edita visualmente é este componente):
-         {% include 'finance/partials/client_picker.html'
-            with field=form.client cliente_atual=objeto.client %}
-
-   2) Solto, fora de um form Django (ex: filtro de listagem em GET) — passa
-      os atributos do campo direto:
-         {% include 'finance/partials/client_picker.html'
-            with field_id='id_cliente_filtro' field_name='cliente' label='Cliente'
-                  required=False initial_value=cliente_filtro cliente_atual=cliente_obj %}
-   ══════════════════════════════════════════════════════════════════════════ #}
 {% firstof field.auto_id field_id as campo_id %}
 {% firstof field.label label 'Cliente' as campo_label %}
 
