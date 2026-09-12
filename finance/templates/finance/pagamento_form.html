@@ -48,10 +48,6 @@
                     {% include 'finance/partials/client_picker.html' with field=form.client cliente_atual=pagamento.client %}
                 </div>
 
-                {# Saldo do cliente escolhido, buscado sob demanda #}
-                {# `load` no gatilho cobre a abertura da tela em modo edição,
-                   quando o cliente já vem escolhido. Sem cliente, o endpoint
-                   devolve vazio e nada aparece. #}
                 <div id="saldo-cliente"
                      hx-get="{% url 'htmx_financeiro:saldo_cliente' %}"
                      hx-trigger="load, change from:#{{ form.client.auto_id }}"

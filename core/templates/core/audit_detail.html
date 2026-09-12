@@ -1,7 +1,6 @@
 {% extends 'base/base.html' %} {% block title %}Auditoria — Detalhe - Sistema de
 Gestão{% endblock %} {% block content %}
 <div class="max-w-3xl mx-auto space-y-5">
-  {# ── Cabeçalho ─────────────────────────────────────────────────── #}
   <div class="flex items-center justify-between">
     <div class="flex items-center gap-3">
       <a
@@ -22,7 +21,6 @@ Gestão{% endblock %} {% block content %}
     </span>
   </div>
 
-  {# ── Dados Principais ──────────────────────────────────────────── #}
   <div
     class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden"
   >
@@ -60,7 +58,6 @@ Gestão{% endblock %} {% block content %}
 
       <div class="px-5 py-3 grid grid-cols-3 gap-4">
         <dt class="text-sm font-medium text-gray-500">Data da Operação</dt>
-        {# ✅ ALTERADO: removido "às H:i:s" — timestamp agora é DateField #}
         <dd class="text-sm text-gray-900 col-span-2">
           {{ movement.timestamp|date:"d/m/Y" }}
         </dd>
@@ -68,10 +65,6 @@ Gestão{% endblock %} {% block content %}
 
       <div class="px-5 py-3 grid grid-cols-3 gap-4">
         <dt class="text-sm font-medium text-gray-500">Registrado em</dt>
-        {# ✅ ALTERADO: removido "às H:i:s" — hora omitida da exibição.
-        created_at mantém DateTimeField (auditoria do sistema). Comparação
-        corrigida: timestamp é DateField (já é date), created_at.date chama
-        .date() no datetime via template engine. #}
         <dd class="text-sm text-gray-500 col-span-2">
           {{ movement.created_at|date:"d/m/Y" }} {% if movement.timestamp !=
           movement.created_at.date %}
