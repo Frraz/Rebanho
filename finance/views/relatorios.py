@@ -75,11 +75,13 @@ def _aplicar_filtros_fluxo(queryset, filtros):
 
 
 def _consultar_fluxo(filtros):
+    # Ordem cronológica crescente: a primeira linha da tabela é o lançamento
+    # mais antigo do período, a última é o mais recente.
     queryset = (
         FinancialEntry.objects
         .select_related('client', 'sale', 'sale__farm', 'payment', 'created_by')
         .prefetch_related('sale__items__animal_category')
-        .order_by('-date', '-created_at')
+        .order_by('date', 'created_at')
     )
     return _aplicar_filtros_fluxo(queryset, filtros)
 
@@ -117,11 +119,10 @@ def _com_saldo_acumulado(lancamentos, cliente_id, periodo):
     )
     inicial = saldo
 
-    # `lancamentos` chega do mais recente para o mais antigo (ordem de
-    # exibição da tela), mas o saldo acumulado precisa ser somado em ordem
-    # cronológica. Como os objetos são os mesmos, basta iterar ao contrário
-    # para calcular — a lista devolvida continua na ordem de exibição.
-    for lancamento in reversed(lancamentos):
+    # `lancamentos` já chega do mais antigo para o mais recente (ordem de
+    # exibição da tela), que é a mesma ordem cronológica em que o saldo
+    # precisa ser somado.
+    for lancamento in lancamentos:
         saldo += lancamento.signed_amount
         lancamento.saldo_acumulado = saldo
 
