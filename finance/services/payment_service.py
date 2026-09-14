@@ -140,8 +140,24 @@ class PaymentService:
 
     @staticmethod
     def _sync_financial_entry(payment, user) -> None:
-        """Um pagamento = um crédito. Refaz do zero para manter a coerência."""
-        payment.entries.all().delete()
+        """
+        Um pagamento = um crédito.
+
+        Atualiza o lançamento existente em vez de apagar e recriar — apagar e
+        recriar reseta `created_at` para o instante da edição, e é esse campo
+        que desempata a ordenação do Fluxo Financeiro quando duas
+        movimentações caem na mesma data.
+        """
+        entry = payment.entries.first()
+
+        if entry:
+            entry.client = payment.client
+            entry.date = payment.date
+            entry.amount = payment.amount
+            entry.description = payment.description or payment.get_payment_type_display()
+            entry.save(update_fields=['client', 'date', 'amount', 'description'])
+            return
+
         FinancialEntry.objects.create(
             client=payment.client,
             date=payment.date,

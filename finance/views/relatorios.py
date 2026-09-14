@@ -170,6 +170,7 @@ def fluxo_financeiro_view(request):
     lancamentos, saldo_inicial = _com_saldo_acumulado(
         list(page_obj.object_list), filtros['cliente_id'], filtros['periodo']
     )
+    mostra_acumulado = _mostra_acumulado(filtros)
 
     params = request.GET.copy()
     params.pop('page', None)
@@ -181,7 +182,13 @@ def fluxo_financeiro_view(request):
         'total_count': paginator.count,
         'totais': totais,
         'saldo_inicial': saldo_inicial,
-        'mostra_acumulado': _mostra_acumulado(filtros),
+        # Saldo do cliente ao final do período inteiro — não só da página
+        # atual, já que `totais['resultado']` soma o queryset filtrado
+        # completo (sem paginação).
+        'saldo_final': (
+            saldo_inicial + totais['resultado'] if mostra_acumulado else None
+        ),
+        'mostra_acumulado': mostra_acumulado,
         'querystring': f'&{codificado}' if codificado else '',
         'cliente_selecionado': (
             Client.objects.filter(pk=filtros['cliente_id']).first()
@@ -202,6 +209,7 @@ def fluxo_financeiro_pdf_view(request):
     lancamentos, saldo_inicial = _com_saldo_acumulado(
         list(queryset[:3000]), filtros['cliente_id'], filtros['periodo']
     )
+    mostra_acumulado = _mostra_acumulado(filtros)
 
     return render_pdf(
         'finance/pdf/fluxo_pdf.html',
@@ -210,7 +218,10 @@ def fluxo_financeiro_pdf_view(request):
             'total_count': queryset.count(),
             'totais': totais,
             'saldo_inicial': saldo_inicial,
-            'mostra_acumulado': _mostra_acumulado(filtros),
+            'saldo_final': (
+                saldo_inicial + totais['resultado'] if mostra_acumulado else None
+            ),
+            'mostra_acumulado': mostra_acumulado,
             'periodo_label': rotulo_periodo(filtros['periodo']),
             'resumo_filtros': _resumo_filtros_fluxo(filtros),
             'user': request.user,

@@ -444,12 +444,27 @@ class SaleService:
         Uma venda tem no máximo um lançamento de débito. Vendas sem preço — o
         caso comum no histórico importado — não geram lançamento nenhum, e
         passam a gerar assim que alguém preencher o valor.
-        """
-        sale.entries.all().delete()
 
-        if sale.status != SaleStatus.ATIVA:
+        Atualiza o lançamento existente em vez de apagar e recriar. Apagar e
+        recriar reseta `created_at` para o instante da edição, e é esse campo
+        que desempata a ordenação do Fluxo Financeiro quando duas
+        movimentações caem na mesma data — editar uma venda antiga fazia ela
+        "pular" para o topo do dia mesmo sendo, na prática, mais antiga que
+        outras entradas daquele mesmo dia.
+        """
+        entry = sale.entries.first()
+
+        if sale.status != SaleStatus.ATIVA or sale.total_amount is None or sale.total_amount <= 0:
+            if entry:
+                entry.delete()
             return
-        if sale.total_amount is None or sale.total_amount <= 0:
+
+        if entry:
+            entry.client = sale.client
+            entry.date = sale.date
+            entry.amount = sale.total_amount
+            entry.description = f"Venda de {sale.total_quantity} animal(is)"
+            entry.save(update_fields=['client', 'date', 'amount', 'description'])
             return
 
         FinancialEntry.objects.create(

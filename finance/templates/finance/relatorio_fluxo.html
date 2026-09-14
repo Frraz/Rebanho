@@ -217,7 +217,11 @@
                         <td colspan="4" class="px-4 py-3 text-sm font-semibold text-gray-700 text-right">Totais do período</td>
                         <td class="px-4 py-3 text-right text-sm font-bold text-red-600">{{ totais.debitos|moeda }}</td>
                         <td class="px-4 py-3 text-right text-sm font-bold text-emerald-600">{{ totais.creditos|moeda }}</td>
-                        {% if mostra_acumulado %}<td></td>{% endif %}
+                        {% if mostra_acumulado %}
+                        <td class="px-4 py-3 text-right text-sm font-bold {{ saldo_final|saldo_classe }}">
+                            {{ saldo_final|saldo_formatado }}
+                        </td>
+                        {% endif %}
                     </tr>
                 </tfoot>
             </table>

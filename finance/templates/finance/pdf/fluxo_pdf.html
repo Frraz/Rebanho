@@ -75,7 +75,11 @@
             <td colspan="4" class="dir">Totais ({{ total_count }} lançamento{{ total_count|pluralize }})</td>
             <td class="dir devendo">{{ totais.debitos|moeda }}</td>
             <td class="dir credito">{{ totais.creditos|moeda }}</td>
-            {% if mostra_acumulado %}<td></td>{% endif %}
+            {% if mostra_acumulado %}
+            <td class="dir neg {% if saldo_final < 0 %}devendo{% else %}credito{% endif %}">
+                {{ saldo_final|saldo_formatado }}
+            </td>
+            {% endif %}
         </tr>
     </tfoot>
 </table>
