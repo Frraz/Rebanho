@@ -8,6 +8,7 @@ from inventory.views.htmx_views import (
     htmx_categorias_entrada,
     htmx_saldo_atual,
 )
+from inventory.views.htmx_saldo_desmame import saldo_desmame_view
 
 app_name = 'htmx'
 
@@ -20,4 +21,7 @@ urlpatterns = [
 
     # Badge de saldo atual (abaixo do campo quantidade)
     path('saldo-atual/',       htmx_saldo_atual,        name='saldo_atual'),
+
+    # Saldos de B. Macho / B. Fêmea da fazenda (formulário de desmame)
+    path('saldo-desmame/',     saldo_desmame_view,      name='saldo_desmame'),
 ]

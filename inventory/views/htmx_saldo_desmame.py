@@ -4,16 +4,13 @@ HTMX View: saldo_desmame
 Endpoint para retornar os saldos de B. Macho e B. Fêmea
 de uma fazenda, usado no formulário de desmame.
 
-Adicione esta view ao seu htmx_views.py existente ou
-importe no urls/htmx.py:
-
-    path('saldo-desmame/', saldo_desmame_view, name='saldo_desmame'),
-
+Registrado em inventory/urls/htmx.py (GET /htmx/saldo-desmame/).
 """
 from django.http import HttpResponse
 from django.template.loader import render_to_string
 from django.contrib.auth.decorators import login_required
 
+from core.http import uuid_param
 from inventory.models import AnimalCategory, FarmStockBalance
 
 
@@ -26,9 +23,9 @@ def saldo_desmame_view(request):
         farm_id: UUID da fazenda
 
     Retorna:
-        HTML partial renderizado (inventory/partials/saldo_desmame.html)
+        HTML partial renderizado (inventory/saldo_desmame.html)
     """
-    farm_id = request.GET.get('farm_id') or request.GET.get('farm')
+    farm_id = uuid_param(request, 'farm_id', 'farm')
 
     saldo_machos = 0
     saldo_femeas = 0
@@ -59,7 +56,7 @@ def saldo_desmame_view(request):
             saldo_femeas = 0
 
     html = render_to_string(
-        'inventory/partials/saldo_desmame.html',
+        'inventory/saldo_desmame.html',
         {
             'farm_id': farm_id,
             'saldo_machos': saldo_machos,

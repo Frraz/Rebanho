@@ -76,9 +76,12 @@ def manual_control_view(request):
 def manual_control_pdf_view(request):
     """Gera o PDF da ficha de controle manual (duas páginas)."""
     farm_id  = request.GET.get('farm', '').strip()
-    month    = int(request.GET.get('month', date.today().month))
-    year_raw = str(request.GET.get('year', date.today().year)).replace(".", "").replace(",", "")
-    year     = int(year_raw)
+    try:
+        month    = int(request.GET.get('month', date.today().month))
+        year_raw = str(request.GET.get('year', date.today().year)).replace(".", "").replace(",", "")
+        year     = int(year_raw)
+    except (ValueError, TypeError):
+        return HttpResponse("Mês ou ano inválido.", status=400)
 
     if not farm_id:
         return HttpResponse("Fazenda não informada.", status=400)

@@ -22,6 +22,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 
+from core.http import uuid_param
 from core.utils.decimal_utils import normalize_pt_br_decimal
 from farms.models import Farm
 from inventory.domain import OperationType
@@ -78,7 +79,8 @@ COMPOSITE_OPERATIONS = {
 
 def _build_filters_context(request) -> dict:
     search = request.GET.get("q", "").strip()
-    farm_id = request.GET.get("farm", "").strip()
+    # UUID inválido na URL é ignorado (lista sem o filtro) em vez de erro.
+    farm_id = str(uuid_param(request, "farm", lenient=True) or "")
     tipo = request.GET.get("tipo", "").strip()
     mes_str = request.GET.get("mes", "").strip()
     ano_str = request.GET.get("ano", "").strip()

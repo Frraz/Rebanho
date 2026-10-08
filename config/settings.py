@@ -65,6 +65,7 @@ MIDDLEWARE = [
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
+    "core.middleware.ValidationErrorAs400",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "simple_history.middleware.HistoryRequestMiddleware",
@@ -336,7 +337,7 @@ LOGGING = {
         },
         "mail_admins": {
             "level": "ERROR",
-            "class": "django.utils.log.AdminEmailHandler",
+            "class": "core.logging_handlers.ThrottledAdminEmailHandler",
             "filters": ["require_debug_false"],
             "formatter": "verbose",
         },
@@ -498,7 +499,7 @@ else:
     EMAIL_USE_SSL = config("EMAIL_USE_SSL", default=False, cast=bool)
     EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="")
     EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
-    EMAIL_TIMEOUT = config("EMAIL_TIMEOUT", default=30, cast=int)
+    EMAIL_TIMEOUT = config("EMAIL_TIMEOUT", default=10, cast=int)
 
     # Fallback para console se não configurado
     if not EMAIL_HOST_USER or not EMAIL_HOST_PASSWORD:
@@ -509,10 +510,19 @@ DEFAULT_FROM_EMAIL = config(
     "DEFAULT_FROM_EMAIL", default=f"{SITE_NAME} <noreply@{SITE_DOMAIN.split(':')[0]}>"
 )
 SERVER_EMAIL = config("SERVER_EMAIL", default=DEFAULT_FROM_EMAIL)
+# Destinatários dos e-mails de erro 500 (mail_admins). Lista separada por
+# vírgula. Vazio = nenhum e-mail de erro é enviado. Placeholders conhecidos
+# (ex.: admin@seudominio.com) são descartados para que stack traces nunca
+# saiam para um domínio de terceiros.
 ADMINS = [
-    ("Admin", config("ADMIN_EMAIL", default="admin@localhost")),
+    ("Admin", _email)
+    for _email in config("ADMIN_EMAILS", default="", cast=Csv())
+    if _email and "seudominio" not in _email and not _email.endswith("@localhost")
 ]
 MANAGERS = ADMINS
+
+# Mascara o CSRF_COOKIE no e-mail de erro (o filtro padrão não o cobre).
+DEFAULT_EXCEPTION_REPORTER_FILTER = "core.error_reporting.MaskCsrfExceptionReporterFilter"
 
 # Email de notificações
 NOTIFICATION_EMAIL_ENABLED = config(

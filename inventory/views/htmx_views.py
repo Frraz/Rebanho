@@ -4,10 +4,16 @@ HTMX Views — Endpoints para interações dinâmicas nos formulários.
 FIX: aceita tanto ?farm_id=X quanto ?farm=X para máxima compatibilidade.
 O form Django envia o campo como 'farm', mas semanticamente chamamos de 'farm_id'.
 """
+import logging
+
 from django.http import HttpResponse
 from django.contrib.auth.decorators import login_required
+from django.utils.html import escape
 
+from core.http import uuid_param
 from inventory.models import AnimalCategory, FarmStockBalance
+
+logger = logging.getLogger(__name__)
 
 
 def _get_farm_id(request):
@@ -15,12 +21,10 @@ def _get_farm_id(request):
     Lê farm_id da query string aceitando dois nomes de parâmetro:
       - farm_id (enviado via hx-vals)
       - farm    (fallback caso venha via hx-include)
-    Retorna string vazia se nenhum estiver presente ou ambos vazios.
+    Retorna None se nenhum estiver presente (ou vazio/"undefined").
+    UUID malformado -> BadRequest (HTTP 400).
     """
-    return (
-        request.GET.get('farm_id', '').strip()
-        or request.GET.get('farm', '').strip()
-    )
+    return uuid_param(request, 'farm_id', 'farm')
 
 
 @login_required
@@ -32,7 +36,7 @@ def htmx_categorias_saida(request):
     GET /htmx/categorias-saida/?farm_id=<uuid>&exclude_category=<uuid>
     """
     farm_id          = _get_farm_id(request)
-    exclude_category = request.GET.get('exclude_category', '').strip()
+    exclude_category = uuid_param(request, 'exclude_category')
 
     if not farm_id:
         return HttpResponse('<option value="">Selecione uma fazenda primeiro</option>')
@@ -55,14 +59,15 @@ def htmx_categorias_saida(request):
         for balance in balances:
             options.append(
                 f'<option value="{balance.animal_category.id}">'
-                f'{balance.animal_category.name} '
+                f'{escape(balance.animal_category.name)} '
                 f'(disponível: {balance.current_quantity})'
                 f'</option>'
             )
         return HttpResponse('\n'.join(options))
 
-    except Exception as e:
-        return HttpResponse(f'<option value="">Erro: {e}</option>')
+    except Exception:
+        logger.exception('Erro ao listar categorias de saída (farm_id=%s)', farm_id)
+        return HttpResponse('<option value="">Erro ao carregar categorias</option>')
 
 
 @login_required
@@ -74,7 +79,7 @@ def htmx_categorias_entrada(request):
     GET /htmx/categorias-entrada/
     GET /htmx/categorias-entrada/?exclude_category=<uuid>
     """
-    exclude_category = request.GET.get('exclude_category', '').strip()
+    exclude_category = uuid_param(request, 'exclude_category')
 
     categories = AnimalCategory.objects.filter(is_active=True).order_by('name')
 
@@ -86,7 +91,7 @@ def htmx_categorias_entrada(request):
 
     options = ['<option value="">Selecione a categoria...</option>']
     for cat in categories:
-        options.append(f'<option value="{cat.id}">{cat.name}</option>')
+        options.append(f'<option value="{cat.id}">{escape(cat.name)}</option>')
 
     return HttpResponse('\n'.join(options))
 
@@ -99,10 +104,7 @@ def htmx_saldo_atual(request):
     GET /htmx/saldo-atual/?farm_id=<uuid>&category_id=<uuid>
     """
     farm_id     = _get_farm_id(request)
-    category_id = (
-        request.GET.get('category_id', '').strip()
-        or request.GET.get('animal_category', '').strip()
-    )
+    category_id = uuid_param(request, 'category_id', 'animal_category')
 
     if not farm_id or not category_id:
         return HttpResponse('')
@@ -140,4 +142,8 @@ def htmx_saldo_atual(request):
             '</span>'
         )
     except Exception:
+        logger.exception(
+            'Erro ao calcular saldo atual (farm_id=%s, category_id=%s)',
+            farm_id, category_id,
+        )
         return HttpResponse('')

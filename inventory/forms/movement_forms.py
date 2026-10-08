@@ -124,10 +124,6 @@ class MovementBaseForm(forms.Form):
             attrs={
                 "class": _SELECT_CSS,
                 "id": "id_animal_category",
-                "hx-get": "/htmx/saldo-atual/",
-                "hx-target": "#saldo-badge",
-                "hx-trigger": "change",
-                "hx-include": '[name="farm"],[name="animal_category"]',
             }
         ),
     )
@@ -186,6 +182,15 @@ class MovementBaseForm(forms.Form):
         super().__init__(*args, **kwargs)
         endpoint = f"/htmx/{self.hx_categoria_endpoint}/"
         self.fields["farm"].widget.attrs["hx-get"] = endpoint
+
+    @property
+    def show_saldo_badge(self):
+        """
+        Só formulários de SAÍDA mostram o saldo disponível. O placeholder
+        #saldo-badge (com o hx-get de /htmx/saldo-atual/) é renderizado por
+        templates/shared/form_field.html abaixo do campo "quantity".
+        """
+        return self.hx_categoria_endpoint == "categorias-saida"
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -271,7 +276,9 @@ class MudancaCategoriaForm(MovementBaseForm):
                 "hx-get": "/htmx/categorias-entrada/",
                 "hx-target": "#id_target_category",
                 "hx-trigger": "change",
-                "hx-vals": 'js:{"exclude_category": this.value}',
+                # No htmx 1.9 o código "js:" roda sem o "this" do elemento
+                # (this = window), então this.value enviava "undefined".
+                "hx-vals": 'js:{"exclude_category": document.getElementById("id_animal_category").value}',
             }
         )
 
@@ -296,6 +303,10 @@ class DesmameForm(forms.Form):
     Desmame com campos separados para machos e fêmeas.
     Não herda de MovementBaseForm (UX completamente diferente).
     """
+
+    # templates/shared/form_field.html renderiza #desmame-saldos abaixo da
+    # fazenda (alvo do hx-get de /htmx/saldo-desmame/).
+    show_desmame_saldos = True
 
     farm = forms.ModelChoiceField(
         queryset=Farm.objects.filter(is_active=True),

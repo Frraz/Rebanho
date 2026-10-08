@@ -81,6 +81,23 @@
         {% endif %}
     </div>
 
+    {# Saldo disponível (formulários de saída) — busca ao carregar e quando a
+       categoria muda ou tem as opções recarregadas pela troca de fazenda #}
+    {% if field.name == 'quantity' and field.form.show_saldo_badge %}
+    <div id="saldo-badge" class="mt-2"
+         hx-get="/htmx/saldo-atual/"
+         hx-trigger="load, change from:#id_animal_category, htmx:afterSwap from:#id_animal_category"
+         hx-include='[name="farm"],[name="animal_category"]'></div>
+    {% endif %}
+
+    {# Saldos de B. Macho / B. Fêmea (formulário de desmame) #}
+    {% if field.name == 'farm' and field.form.show_desmame_saldos %}
+    <div id="desmame-saldos"
+         hx-get="/htmx/saldo-desmame/"
+         hx-trigger="load"
+         hx-include='[name="farm"]'></div>
+    {% endif %}
+
     {# Mensagem de erro #}
     {% if field.errors %}
     <div class="mt-2 flex items-start gap-2">

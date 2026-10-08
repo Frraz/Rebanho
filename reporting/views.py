@@ -12,6 +12,7 @@ import calendar
 from typing import Tuple, List, Optional
 import logging
 
+from core.http import uuid_param
 from farms.models import Farm
 from inventory.models import AnimalCategory
 from reporting.services.farm_report_service import FarmReportService
@@ -135,8 +136,9 @@ def farm_report_view(request):
         months, years = _get_period_selects(today)
         start_date, end_date, month, year = _get_period_from_request(request)
 
-        farm_id     = request.GET.get('farm', '').strip()
-        category_id = request.GET.get('category', '').strip()
+        # UUID inválido na URL é ignorado (formulário sem seleção) em vez de erro.
+        farm_id     = str(uuid_param(request, 'farm', lenient=True) or '')
+        category_id = str(uuid_param(request, 'category', lenient=True) or '')
 
         report = None
         if farm_id:
@@ -185,7 +187,7 @@ def consolidated_report_view(request):
         months, years = _get_period_selects(today)
         start_date, end_date, month, year = _get_period_from_request(request)
 
-        category_id = request.GET.get('category', '').strip()
+        category_id = str(uuid_param(request, 'category', lenient=True) or '')
         gerar       = request.GET.get('gerar')
 
         report = None
@@ -278,8 +280,9 @@ def consolidated_report_pdf_view(request):
     Exporta relatório consolidado como PDF.
     Suporta month=0 para PDF do ano inteiro.
     """
+    # Validado fora do try: UUID inválido é erro do cliente (400), não 500.
+    category_id = str(uuid_param(request, 'category') or '')
     try:
-        category_id = request.GET.get('category', '').strip()
         start_date, end_date, month, year = _get_period_from_request(request)
 
         report = ConsolidatedReportService.generate_consolidated_report(

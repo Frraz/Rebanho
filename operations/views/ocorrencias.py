@@ -24,6 +24,7 @@ from inventory.services import MovementService
 from inventory.domain import OperationType
 from inventory.models import AnimalMovement
 from farms.models import Farm
+from core.http import uuid_param
 from core.utils.decimal_utils import normalize_pt_br_decimal
 
 logger = logging.getLogger(__name__)
@@ -75,7 +76,8 @@ def _redirecionar_para_venda(request, movement, aviso: str):
 def _build_filters_context(request) -> dict:
     search = request.GET.get('q', '').strip()
     tipo = request.GET.get('tipo', '').strip()
-    farm_id = request.GET.get('farm', '').strip()
+    # UUID inválido na URL é ignorado (lista sem o filtro) em vez de erro.
+    farm_id = str(uuid_param(request, 'farm', lenient=True) or '')
     mes_str = request.GET.get('mes', '').strip()
     ano_str = request.GET.get('ano', '').strip()
 
